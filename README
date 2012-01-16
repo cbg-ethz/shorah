@@ -1,0 +1,195 @@
+Full online documentation at:
+https://wiki-bsse.ethz.ch/display/ShoRAH/Documentation
+
+ShoRAH consists of several programs:
+
+dec.py       - local error correction based on diri_sampler
+diri_sampler - Gibbs sampling for Dirichlet process mixture
+contain.cc   - eliminate redundant reads
+mm.py        - maximum matching haplotype construction
+freqEst.cc   - EM algorithm for haplotype frequency
+fas2read.pl  - translates between two formats for read data files
+s2f.py       - multiple sequence alignment of NGS reads
+bam2msa.py   - extracts a multiple sequence alignment from a BAM file
+
+Copyright 2007, 2008, 2009, 2010
+Niko Beerenwinkel,
+Arnab Bhattacharya,
+Nicholas Eriksson,
+Moritz Gerstung,
+Lukas Geyrhofer,
+Osvaldo Zagordi,
+ETH Zurich
+under GPL. See file LICENSE for details.
+The program also includes other software written by third parties.
+This has been distributed according to the licenses provided by the
+respective authors.
+
+
+GENERAL USAGE:
+--------------------------------------------------
+
+Install:
+	type 'make' to build the C++ programs, then run. See INSTALL
+	for additional information.
+
+Run:
+	The whole process can be run one step after the other, or one can
+	invoke shorah.py, that runs the whole process from read	file to
+	frequency estimation. The local analysis alone can be run invoking
+	dec.py or directly diri_sampler. The input must be a fasta file 	with reads or a multiple alignment of the reads in fasta format
+	(.far extension). Shorah uses the program s2f to produce the
+	alignment, or the user copy its alignment to a file with the .far
+	extension and run shorah on it. We also provide a program to
+	extract a multiple sequence alignment from a BAM file.
+
+
+
+S2F.PY
+--------------------------------------------------
+Options:
+  -h, --help            show this help message and exit
+  -f INPUT, --readfile=INPUT
+  -r REF, --ref=REF     
+  -o O, --output=O      output suffix must be '.far' or none for stdout
+  -t THRESHOLD, --threshold=THRESHOLD
+                        if similarity is less, throw reads away...
+                        <default=0.7>
+  -d, --delete_files    delete temporary files <default=False>
+  -n, --no_pad_insert   do not insert padding gaps <default=insert>
+
+Output:
+	The program s2f.py takes as input the file of reads (in fasta
+	format) and the	reference genome. It produces a set of pairwise
+	alignments, then merge them to obtain a multiple one in a file
+	with far extension (file_name.far). This is the input to the
+	subsequent analysis performed with dec.py.
+
+Examples:
+	A sample file has been included for testing purposes,
+	sample_454.fasta and the reference ref_genome.fasta.
+	sample_454.fasta consists of 1000 reads of mean length equal
+	to 310 bp, derived from two haplotypes mixed in 80:20
+	proportion.
+	We recommend moving both files to a different working directory
+	and follow the rule of thumb: "one experiment in one directory".
+	
+	We assume shorah was downloaded in the directory
+	path_to_sho_bin/. The far file can be created  from the fasta file
+	and the reference by invoking
+	[user@host]$ path_to_sho_bin/shorah-0.4/s2f.py -f sample_454.fasta -r ref_genome.fasta -o sample_454.far
+
+	
+
+
+
+
+
+DEC.PY:
+--------------------------------------------------
+Options:
+  -h, --help            show this help message and exit
+  -f F, --readsfile=F   file with reads <.far format>
+  -j J, --iterations=J  iterations in dpm sampling <2000>
+  -a A, --alpha=A       alpha in dpm sampling <0.01>
+  -w W, --windowsize=W  window size <201>
+  -s S, --winshifts=S   number of window shifts <3>
+  -k, --keep_files      keep all intermediate files of diri_sampler
+                        <default=False>
+  -r REF, --ref=REF     reference genome
+  -t THRESHOLD, --threshold=THRESHOLD
+                        if similarity is less, throw reads away...
+                        <default=0.7>
+  -d, --delete_s2f_files
+                        delete temporary align files of s2f.py <default=False>
+  -n, --no_pad_insert   do not insert padding gaps in .far
+                        file<default=insert>
+
+
+Other options
+-------------
+These parameters are controlled by the global variables declared at the beginning of file dec.py. See the relative comments for an explanation.
+IMPORTANT: Since version 0.3 dec.py runs in parallel on multi-processor
+computers. By default it uses all available CPUs, if you want to limit the
+number of parallel processes, edit the variable max_proc in dec.py
+
+Tips:
+	Rerunning on selected windows:
+	When running with option -k, dec.py produces and retains several
+	files in the subdirectory "corrected/" of the form
+	w1-99.reads-cor.fas.gz, where 1 and 99 are, respectively, the
+	beginning and the end of the window under consideration. If the
+	user wishes to rerun dec.py on selected windows only, one should
+	simply delete the corresponding file in the directory "corrected/"
+	NOTE: The error correction implemented in diri_sampler will not run 	for any window whose corresponding file is present in the directory
+	"corrected/".
+	
+	Changing parameters on the fly:
+	If the user wishes to change the number of iterations of
+	diri_sampler (because the burn-in phase is shorter or longer
+	than expected) one can write a file w1-99.iter (again 1 and 99
+	are the boundaries of the window) with a single line that
+	contains the desired number of iterations. Similarly, one can
+	change alpha by writing into a file w1-99.alpha a float with the
+	new value of alpha. While alpha can be increased and decreased by
+	editing the .alpha file without adversely affecting the
+	functioning of the program (but obviously its result), we
+	recommend changing the number of iterations at most once.
+
+	Maximum weight of read objects:
+	The new implementation of diri_sampler clubs identical reads into
+	objects defined by the read sequence and the number of reads in
+	the object. This allows for faster computation, but might
+	introduce a bias into the sampling procedure. One can limit the
+	maximum number of identical reads in a single object by	editing
+	the variable LIMIT in dpm_src/dpm_sampler.h (default is 10000)
+	
+Output:
+	The program dec.py outputs several files. The file sample_cor.fas,	which contains the corrected reads, is passed by shorah (or by the	user) to the following step of the global analysis, fas2read.pl.	dec.py also outputs a file called proposed.dat. It contains the
+	number of proposed new clusters in each window. One should always	make sure that a sufficient number of new cluster has been proposed 	(rule of thumb, at least 0.1 per step or more). When the program is 	run with the -k option, several directories are created. They
+	contain zipped files that report information on the error
+	correction procedure. For a full explanation, see
+	http://wiki-bsse.ethz.ch/display/ShoRAH/Local+analysis
+
+
+
+SHORAH.PY:
+--------------------------------------------------
+
+
+Options:
+  -h, --help            show this help message and exit
+  -f F, --readsfile=F   file with reads <.fas or .far format>
+  -j J, --iterations=J  iterations in dpm sampling <1000>
+  -a A, --alpha=A       alpha in dpm sampling <0.01>
+  -w W, --windowsize=W  window size in <201>
+  -t THRESHOLD, --threshold=THRESHOLD
+                        if similarity is less, throw reads away...
+                        <default=0.7>
+  -n, --no_pad_insert   do not insert padding gaps <default=insert>
+  -r REF, --ref=REF     
+  -s S, --winshifts=S   number of window shifts <3>
+  -k, --keep_files      keep intermediate files (Gibbs sampling)
+                        <default=False>
+
+
+Examples:
+	How to run shorah on the example file described above.
+	[user@host]$ path_to_sho_bin/shorah-0.4/shorah.py -f sample_454.fasta -r ref_genome.fasta -j 1000 -w 90 -a 0.1 -k &> global.log
+	
+
+	
+Output:
+	The final result of the analysis is in the file
+	sample_454_cor.popl, the first lines of which are reported.
+	>HAP0_0.708656
+	TC-AA--A--TCACTCTTTGGCAACGACCCCTTGTC-AC.........[line truncated]
+	>HAP1_0.194
+	TC-TG--A--TCACTCTTTGGCAGCGACCCCTCGTC-AC.........[line truncated]
+
+	This file contains the sequences of the reconstructed haplotypes
+	(reconstructed by the program mm.py) and their frequencies
+	(estimated by the program freqEst. The name of each sentence is in
+	the format HAPn_freq where n is an ordinal number and freq is the
+	frequency. Haplotypes are sorted in descending order according to
+	their frequencies.
