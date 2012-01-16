@@ -1,0 +1,59 @@
+########################################
+# Program: needle
+# Rundate: Mon  9 Jan 2012 15:53:18
+# Commandline: needle
+#    [-asequence] asis:AAGCTCGACTCATCAGCAGCATCAGCAGCATACCAG
+#    [-bsequence] asis:ATCGCAGTCATCAGCATCACAGCATCAGCATACG
+#    -aformat3 markx10
+#    -outfile test.m10
+#    -auto
+# Align_format: markx10
+# Report_file: test.m10
+########################################
+
+#=======================================
+#
+# Aligned_sequences: 2
+# 1: asis
+# 2: asis
+# Matrix: EDNAFULL
+# Gap_penalty: 10.0
+# Extend_penalty: 0.5
+#
+# Length: 40
+# Identity:      26/40 (65.0%)
+# Similarity:    26/40 (65.0%)
+# Gaps:          10/40 (25.0%)
+# Score: 83.0
+# 
+#
+#=======================================
+
+>>>asis, 36 nt vs asis, 34 nt
+; mp_name: EMBOSS
+; mp_ver: 6.4.0.0
+; pg_name: needle
+; pg_ver: 6.4.0.0
+; pg_matrix: EDNAFULL
+; pg_gap-pen: -10.0 -0.5
+>>#1
+; sw_score: 83.0
+; sw_ident: 0.650
+; sw_overlap: 40
+>asis ..
+; sq_len: 36
+; sq_type: D
+; al_start: 1
+; al_stop: 36
+; al_display_start: 1
+AAGCTCG-ACTCATCAGCAGCATCAG---CAGCATACCAG
+>asis ..
+; sq_len: 34
+; sq_type: D
+; al_start: 1
+; al_stop: 34
+; al_display_start: 1
+---ATCGCAGTCATCAGCATCA-CAGCATCAGCATACG--
+
+#---------------------------------------
+#---------------------------------------
