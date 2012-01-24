@@ -514,6 +514,7 @@ def merge_alignment(ref, reads, descriptions, f_output):
     logfun.info('writing reads to file')
     max_end = max(end)
     records = []
+    too_many_flank = 0
     for i in items:
         ID = i[1]
         if len(new_reads[ID]) < max_end:
@@ -524,7 +525,11 @@ def merge_alignment(ref, reads, descriptions, f_output):
         if len_no_flank/len(new_reads[ID]) > 0.8:
             seq_here = Seq(new_reads[ID])
             records.append(SeqRecord(seq_here, id=ID, description=descriptions[ID]))
-    SeqIO.write(records, f_output, 'fasta')
+        else:
+            too_many_flank += 1
+    logfun.info('%d reads with too many flanking gaps' % too_many_flank)
+    written = SeqIO.write(records, f_output, 'fasta')
+    logfun.info('%d reads written to output' % written)
     
     return
 
