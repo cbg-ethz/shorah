@@ -74,6 +74,9 @@ def parse_com_line():
                          type="string", dest="o")
     optparser.add_option("-t","--threshold", help="if similarity is less, throw reads away... <default=0.7>",
                          type="float", dest="threshold", default=0.7)
+    optparser.add_option("-a","--amplicon", help="include only reads whose overlap with the reference is larger than the threshold\
+                         <default=0.0, i.e. deactivated>",
+                         type="float", dest="amplicon", default=0.0)
     optparser.add_option("-d","--delete_files",help="delete temporary files <default=False>",
                          action="store_true", default=False, dest="d")
     optparser.add_option("-p","--pad_insert",help="insert padding gaps <default=not insert>",
@@ -401,7 +404,7 @@ def parse_alignments(threshold):
     return ref, reads, insertions, descriptions, global_ins
 
 
-def pad_alignment(ref, reads, insertions, descriptions, global_ins, f_output):
+def pad_alignment(ref, reads, insertions, descriptions, global_ins, amp_thresh, f_output):
     '''
     '''
     # ##############################
@@ -418,7 +421,7 @@ def pad_alignment(ref, reads, insertions, descriptions, global_ins, f_output):
     begin = {}
     end = []
     pad = '-'
-    fasta_length = 80
+    # fasta_length = 80
 
     for ID in ids:
         to_insert = {}
@@ -459,27 +462,23 @@ def pad_alignment(ref, reads, insertions, descriptions, global_ins, f_output):
     min_begin = min(begin.values())
     max_end = max(end)
     records = []
+    too_many_flank = 0
     for i in items:
         ID = i[0]
-        f_output.write('>read_%s %s \n' % (ID, descriptions[ID]))
-        cc = 0
         if len(new_reads[ID]) < max_end:
-            new_reads[ID] += '-'*(max_end - len(new_reads[ID]))
-        for c in new_reads[ID][min_begin:max_end]:
-            f_output.write(c)
-            cc += 1
-            if cc % fasta_length == 0:
-                f_output.write('\n')
-        if cc % fasta_length != 0:
-                f_output.write('\n')
+            new_reads[ID] += '-'*(max_end - len(new_reads[ID]))        
+        len_no_flank = float(len(new_reads[ID].strip('-')))
+        
+        if len_no_flank/len(new_reads[ID]) > amp_thresh:
+            seq_here = Seq(new_reads[ID])
+            records.append(SeqRecord(seq_here, id=ID, description=descriptions[ID]))
+        else:
+            too_many_flank += 1
+    logfun.info('%d reads with too many flanking gaps (only useful in amplicon analysis)' % too_many_flank)
+    written = SeqIO.write(records, f_output, 'fasta')
+    logfun.info('%d reads written to output' % written)
 
-        seq_here = Seq(new_reads[ID][min_begin:max_end])
-        records.append(SeqRecord(seq_here, id=ID, description=descriptions[ID]))
-    SeqIO.write(records, 'ppp.fasta', 'fasta')
-    return
-
-
-def merge_alignment(ref, reads, descriptions, f_output):
+def merge_alignment(ref, reads, descriptions, amp_thresh, f_output):
     '''
     '''
     from Bio.Seq import Seq
@@ -522,12 +521,12 @@ def merge_alignment(ref, reads, descriptions, f_output):
         
         len_no_flank = float(len(new_reads[ID].strip('-')))
         
-        if len_no_flank/len(new_reads[ID]) > 0.8:
+        if len_no_flank/len(new_reads[ID]) > amp_thresh:
             seq_here = Seq(new_reads[ID])
             records.append(SeqRecord(seq_here, id=ID, description=descriptions[ID]))
         else:
             too_many_flank += 1
-    logfun.info('%d reads with too many flanking gaps' % too_many_flank)
+    logfun.info('%d reads with too many flanking gaps (only useful in amplicon analysis)' % too_many_flank)
     written = SeqIO.write(records, f_output, 'fasta')
     logfun.info('%d reads written to output' % written)
     
@@ -591,10 +590,10 @@ def main(ref_file, in_file, out_file, thresh, pad_insert, keep_files):
     
     if pad_insert:
         logfun.info('pad alignment, insertions are propagated')
-        pad_alignment(ref, reads, insertions, descriptions, global_ins, f_output)
+        pad_alignment(ref, reads, insertions, descriptions, global_ins, amp_thresh, f_output)
     else:
         logfun.info('merge alignment, insertions are not propagated')
-        merge_alignment(ref, reads, descriptions, f_output)
+        merge_alignment(ref, reads, descriptions, amp_thresh, f_output)
         
     try:
         os.remove('tmp_reads_f.fas')
@@ -625,6 +624,7 @@ if __name__ == "__main__":
     out_file = options.o
     thresh = options.threshold
     pad_insert = options.pad
+    amp_thresh = options.amplicon
     try:
         del_files = options.d
         keep_files = False
