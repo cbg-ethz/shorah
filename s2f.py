@@ -218,7 +218,7 @@ def align_strand(al_info):
     in_file = al_info['in_file']
     out_file = al_info['out_file']
     
-    cline = NeedleCommandline(gapopen=6.0, gapextend=3.0)
+    cline = NeedleCommandline(gapopen=10.0, gapextend=1.0)
     cline.asequence = ref_file
     cline.bsequence = in_file
     cline.outfile = out_file
@@ -228,11 +228,11 @@ def align_strand(al_info):
     try:
         retcode = subprocess.call(cml, shell=True)
         if retcode < 0:
-            logfun.info('Child diri_sampler was terminated by signal %d' -retcode)
+            logfun.info('Child needle was terminated by signal %d' -retcode)
         else:
-            logfun.info('Child diri_sampler returned %d' % retcode)
+            logfun.info('Child needle returned %d' % retcode)
     except OSError, ee:
-        logfun.exception('Execution of diri_sampler failed:' + ee)
+        logfun.exception('Execution of needle failed:' + ee)
     
     return
 
@@ -240,8 +240,9 @@ def align_strand(al_info):
 def parse_alignments(threshold):
     '''
     '''
-    
+    import pickle
     from pythonlib.MarkxIO import Markx10Iterator
+    
     counted_ident = []
     
     countreads_afterreverse = 0
@@ -266,7 +267,9 @@ def parse_alignments(threshold):
     pos = 0
 
     logfun.info('parsing the alignments')
-    
+    forw_reads = []
+    rev_reads = []
+
     # iterates through the alignments
     while True:
         
@@ -280,9 +283,9 @@ def parse_alignments(threshold):
         
         #assert f_align.get_all_seqs()[1].id == r_align.get_all_seqs()[1].id, 'same seq back and forward'
         #descr = f_align.get_all_seqs()[1].id
-        descr = list(f_align)[0].id
-        assert descr == list(r_align)[0].id, 'same seq back and forth'
-
+        descr = list(f_align)[1].id
+        assert descr == list(r_align)[1].id, 'same seq back and forth'
+        
         basecount = 0.
         idencount = 0.
         aligned_gaps = 0.
@@ -296,6 +299,7 @@ def parse_alignments(threshold):
             tmp = pair_here[1].seq.tostring().upper()
             refseq = pair_here[0].seq.tostring().upper()
             count_forward += 1
+            forw_reads.append(descr)
         else:
             #tmp = r_align.get_seq_by_num(1).tostring().upper()
             #refseq = r_align.get_seq_by_num(0).tostring().upper()
@@ -303,7 +307,8 @@ def parse_alignments(threshold):
             tmp = pair_here[1].seq.tostring().upper()
             refseq = pair_here[0].seq.tostring().upper()
             count_reverse += 1
-    
+            rev_reads.append(descr)
+            
         assert len(tmp) == len(refseq)
         
         # if ins_check:
@@ -400,7 +405,12 @@ def parse_alignments(threshold):
     if len(reads) != len(ref):
         logfun.exception('%d reads, %d references' % (len(reads), len(ref)))
         sys.exit()
-    
+    fh = open('forward_reads.pck', 'w')
+    rh = open('reverse_reads.pck', 'w')
+    pickle.dump(forw_reads, fh)
+    pickle.dump(rev_reads, rh)
+    fh.close()
+    rh.close()
     return ref, reads, insertions, descriptions, global_ins
 
 
@@ -412,6 +422,7 @@ def pad_alignment(ref, reads, insertions, descriptions, global_ins, amp_thresh, 
     # from the pairwise alignments #
     # ##############################
     import operator
+    from Bio import SeqIO
     from Bio.Seq import Seq
     from Bio.SeqRecord import SeqRecord
     
@@ -454,7 +465,7 @@ def pad_alignment(ref, reads, insertions, descriptions, global_ins, amp_thresh, 
                 begin[ID] = c[0] + len(this_read) + 1
             
         new_reads[ID] = ''.join(this_read)
-        end.append(max(new_reads[ID].rfind(b) for b in alphabet))
+        end.append(max(new_reads[ID].rfind(b) for b in alphabet)+1)
         
     logfun.info('sorting')
     items = sorted(begin.iteritems(), key=operator.itemgetter(1), reverse=False)
@@ -551,6 +562,7 @@ def main(ref_file, in_file, out_file, thresh, pad_insert, keep_files):
             logfun.error('fasta file "%s" not found...' % in_file)
             sys.exit()
     else:
+        print in_file.split('.')[-1]
         logfun.error('format of input-file not supported...')
         sys.exit()
         
