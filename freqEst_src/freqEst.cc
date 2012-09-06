@@ -31,6 +31,7 @@
 #include <cmath>
 #include <map>
 #include <algorithm>
+#include <unistd.h>
 
 using namespace std;
 
