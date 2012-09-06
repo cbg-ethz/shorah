@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2007, 2008, 2009
+# Copyright 2007-2012
 # Niko Beerenwinkel,
 # Nicholas Eriksson,
 # Moritz Gerstung,
@@ -35,18 +35,14 @@ declog = logging.getLogger("DecLog")
 # a common user should not edit above this line #
 #################################################
 # parameters not controlled by command line options
-fasta_length    = 60    # controls line length in fasta files
-tolerance       = 0.1   # the portion of in-dels that are tolerated in a single read
-go_default      = 6.0   # gap_opening penalty in needle alignment
-ge_default      = 3.0   # gap_extension penalty in needle alignment
-amb_thresh      = 2     # reads with more than amb_thresh Ns (ambiguous calls) are discarded
-win_min_ext     = 0.85  # if the read covers at least win_min_ext of the window, fill it with Ns
-verbose         = False # sets verbosity
-hist_fraction   = 0.10  # fraction that goes into the history
-min_quality     = 0.8   # quality under which discard the correction
-min_x_thresh    = 10    # threshold of X in the correction
-max_proc        = 6#None  # number of processors to use in parallel (None => all available)
-init_K          = 20    # initial number of clusters in diri_sampler
+fasta_length = 60   # controls line length in fasta files
+win_min_ext = 0.85  # if read covers at least win_min_ext fraction of
+                    # the window, fill it with Ns
+hist_fraction = 0.20  # fraction that goes into the history
+min_quality = 0.9   # quality under which discard the correction
+min_x_thresh = 10    # threshold of X in the correction
+max_proc = 6  # number of processors used in parallel (None => all available)
+init_K = 20    # initial number of clusters in diri_sampler
 
 # set logging level
 declog.setLevel(logging.DEBUG)
@@ -56,8 +52,10 @@ declog.setLevel(logging.DEBUG)
 
 # This handler writes everything to a file.
 LOG_FILENAME = './dec.log'
-hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w', maxBytes=100000, backupCount=5)
-f = logging.Formatter("%(levelname)s %(asctime)s %(funcName)s %(lineno)d %(message)s")
+hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
+                                          maxBytes=100000, backupCount=5)
+f = logging.Formatter("%(levelname)s %(asctime)s\
+                      %(funcName)s %(lineno)d %(message)s")
 hl.setFormatter(f)
 declog.addHandler(hl)
 
@@ -72,52 +70,16 @@ count['G'] = 0
 count['T'] = 0
 count['X'] = 0
 count['-'] = 0
-clusters  = [ [] ]
-untouched = [ [] ]
+clusters = [[]]
+untouched = [[]]
 
 win_shifts = 3
-keep_all_files  = False
-
-def solve_amb(seq_list):
-    """Use FASTA format description from NCBI
-    to extract a random base from the possible ones
-    A --> adenosine           M --> A C (amino)
-    C --> cytidine            S --> G C (strong)
-    G --> guanine             W --> A T (weak)
-    T --> thymidine           B --> G T C
-    U --> uridine             D --> G A T
-    R --> G A (purine)        H --> A C T
-    Y --> T C (pyrimidine)    V --> G C A
-    K --> G T (keto)          N --> A G C T (any)
-    -  gap of indeterminate length
-    """
-    
-    import random
-    solved_list = []
-    f_code = {}
-    f_code['R'] = ['G', 'A']
-    f_code['Y'] = ['T', 'C']
-    f_code['K'] = ['G', 'T']
-    f_code['M'] = ['A', 'C']
-    f_code['S'] = ['G', 'C']
-    f_code['W'] = ['A', 'T']
-    f_code['B'] = ['G', 'T', 'C']
-    f_code['D'] = ['G', 'A', 'T']
-    f_code['H'] = ['A', 'C', 'T']
-    f_code['V'] = ['G', 'C', 'A']
-    f_code['N'] = ['A', 'G', 'C', 'T']
-
-    for base in seq_list:
-        if base in f_code.keys():
-            solved_list.append( random.choice(f_code[base]) )
-        else:
-            solved_list.append(base)
-    return solved_list
+keep_all_files = False
 
 
 def gzip_file(f_name):
     '''Gzip a file and return the name of the gzipped, removing the original
-    '''
+        '''
     import gzip
     f_in = open(f_name, 'rb')
     f_out = gzip.open(f_name + '.gz', 'wb')
@@ -125,108 +87,58 @@ def gzip_file(f_name):
     f_out.close()
     f_in.close()
     os.remove(f_in.name)
-    
+
     return f_out.name
+
 
 def parse_aligned_reads(reads_file):
     """
-    Parse reads from a file with aligned reads in fasta format
-    """
-    from Bio import SeqIO
-    
-    myformat = 'fasta'
+        Parse reads from a file with aligned reads in fasta format
+        """
     out_reads = {}
-    
+
     if not os.path.isfile(reads_file):
         declog.error('There should be a file here: ' + reads_file)
         sys.exit('There should be a file here: ' + reads_file)
     else:
-        declog.info( 'Using file ' + reads_file + ' of aligned reads')
-    
-    handle = open(reads_file, 'rU')
+        declog.info('Using file ' + reads_file + ' of aligned reads')
+
+    handle = open(reads_file)
     declog.debug('Parsing aligned reads')
-    
-    for this_read in SeqIO.parse(handle, myformat):
-        try:
-            old_length = gen_length
-        except NameError:
-            gen_length = len(this_read.seq)
-            old_length = gen_length
-            declog.info('Alignment is ' + str(gen_length) + ' bases long')
-            
-        gen_length = len(this_read.seq)
-        assert gen_length == old_length, 'All reads must have the same length'
-        
-        mst = this_read.seq.tostring()
-        mls = list( mst )
-        
-        for c in mls:
-            if c != '-' and c != 'X':
-                mstart = mls.index(c) + 1
-                break
-        mstop = len ( mst.rstrip('-X') )
-        
-        # counts the gaps in the read (no flanking gaps)
-        # gaps_match = mst.strip('-X').count('-')
-        
-        name = this_read.id
-        out_reads[name] = [ None, None, None, None, [] ]
-        out_reads[name][0] = 0 # 
-        out_reads[name][1] = gen_length # 
-        out_reads[name][2] = mstart # this is
-        out_reads[name][3] = mstop  # this too
-        
-        this_m = list( mst.strip('-X') )
-        amb_calls = 0
-        
-        for i in range(len(this_m)):
-            out_reads[name][4].append(this_m[i])
-            
-            if this_m[i] == 'N':
-                amb_calls = amb_calls + 1
-                # declog.debug('Found an N in ' + name)
-        
-        if amb_calls > amb_thresh:
-            declog.warning('Read ' + name + ' has too many Ns')
-            del out_reads[name]
+
+    for h in handle:
+        name, start, stop, mstart, mstop, this_m = h.rstrip().split('\t')
+        out_reads[name] = [None, None, None, None, []]
+        out_reads[name][0] = int(start)
+        out_reads[name][1] = int(stop)
+        out_reads[name][2] = int(mstart)  # this is
+        out_reads[name][3] = int(mstop)   # this too
+        out_reads[name][4] = this_m
 
     return out_reads
 
 
-def print_window(wlist):
-    '''
-    Considers only the read overlapping a given window and prints them aligned
-    '''
-    wstart, wend, reads = wlist[0], wlist[1], wlist[2]
-    raw_name = './w%d-%d.reads.fas' % (wstart, wend)
-    wind_file = open(raw_name, 'w')
-    
-    rn = 0
-    min_overlap = round( (wend - wstart + 1) * win_min_ext )
-    for r in reads:
-        rstart = reads[r][2]
-        k = len(reads[r][4]) # trailing Ns have already been stripped
-        if rstart <= wstart and rstart + k - 1 >= wend:
-            overlap = wend - wstart + 1
-        elif rstart >= wstart and rstart + k - 1 <= wend:
-            overlap = k
-        elif rstart <= wstart and rstart + k - 1 <= wend:
-            overlap = rstart + k - wstart
-        elif rstart >= wstart and rstart + k - 1 >= wend:
-            overlap = wend - rstart + 1
-        
-        if overlap > min_overlap:
-            rn = rn + 1
-            wind_file.write( '>%s %d\n' % (r, reads[r][0]) )
-            for i in range(wstart, wend+1):
-                if i < rstart or i > rstart + k-1:
-                    wind_file.write('N')
-                else:
-                    wind_file.write( '%s' % reads[r][4][i-rstart] )
-                wind_file.flush()
-            wind_file.write('\n')
-    wind_file.close()
-    return rn
+def windows(run_settings):
+    """run b2w to make windows from bam
+    """
+    import subprocess
+    bam, fasta, w, i, m, x, reg = run_settings
+    dn = os.path.dirname(__file__)
+    my_prog = os.path.join(dn, 'b2w')
+    my_arg = ' -w %i -i %i -m %i -x %i %s %s %s' % \
+        (w, i, m, x, bam, fasta, reg)
+
+    try:
+        retcode = subprocess.call(my_prog + my_arg, shell=True)
+        if retcode < 0:
+            declog.error('%s %s' % (my_prog, my_arg))
+            declog.error('b2w returned %i' % retcode)
+        else:
+            declog.debug('Finished making windows')
+            declog.debug('b2w returned %i' % retcode)
+    except OSError, ee:
+        declog.error('Execution of b2w failed: %s' % ee)
+    return retcode
 
 
 def run_dpm(run_setting):
@@ -237,65 +149,31 @@ def run_dpm(run_setting):
     filein, j, a = run_setting
     dn = os.path.dirname(__file__)
     my_prog = os.path.join(dn, 'diri_sampler')
-    my_arg =  ' -i %s -j %i -t %i -a %f -K %d' % (filein, j, int(j*hist_fraction), a, init_K)
-    
+    my_arg = ' -i %s -j %i -t %i -a %f -K %d' % \
+        (filein, j, int(j * hist_fraction), a, init_K)
+
     try:
         #os.remove('./corrected.tmp' )
         os.remove('./assignment.tmp')
     except:
         pass
-    
+
     # runs the gibbs sampler for the dirichlet process mixture
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
         if retcode < 0:
             declog.error('%s %s' % (my_prog, my_arg))
-            declog.error('Child diri_sampler was terminated by signal %d' % -retcode)
+            declog.error('Child %s terminated by SIG %d' % (my_prog, -retcode))
         else:
             declog.debug('run %s finished' % my_arg)
-            declog.debug('Child diri_sampler returned %i' % retcode)
+            declog.debug('Child %s returned %i' % (my_prog, retcode))
     except OSError, ee:
-        declog.error('Execution of diri_sampler failed: %s' % ee)
-    
+        declog.error('Execution of %s failed: %s' % (my_prog, ee))
+
     return
 
 
-def seq_2_fas(in_stem): # To be finished
-    """ From Solexa _seq.txt files to fasta format
-    """
-
-    fas_handle = open('%s_reads.fas' % in_stem, 'w')
-    
-    declog.info('Converting files written in %s.seq' % in_stem + ' to fasta format')
-    
-    # print len( open('%s.seq' % in_stem, 'rU').readlines() ), ' _seq.txt files are to be read'
-    
-    file_names = open('%s.seq' % in_stem, 'rU')
-    for line in file_names:
-        this_seq = line.strip()
-        
-        file_seq = open(this_seq, 'rU')
-        index = 0
-        for line_seq in file_seq:
-            line_entries = line_seq.split()
-            if not line_entries:
-                continue
-            fas_handle.write( '>%s-read_%i\n' % (this_seq, index) )
-            index = index + 1
-            cc = 0
-            read = line_entries[4]
-            
-            for c in read:
-                fas_handle.write(c)
-                cc = cc + 1
-                if cc % fasta_length == 0:
-                    fas_handle.write('\n')
-            if cc % fasta_length != 0:
-                    fas_handle.write('\n')
-    return
-
-
-def correct_reads(wstart, wend):
+def correct_reads(chr, wstart, wend):
     ''' Parses corrected reads (in fasta format) and correct the reads
     '''
     # out_reads[match_rec.id][0] = qstart
@@ -303,36 +181,42 @@ def correct_reads(wstart, wend):
     # out_reads[match_rec.id][2] = mstart
     # out_reads[match_rec.id][3] = mstop
     # out_reads[match_rec.id][4] = Sequence...
-    
+
     from Bio import SeqIO
     import gzip
     try:
-        if os.path.exists('corrected/w%d-%d.reads-cor.fas.gz' % (wstart, wend)):
-            cor_file = 'corrected/w%d-%d.reads-cor.fas.gz' % (wstart, wend)
+        if os.path.exists('corrected/w-%s-%s-%s.reads-cor.fas.gz' %
+                          (chr, wstart, wend)):
+            cor_file = 'corrected/w-%s-%s-%s.reads-cor.fas.gz' % \
+                (chr, wstart, wend)
             handle = gzip.open(cor_file)
         else:
-            cor_file = 'w%d-%d.reads-cor.fas' % (wstart, wend)
+            cor_file = 'w-%s-%s-%s.reads-cor.fas' % (chr, wstart, wend)
             handle = open(cor_file, 'rb')
-            
+
         for seq_record in SeqIO.parse(handle, 'fasta'):
             assert '\0' not in seq_record.seq.tostring(), 'binary file!!!'
-            read_id = seq_record.id # read_name_rule.search(seq_record.id).group(1)
+            read_id = seq_record.id
             try:
-                correction[read_id][wstart] = list( seq_record.seq.tostring() )
-                quality[read_id][wstart] = float(seq_record.description.split('|')[1].split('=')[1])
-                assert quality[read_id][wstart] <= 1.0, 'try: quality must be < 1, %s' % cor_file
+                correction[read_id][wstart] = list(seq_record.seq.tostring())
+                quality[read_id][wstart] = \
+                    float(seq_record.description.split('|')[1].split('=')[1])
+                assert quality[read_id][wstart] <= 1.0, \
+                    'try: quality must be < 1, %s' % cor_file
             except KeyError:
                 correction[read_id] = {}
                 quality[read_id] = {}
-                correction[read_id][wstart] = list( seq_record.seq.tostring() )
-                quality[read_id][wstart] = float(seq_record.description.split('|')[1].split('=')[1])
-                assert quality[read_id][wstart] <= 1.0, 'except: quality must be < 1, %s' % cor_file
+                correction[read_id][wstart] = list(seq_record.seq.tostring())
+                quality[read_id][wstart] = \
+                    float(seq_record.description.split('|')[1].split('=')[1])
+                assert quality[read_id][wstart] <= 1.0, \
+                    'except: quality must be < 1, %s' % cor_file
         handle.close()
         return
     except IOError:
-        declog.warning('No reads in window %d?' % wstart)
+        declog.warning('No reads in window %s?' % wstart)
         return
-    
+
 
 def get_prop(filename):
     """
@@ -351,13 +235,13 @@ def get_prop(filename):
                 break
         h.close()
         return prop
-    except:# IOError, UnboundLocalError:
+    except:  # IOError, UnboundLocalError:
         return 'not found'
-        
+
 
 def base_break(baselist):
     """
-    """
+        """
     import random
 
     for c1 in count:
@@ -365,7 +249,7 @@ def base_break(baselist):
     for c in baselist:
         if c.upper() != 'N':
             count[c.upper()] += 1
-        
+
     maxm = 0
     out = []
     for b in count:
@@ -376,127 +260,127 @@ def base_break(baselist):
             out.append(b)
 
     rc = random.choice(out)
-    
+
     return rc
 
-def win_to_run(aligned_reads, step, win_shifts):
-    '''returns window that need to be run on diri_sampler
-    '''
-    import gzip
-    import shutil
-    import subprocess
 
+def win_to_run(alpha):
+    '''returns windows to run on diri_sampler
+        '''
     rn_list = []
-    print_list = []
-    gen_length = aligned_reads[aligned_reads.keys()[0]][1]
-    single_sh = step/win_shifts
-    for sh in range(win_shifts):
-        shift = sh * single_sh
-        win_list = [ [s+shift, s+shift+step-1, aligned_reads] for s in range(1, gen_length+1, step) ]
-        
-        for rw in win_list:
-            wstart = rw[0]
-            wstop = rw[1]
-            fst = 'w%d-%d.reads.fas' % (wstart, wstop)
-            fstgz = 'raw_reads/%s.gz' % fst
-            corgz = 'corrected/w%d-%d.reads-cor.fas.gz' % (wstart, wstop)
-            if os.path.exists(corgz):
+    try:
+        file = open('coverage.txt')
+    except IOError:
+        sys.exit('Coverage file generated by b2w not found.')
+
+    for f in file:
+        winFile, chr, beg, end, cov = f.rstrip().split('\t')
+        j = int(cov) * 15
+        if j > 300000:
+            j = 300000
+        stem = winFile.split('-reads')[0]
+        fstgz = 'raw_reads/%s-reads.gz' % stem
+        corgz = 'corrected/%s-reads-cor.fas.gz' % stem
+        if os.path.exists(corgz):
+            continue
+        else:
+            rn_list.append((winFile, j, alpha))
+            if os.path.exists(winFile):
                 continue
-            else:
-                rn_list.append(fst)
-                if os.path.exists(fst):
-                    continue
-                elif os.path.exists(fstgz):
-                    shutil.move('raw_reads/%s.gz' % fst, './')
-                    subprocess.check_call(["gunzip", "%s.gz" % fst])
-                    print_list.append(rw)
-                else:
-                    print_list.append(rw)
+            elif os.path.exists(fstgz):
+                shutil.move('raw_reads/%s-reads.gz' % stem, './')
+                subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
-    return print_list, rn_list
+    return rn_list
 
 
-def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
+def main(in_bam, in_fasta, step, win_shifts, max_coverage, sigma,
+         region, keep_all_files, alpha):
     '''
-    Performs the error correction analysis, running diri_sampler
-    and analyzing the result
-    '''
+        Performs the error correction analysis, running diri_sampler
+        and analyzing the result
+        '''
     from multiprocessing import Pool
     import shutil
     import glob
-    
+
     if step % win_shifts != 0:
         sys.exit('Window size must be divisible by win_shifts')
-        
-    if win_min_ext < 1/float(win_shifts):
-        declog.warning('Warning: some bases might not be covered by any window')
-        
-    assert os.path.isfile(fas_reads), "File '%s' not found" % fas_reads
-    
-    aligned_reads = parse_aligned_reads(fas_reads)
+
+    if win_min_ext < 1 / float(win_shifts):
+        declog.warning('Some bases might not be covered by any window')
+
+    if max_coverage / step < 1:
+        sys.exit('Please increase max_coverage')
+
+    incr = step / win_shifts
+    max = max_coverage / step
+
+    if not os.path.isfile(in_bam):
+        sys.exit("File '%s' not found" % in_bam)
+
+    if not os.path.isfile(in_fasta):
+        sys.exit("File '%s' not found" % in_fasta)
+
+    #run b2w
+    retcode = windows((in_bam, in_fasta, step, incr,
+                       win_min_ext * step, max, region))
+    if retcode is not 0:
+        sys.exit()
+
+    aligned_reads = parse_aligned_reads('reads.fas')
     r = aligned_reads.keys()[0]
     gen_length = aligned_reads[r][1] - aligned_reads[r][0]
-   
+
     if step > gen_length:
-        sys.exit('The window size must be smaller than the genome length')
- 
-    declog.info('%s reads are being considered' %  len(aligned_reads))
-    # declog.info('The others discarded because of too many in-dels or ambiguous calls (Ns)')
-    # print '\n'
-    
+        sys.exit('The window size must be smaller than the genome region')
+
+    declog.info('%s reads are being considered' % len(aligned_reads))
+
     for k in aligned_reads.keys():
         to_correct[k] = [None, None, None, None, []]
         to_correct[k][0] = aligned_reads[k][0]
         to_correct[k][1] = aligned_reads[k][1]
         to_correct[k][2] = aligned_reads[k][2]
         to_correct[k][3] = aligned_reads[k][3]
-        to_correct[k][4] = [] # aligned_reads[k][4][:]
+        to_correct[k][4] = []  # aligned_reads[k][4][:]
 
     ############################################
     # Now the windows and the error correction #
     ############################################
-    
-    # get the new length of the aligned genome (with gaps)
-    # maybe there is a more elegant solution....
-    gen_length = aligned_reads[aligned_reads.keys()[0]][1]
-    
-    printlist, runlist = win_to_run(aligned_reads, step, win_shifts)
-    rlist = [[r, iters, alpha] for r in runlist]
-    for p in printlist:
-        declog.debug('window from %d to %d' % (p[0], p[1]))
-    
-    # prepare all windows
-    pool = Pool(processes=max_proc)
-    rn_list = pool.map(print_window, printlist)
-    
+
+    runlist = win_to_run(alpha)
+
     # run diri_sampler on all available processors
     pool = Pool(processes=max_proc)
-    pool.map(run_dpm, rlist)
-    
+    pool.map(run_dpm, runlist)
+
     # prepare directories
     if keep_all_files:
-        for sd_name in ['debug', 'sampling', 'freq', 'support', 'corrected', 'raw_reads']:
+        for sd_name in ['debug', 'sampling', 'freq', 'support',
+                        'corrected', 'raw_reads']:
             try:
                 os.mkdir(sd_name)
             except OSError:
                 pass
-    
+
     # parse corrected reads
-    proposed= {}
-    single_sh = step/win_shifts
-    for sh in range(win_shifts):
-        declog.info('reading windows for shift %d' % sh)
-        
-        shift = sh * single_sh
-        for s in range(1, gen_length+1, step):
-            correct_reads(s+shift, s+shift+step-1)
-            stem = 'w%d-%d' % (s+shift, s+shift+step-1)
-            declog.info('this is window %s' % stem)
-            dbg_file = stem + '.dbg'
-            # if os.path.exists(dbg_file):
-            proposed[s+shift] = get_prop(dbg_file)
-            declog.info('there were %s proposed' % str(proposed[s+shift]))
-            
+    proposed = {}
+    for i in runlist:
+        winFile, j, a = i
+        parts = winFile.split('-')
+        chr = parts[1]
+        beg = parts[2]
+        end = parts[3].split('.')[0]
+        declog.info('reading windows for start position %s' % beg)
+        correct_reads(chr, beg, end)
+        stem = 'w-%s-%s-%s' % (chr, beg, end)
+        declog.info('this is window %s' % stem)
+        dbg_file = stem + '.dbg'
+        # if os.path.exists(dbg_file):
+        proposed[beg] = (get_prop(dbg_file), j)
+        declog.info('there were %s proposed' % str(proposed[beg][0]))
+
     # (re)move intermediate files
     if not keep_all_files:
         tr_files = glob.glob('./w*reads.fas')
@@ -510,7 +394,7 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
         tr_files.extend(glob.glob('./w*reads-support.fas'))
         for trf in tr_files:
             if os.stat(trf).st_size == 0:
-                os.remove(trf)                        
+                os.remove(trf)
     else:
         for dbg_file in glob.glob('./w*dbg'):
             if os.stat(dbg_file).st_size > 0:
@@ -578,7 +462,6 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
             else:
                 os.remove(raw_file)
 
-                    
     ############################################
     ##      Print the corrected reads         ##
     ##
@@ -587,7 +470,7 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
     # ##########################################
     reason = [0, 0, 0]
     declog.info('now correct')
-    
+
     creads = 0
     storestore = []
     for r in to_correct:
@@ -596,9 +479,9 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
         creads += 1
         if creads % 500 == 0:
             declog.info('considered %d corrected reads' % creads)
-        rlen = len(aligned_reads[r][4]) # length of original read
-        rst = aligned_reads[r][2] # read start in the far file
-        
+        rlen = len(aligned_reads[r][4])  # length of original read
+        rst = aligned_reads[r][2]  # read start in the reference
+
         corrstore = []
         for rpos in range(rlen):
             this = []
@@ -613,9 +496,11 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
                     tc = correction[r][cst][tp]
                     this.append(tc)
                     corrstore.append(rpos)
-                    
-            if len(this) > 0: cb = base_break(this)
-            else: cb = 'X'
+
+            if len(this) > 0:
+                cb = base_break(this)
+            else:
+                cb = 'X'
             to_correct[r][4].append(cb)
             del this
     ##     ccst = []
@@ -630,9 +515,9 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
     ##     storestore.append(len(ccst))
     ## print storestore
 
-   # print reason
+    # print reason
     ccx = {}
-    cin_stem = os.path.split(fas_reads)[1].split('.')[0]
+    cin_stem = os.path.split(in_bam)[1].split('.')[0]
     fch = open('%s.cor.fas' % cin_stem, 'w')
     for r in to_correct:
         cor_read = ''.join(to_correct[r][4])
@@ -641,7 +526,8 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
         cx = to_correct[r][4].count('X') - init_x - fin_x
         ccx[cx] = ccx.get(cx, 0) + 1
         if cx <= min_x_thresh and cor_read.lstrip('-X') != '':
-            fch.write('>%s %d\n' % (r, to_correct[r][2] + init_x))
+            fch.write('>%s %d\n' % (r, to_correct[r][2] +
+                                    init_x - to_correct[r][0]))
             cc = 0
             for c in cor_read.lstrip('-X'):
                 if c != 'X':
@@ -650,61 +536,88 @@ def main(fas_reads, step, win_shifts, keep_all_files, iters, alpha):
                     cc = cc + 1
                     if cc % fasta_length == 0:
                         fch.write('\n')
-                        
+
             if cc % fasta_length != 0:
                 fch.write('\n')
     fch.close()
-    
- #   for k, v, in ccx.items():
-  #      print k, v
-        
+
+    #   for k, v, in ccx.items():
+    #      print k, v
+
     # write proposed_per_step to file
     ph = open('proposed.dat', 'w')
     ph.write('#base\tproposed_per_step\n')
     for kp in sorted(proposed.iterkeys()):
         if proposed[kp] != 'not found':
-            ph.write('%s\t%f\n' % (kp, float(proposed[kp])/iters))
+            ph.write('%s\t%f\n' %
+                     (kp, float(proposed[kp][0]) / proposed[kp][1]))
     ph.close()
 
 if __name__ == "__main__":
-    
+
     import optparse
     # parse command line
     optparser = optparse.OptionParser()
-    
-    optparser.add_option("-f", "--readsfile", help="file with reads <.far format>",
+
+    optparser.add_option("-b", "--bam",
+                         help="file with aligned reads <.bam format>",
+                         default="", type="string", dest="b")
+
+    optparser.add_option("-f", "--fasta",
+                         help="reference genome in fasta format.",
                          default="", type="string", dest="f")
-    optparser.add_option("-j", "--iterations", help="iterations in dpm sampling <2000>",
-                         default=2000, type="int", dest="j")
-    optparser.add_option("-a", "--alpha", help="alpha in dpm sampling <0.01>",
+
+    optparser.add_option("-a", "--alpha",
+                         help="alpha in dpm sampling <0.01>",
                          default=0.01, type="float", dest="a")
+
     optparser.add_option("-w", "--windowsize", help="window size <201>",
                          default=201, type="int", dest="w")
-    optparser.add_option("-s", "--winshifts", help="number of window shifts <3>",
-                         default=3, type="int", dest="s") # window shifts, such that each base is covered up to win_shifts times
-    optparser.add_option("-k","--keep_files", help="keep all intermediate files of diri_sampler <default=False>",
+
+    optparser.add_option("-s", "--winshifts",
+                         help="number of window shifts <3>",
+                         default=3, type="int", dest="s")
+
+    optparser.add_option("-i", "--sigma",
+                         help="value of sigma to use when calling SNVs",
+                         default=0.01, type="string", dest="i")
+
+    optparser.add_option("-x", "--maxcov",
+                         help="approximate maximum coverage allowed",
+                         default=10000, type="int", dest="x")
+
+    optparser.add_option("-r", "--region",
+                         help="region in format 'chr:start-stop', \
+                         eg 'ch3:1000-3000'",
+                         default='', type="string", dest="r")
+
+    optparser.add_option("-k", "--keep_files",
+                         help="keep all intermediate files <default=False>",
                          action="store_true", dest="k", default=False)
-    optparser.add_option("-r","--ref", help="reference genome",
-                         type="string", default="", dest="ref")
-    optparser.add_option("-t","--threshold", help="if similarity is less, throw reads away... <default=0.7>",
+
+    optparser.add_option("-t", "--threshold",
+                         help="if similarity < threshold, \
+                         throw read away <default=0.7>",
                          type="float", dest="threshold", default=0.7)
-    optparser.add_option("-d","--delete_s2f_files",help="delete temporary align files of s2f.py <default=False>",
-                         action="store_true", default=False, dest="d")
-    optparser.add_option("-n","--no_pad_insert",help="do not insert padding gaps in .far file<default=insert>",
-                         action="store_false", default=True, dest="pad")
-                         
+    #    optparser.add_option("-d","--delete_s2f_files",
+    #    help="delete temporary align files of s2f.py <default=False>",
+    #    action="store_true", default=False, dest="d")
+    #    optparser.add_option("-n", "--no_pad_insert",
+    #    help="do not insert padding gaps in .far file<default=insert>",
+    #    action="store_false", default=True, dest="pad")
+
     (options, args) = optparser.parse_args()
-    
+
     supported_formats = {
-        'fas': 'fasta_reads',
-        'far': 'fasta_aligned_reads'
-        # 'seq': 'solexa_genome_analyzer_seq'
-        }
+        'bam': 'aligned reads',
+        'fasta': 'reference genome'
+    }
     declog.info(' '.join(sys.argv))
     # check the input file is in supported format
     try:
-        tmp_filename = os.path.split(options.f)[1]
-        [in_stem, in_format]  = [tmp_filename.split('.')[0], tmp_filename.split('.')[-1]]
+        tmp_filename = os.path.split(options.b)[1]
+        [in_stem, in_format] = [tmp_filename.split('.')[0],
+                                tmp_filename.split('.')[-1]]
         t = supported_formats[in_format]
     except IndexError:
         declog.error('The input file must be filestem.format')
@@ -721,21 +634,13 @@ if __name__ == "__main__":
             print sf[0], ':', sf[1]
         sys.exit()
 
-    if in_format != 'far':
-        import s2f
-        ref_file = options.ref
-        out_file = os.path.join(os.getcwd(), in_stem+'.far')
-        thresh = options.threshold
-        pad_insert = options.pad
-        declog.debug('running s2f.py')
-        s2f.main(ref_file, options.f, out_file, thresh, pad_insert, keep_all_files)
-        fas_reads = out_file
-    else:
-        fas_reads = options.f
-
+    in_bam = options.b
+    in_ref = option.f
     keep_all_files = options.k
     step = options.w
     win_shifts = options.s
-    iters = options.j
+    sigma = options.j
     alpha = options.a
-    main(fas_reads, step, win_shifts, keep_all_files, iters, alpha)
+    region = options.r
+    main(in_bam, in_ref, step, win_shifts, max_coverage, sigma,
+         region, keep_all_files, alpha)
