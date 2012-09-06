@@ -1,5 +1,5 @@
 /*
-# Copyright 2007, 2008, 2009, 2010
+# Copyright 2007-2012
 # Niko Beerenwinkel,
 # Arnab Bhattacharya,
 # Nicholas Eriksson,
@@ -52,7 +52,7 @@ using namespace std;
 #define PROPHISTSIZE 100
 int main(int argc, char** argv){
   
-  unsigned int i, j, k, ll, K1=0, iter2, mesh, tot_untouch, new_proposed=0;
+  unsigned int i, j, k, ll, K1=0, iter2, tot_untouch, new_proposed=0;
   int dk1, hapbases;
   int* p;
   cnode* tn;
@@ -112,9 +112,7 @@ int main(int argc, char** argv){
   if (pbase == NULL) exit(EXIT_FAILURE);
   log_pbase = (double*) malloc(B * sizeof(double)); 
   if (log_pbase == NULL) exit(EXIT_FAILURE);
-  
-  mesh = 1;//iter/100;
-  
+
   read_data(filein, stat_file);
   ftable = (int**) calloc(J, sizeof(int*));
   ftable_sum = new int[J];
@@ -1272,9 +1270,9 @@ ssret* sample_class(unsigned int i, unsigned int step){
   gsl_ran_discrete_t* g;
   cnode* cn;
   rnode* rn = NULL;
-  double min_log_P, max_log_P, delta_log;
+  double max_log_P, delta_log;
   //  unsigned int class_id;
-  int read_came_from_current;
+  //  int read_came_from_current;
   int* temp;
   temp = new int[J/10+1];
 #ifdef DEBUG
@@ -1369,15 +1367,15 @@ ssret* sample_class(unsigned int i, unsigned int step){
   while (cn != NULL){
     if(cn->size > 0) {
       sz = cn->size;
-      read_came_from_current = 0;
+//      read_came_from_current = 0;
       if(removed == 0){
 	if(c_ptr[i] != NULL && cn == c_ptr[i]->next) {
 	  sz--;
-	  read_came_from_current = 1;
+//	  read_came_from_current = 1;
 	}
 	if(c_ptr[i] == NULL && cn == mxt) {
 	  sz--;
-	  read_came_from_current = 1;
+//	  read_came_from_current = 1;
 	}
       }
       
@@ -1451,7 +1449,7 @@ ssret* sample_class(unsigned int i, unsigned int step){
   cl_ptr[st] = NULL;
   
   max_log_P = *max_element(log_P, log_P+st); //! renormalization
-  min_log_P = *min_element(log_P, log_P+st); //! renormalization
+  //  min_log_P = *min_element(log_P, log_P+st); //! renormalization
 
   if (max_log_P >= 0)
     delta_log = -max_log_P;//0.5 * (min_log_P + max_log_P);
