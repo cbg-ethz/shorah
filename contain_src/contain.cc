@@ -6,11 +6,12 @@
  * output: basename.rest
  * both in the format "start_pos read_string"
  *
- # Copyright 2007, 2008, 2009
+ # Copyright 2007-2012
  # Niko Beerenwinkel,
  # Nicholas Eriksson,
  # Moritz Gerstung,
  # Lukas Geyrhofer,
+ # Kerensa McElroy
  # Osvaldo Zagordi,
  # ETH Zurich
  
