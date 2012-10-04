@@ -458,9 +458,9 @@ int main (int argc, char **argv) {
 	ofstream outfile(outfilename.c_str());
 	//outfile.open (outfilename.c_str());
 
-	getHaplotypes(ginfile,haplotypes);
+	getHaplotypes(ginfile, haplotypes);
 
-	getReads(infile,origReads, haplotypes);
+	getReads(infile, origReads, haplotypes);
 
 
 	// uniq reads
