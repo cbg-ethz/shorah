@@ -109,7 +109,7 @@ $(LIB_BAM): Makefile
 .PHONY : clean doc
 
 clean:
-	rm -rf $(OBJS_1) $(EXE_1) $(EXE_2) $(EXE_3) $(EXE_2).dSYM $(EXE_3).dSYM *pyc ./*pyc
+	rm -rf $(OBJS_1) $(EXE_1) $(EXE_2) $(EXE_3) $(EXE_4) $(EXE_5) $(EXE_2).dSYM $(EXE_3).dSYM *pyc ./*pyc
 	for i in $(SUBDIRS); do \
 	( cd $$i ; make clean ; cd ../ ) ;\
 	done
