@@ -40,7 +40,7 @@ declog = logging.getLogger("DecLog")
 # a common user should not edit above this line #
 #################################################
 # parameters not controlled by command line options
-fasta_length = 60   # controls line length in fasta files
+fasta_length = 80   # controls line length in fasta files
 win_min_ext = 0.85  # if read covers at least win_min_ext fraction of
                     # the window, fill it with Ns
 hist_fraction = 0.20  # fraction that goes into the history
@@ -80,7 +80,7 @@ untouched = [[]]
 
 def gzip_file(f_name):
     '''Gzip a file and return the name of the gzipped, removing the original
-        '''
+    '''
     import gzip
     f_in = open(f_name, 'rb')
     f_out = gzip.open(f_name + '.gz', 'wb')
@@ -93,9 +93,8 @@ def gzip_file(f_name):
 
 
 def parse_aligned_reads(reads_file):
+    """Parse reads from a file with aligned reads
     """
-        Parse reads from a file with aligned reads in fasta format
-        """
     out_reads = {}
 
     if not os.path.isfile(reads_file):
@@ -220,29 +219,32 @@ def correct_reads(chr_c, wstart, wend):
 
 
 def get_prop(filename):
-    """
-    fetch the number of proposed clusters from .dbg file
+    """fetch the number of proposed clusters from .dbg file
     """
     import gzip
-    try:
-        if not os.path.exists(filename):
-            filename = 'debug/%s.gz' % filename
-            h = gzip.open(filename, 'rb')
-        else:
-            h = open(filename)
-        for l in h:
-            if l.startswith('#made'):
-                prop = int(l.split()[1])
-                break
-        h.close()
-        return prop
-    except IOError:  # UnboundLocalError:
+
+    if os.path.exists(filename):
+        h = open(filename)
+    elif os.path.exists(filename + '.gz'):
+        h = gzip.open(filename + '.gz')
+    elif os.path.exists('debug/' + filename):
+        h = open('debug/' + filename)
+    elif os.path.exists('debug/' + filename + '.gz'):
+        h = gzip.open('debug/' + filename + '.gz')
+    else:
         return 'not found'
+
+    for l in h:
+        if l.startswith('#made'):
+            prop = int(l.split()[1])
+            break
+    h.close()
+    return prop
 
 
 def base_break(baselist):
     """break the tie if different corrections are found
-        """
+    """
     import random
 
     for c1 in count:
@@ -267,7 +269,7 @@ def base_break(baselist):
 
 def win_to_run(alpha_w):
     '''returns windows to run on diri_sampler
-        '''
+    '''
     import shutil
     import subprocess
 
@@ -280,9 +282,9 @@ def win_to_run(alpha_w):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 15)
-        stem = winFile.split('-reads')[0]
-        fstgz = 'raw_reads/%s-reads.gz' % stem
-        corgz = 'corrected/%s-reads-cor.fas.gz' % stem
+        stem = winFile.split('.reads')[0]
+        fstgz = 'raw_reads/%s.reads.fas.gz' % stem
+        corgz = 'corrected/%s.reads-cor.fas.gz' % stem
         if os.path.exists(corgz):
             continue
         else:
@@ -290,7 +292,7 @@ def win_to_run(alpha_w):
             if os.path.exists(winFile):
                 continue
             elif os.path.exists(fstgz):
-                shutil.move('raw_reads/%s-reads.gz' % stem, './')
+                shutil.move('raw_reads/%s.reads.fas.gz' % stem, './')
                 subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
     del(end)
     del(beg, chr1)
@@ -330,7 +332,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     retcode = windows((in_bam, in_fasta, win_length, incr,
                        win_min_ext * win_length, max_c, region))
     if retcode is not 0:
-        sys.exit()
+        sys.exit('b2w run not successful')
 
     aligned_reads = parse_aligned_reads('reads.fas')
     r = aligned_reads.keys()[0]
@@ -374,10 +376,10 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     for i in runlist:
         winFile, j, a = i
         del(a)  # in future alpha might be different on each window
-        parts = winFile.split('-')
-        chrom = parts[1]
-        beg = parts[2]
-        end = parts[3].split('.')[0]
+        parts = winFile.split('.')[0].split('-')
+        chrom = '-'.join(parts[1:-2])
+        beg = parts[-2]
+        end = parts[-1]
         declog.info('reading windows for start position %s' % beg)
         correct_reads(chrom, beg, end)
         stem = 'w-%s-%s-%s' % (chrom, beg, end)
