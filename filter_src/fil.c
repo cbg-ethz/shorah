@@ -16,8 +16,8 @@ adapted from samtools/calDep.c
 using namespace std;
 
 typedef struct {
-    int pos,pos1,SNP,forwM,revM,forwT,revT;
-    double sig,pval;
+    int pos, pos1, SNP, forwM, revM, forwT, revT;
+    double sig, pval;
     char nuc;
     samfile_t *in;
 } tmpstruct_t;
@@ -71,20 +71,45 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n,
         double beta;
         double sigma = tmp->sig;
         double prMut;
-        int m = st_freq_Mut['f']+st_freq_Mut['r']; //total reads with variant
+        int m = st_freq_Mut['f'] + st_freq_Mut['r']; //total reads with variant
         int k;
-        double tail=0.0;
-        alpha = mean/sigma;   //alpha and beta for beta binomial
-        beta = (1-mean)/sigma; 
-        if (fr<mean) {
-            for (k=0; k<=st_freq_Mut['f']; k++){
-                tail += gsl_sf_exp((gsl_sf_lngamma((double)m+1)-gsl_sf_lngamma((double)k+1)-gsl_sf_lngamma((double)m-(double)k+1)+gsl_sf_lngamma((1/sigma))+gsl_sf_lngamma((double)k+(mean*(1/sigma)))+gsl_sf_lngamma((double)m+((1-mean)/sigma)-(double)k)-gsl_sf_lngamma(mean*(1/sigma))-gsl_sf_lngamma((1-mean)/sigma)-gsl_sf_lngamma((double)m+(1/sigma))));   //calculate cumulative distribution
+        double tail = 0.0;
+        alpha = mean / sigma;   //alpha and beta for beta binomial
+        beta = (1 - mean) / sigma;
+        cerr << mean << "\t" << sigma << "\t" << alpha << "\t" << beta << endl;
+        if (fr < mean) {
+            for (k = 0; k <= st_freq_Mut['f']; k++){
+                tail += gsl_sf_exp(
+                        (gsl_sf_lngamma((double)m + 1) -
+                         gsl_sf_lngamma((double)k + 1) -
+                         gsl_sf_lngamma((double)m - (double)k + 1) +
+                         gsl_sf_lngamma(1 / sigma) +
+                         gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
+                         gsl_sf_lngamma((double)m + ((1 - mean) / sigma) -
+                                        (double)k) -
+                         gsl_sf_lngamma(mean * (1 / sigma)) -
+                         gsl_sf_lngamma((1 - mean) / sigma) -
+                         gsl_sf_lngamma((double)m + (1 / sigma))
+                         )
+                                   );   //calculate cumulative distribution
 
                 }
             }
-        else { 
-            for (k=st_freq_Mut['f'];k<=m;k++) {
-                tail += gsl_sf_exp((gsl_sf_lngamma((double)m+1)-gsl_sf_lngamma((double)k+1)-gsl_sf_lngamma((double)m-(double)k+1)+gsl_sf_lngamma((1/sigma))+gsl_sf_lngamma((double)k+(mean*(1/sigma)))+gsl_sf_lngamma((double)m+((1-mean)/sigma)-(double)k)-gsl_sf_lngamma(mean*(1/sigma))-gsl_sf_lngamma((1-mean)/sigma)-gsl_sf_lngamma((double)m+(1/sigma)))); //the other tail, if required
+        else {
+            for (k = st_freq_Mut['f']; k <= m; k++) {
+                tail += gsl_sf_exp(
+                        (gsl_sf_lngamma((double)m + 1) -
+                         gsl_sf_lngamma((double)k + 1) -
+                         gsl_sf_lngamma((double)m - (double)k + 1) +
+                         gsl_sf_lngamma(1 / sigma) +
+                         gsl_sf_lngamma((double)k + (mean *(1 / sigma))) +
+                         gsl_sf_lngamma((double)m + ((1 - mean) / sigma) -
+                                        (double)k) -
+                         gsl_sf_lngamma(mean * (1 / sigma)) -
+                         gsl_sf_lngamma((1 - mean) / sigma) -
+                         gsl_sf_lngamma((double)m + (1 / sigma))
+                         )
+                                   ); //the other tail, if required
 
                 }
             }
