@@ -84,7 +84,7 @@ static int fetch_func1(const bam1_t *b, void *data)
             }
         if (overlap >= tmp->min_overlap) {
             char rd[wSize+1]; //store blank read segment of 'N's
-            for (int i=0;i<wSize;i++){
+            for (int i=0; i<wSize; i++){
                 rd[i]='N';
                 }
             rd[wSize]=0;
