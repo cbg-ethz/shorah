@@ -4,10 +4,6 @@
 #include <stdio.h>
 #include <zlib.h>
 
-#ifdef _WIN32
-#define drand48() ((double)rand() / RAND_MAX)
-#endif
-
 #include "ksort.h"
 KSORT_INIT_GENERIC(uint64_t)
 
@@ -123,10 +119,8 @@ void *bed_read(const char *fn)
 			if (ks_getuntil(ks, 0, str, &dret) > 0 && isdigit(str->s[0])) {
 				beg = atoi(str->s); // begin
 				if (dret != '\n') {
-					if (ks_getuntil(ks, 0, str, &dret) > 0 && isdigit(str->s[0])) {
+					if (ks_getuntil(ks, 0, str, &dret) > 0 && isdigit(str->s[0]))
 						end = atoi(str->s); // end
-						if (end < beg) end = -1;
-					}
 				}
 			}
 		}
