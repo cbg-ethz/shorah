@@ -21,8 +21,7 @@ Please download and install:
   instructions.
 - GSL (GNU scientific library) from http://www.gnu.org/software/gsl/,
   installation is described in the included README and INSTALL files.
-- ncurses (required by samtools). If you don't have/don't want to install
-  it, see samtools/INSTALL
+- ncurses (required by samtools).
 
 INSTALLATION
 ------------
