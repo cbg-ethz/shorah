@@ -78,14 +78,20 @@ def parseWindow(line, ref1):
     del([winFile, cov])
     filename = 'w-%s-%s-%s.reads-support.fas' % (chrom, beg, end)
 
-    try:
+    if os.path.exists(filename):
+        pass
+    elif os.path.exists('support/' + filename):
+        filename = 'support/' + filename
+    elif os.path.exists('support/' + filename + '.gz'):
+        filename = 'support/' + filename + '.gz'
+    elif os.path.exists(filename + '.gz'):
+        filename = filename + '.gz'
+
+    if filename.endswith('.gz'):
+        window = gzip.open(filename)
+    else:
         window = open(filename)
-    except IOError:
-        window = open('support/' + filename)
-    except IOError:
-        window = gzip.open('support/' + filename + '.gz')
-    except IOError:
-        window = gzip.open(filename + '.gz')
+
     b = int(beg) - 1
     e = int(end)
     refSlice = ref1[chrom][b:e]
