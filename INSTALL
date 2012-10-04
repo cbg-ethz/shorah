@@ -21,18 +21,17 @@ Please download and install:
   instructions.
 - GSL (GNU scientific library) from http://www.gnu.org/software/gsl/,
   installation is described in the included README and INSTALL files.
-
+- ncurses (required by samtools). If you don't have/don't want to install
+  it, see samtools/INSTALL
 
 INSTALLATION
 ------------
 
 Download and extract the gzipped tar archive (shorah-0.x.tar.gz). Change to the
-extracted directory, and then to the samtools directory. Run make. Then change 
-back to the extracted directory, and run make again.
+extracted directory, run make.
 
-Running make should be sufficient in most cases. In case
-the gsl library is not located in the standard location,
-you may have to edit the lines indicated in Makefile.
+This should be sufficient in most cases. In case the gsl library is not located
+in the standard location, you may have to edit the lines indicated in Makefile.
 
 
 ISSUES
