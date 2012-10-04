@@ -40,7 +40,7 @@
   @copyright Genome Research Ltd.
  */
 
-#define BAM_VERSION "0.1.18 (r982:295)"
+#define BAM_VERSION "0.1.16 (r963:234)"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -134,25 +134,20 @@ typedef struct {
 /*
   CIGAR operations.
  */
-/*! @abstract CIGAR: M = match or mismatch*/
+/*! @abstract CIGAR: match */
 #define BAM_CMATCH      0
-/*! @abstract CIGAR: I = insertion to the reference */
+/*! @abstract CIGAR: insertion to the reference */
 #define BAM_CINS        1
-/*! @abstract CIGAR: D = deletion from the reference */
+/*! @abstract CIGAR: deletion from the reference */
 #define BAM_CDEL        2
-/*! @abstract CIGAR: N = skip on the reference (e.g. spliced alignment) */
+/*! @abstract CIGAR: skip on the reference (e.g. spliced alignment) */
 #define BAM_CREF_SKIP   3
-/*! @abstract CIGAR: S = clip on the read with clipped sequence
-  present in qseq */
+/*! @abstract CIGAR: clip on the read with clipped sequence present in qseq */
 #define BAM_CSOFT_CLIP  4
-/*! @abstract CIGAR: H = clip on the read with clipped sequence trimmed off */
+/*! @abstract CIGAR: clip on the read with clipped sequence trimmed off */
 #define BAM_CHARD_CLIP  5
-/*! @abstract CIGAR: P = padding */
+/*! @abstract CIGAR: padding */
 #define BAM_CPAD        6
-/*! @abstract CIGAR: equals = match */
-#define BAM_CEQUAL        7
-/*! @abstract CIGAR: X = mismatch */
-#define BAM_CDIFF        8
 
 /*! @typedef
   @abstract Structure for core alignment information.

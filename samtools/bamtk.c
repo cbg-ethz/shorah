@@ -9,6 +9,7 @@
 #endif
 
 int bam_taf2baf(int argc, char *argv[]);
+int bam_pileup(int argc, char *argv[]);
 int bam_mpileup(int argc, char *argv[]);
 int bam_merge(int argc, char *argv[]);
 int bam_index(int argc, char *argv[]);
@@ -26,9 +27,9 @@ int main_cut_target(int argc, char *argv[]);
 int main_phase(int argc, char *argv[]);
 int main_cat(int argc, char *argv[]);
 int main_depth(int argc, char *argv[]);
-int main_bam2fq(int argc, char *argv[]);
 
 int faidx_main(int argc, char *argv[]);
+int glf3_view_main(int argc, char *argv[]);
 
 static int usage()
 {
@@ -38,6 +39,7 @@ static int usage()
 	fprintf(stderr, "Usage:   samtools <command> [options]\n\n");
 	fprintf(stderr, "Command: view        SAM<->BAM conversion\n");
 	fprintf(stderr, "         sort        sort alignment file\n");
+	fprintf(stderr, "         pileup      generate pileup output\n");
 	fprintf(stderr, "         mpileup     multi-way pileup\n");
 	fprintf(stderr, "         depth       compute the depth\n");
 	fprintf(stderr, "         faidx       index/extract FASTA\n");
@@ -47,6 +49,7 @@ static int usage()
 	fprintf(stderr, "         index       index alignment\n");
 	fprintf(stderr, "         idxstats    BAM index stats (r595 or later)\n");
 	fprintf(stderr, "         fixmate     fix mate information\n");
+	fprintf(stderr, "         glfview     print GLFv3 file\n");
 	fprintf(stderr, "         flagstat    simple stats\n");
 	fprintf(stderr, "         calmd       recalculate MD/NM tags and '=' bases\n");
 	fprintf(stderr, "         merge       merge sorted alignments\n");
@@ -77,6 +80,7 @@ int main(int argc, char *argv[])
 	if (argc < 2) return usage();
 	if (strcmp(argv[1], "view") == 0) return main_samview(argc-1, argv+1);
 	else if (strcmp(argv[1], "import") == 0) return main_import(argc-1, argv+1);
+	else if (strcmp(argv[1], "pileup") == 0) return bam_pileup(argc-1, argv+1);
 	else if (strcmp(argv[1], "mpileup") == 0) return bam_mpileup(argc-1, argv+1);
 	else if (strcmp(argv[1], "merge") == 0) return bam_merge(argc-1, argv+1);
 	else if (strcmp(argv[1], "sort") == 0) return bam_sort(argc-1, argv+1);
@@ -85,6 +89,7 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "faidx") == 0) return faidx_main(argc-1, argv+1);
 	else if (strcmp(argv[1], "fixmate") == 0) return bam_mating(argc-1, argv+1);
 	else if (strcmp(argv[1], "rmdup") == 0) return bam_rmdup(argc-1, argv+1);
+	else if (strcmp(argv[1], "glfview") == 0) return glf3_view_main(argc-1, argv+1);
 	else if (strcmp(argv[1], "flagstat") == 0) return bam_flagstat(argc-1, argv+1);
 	else if (strcmp(argv[1], "calmd") == 0) return bam_fillmd(argc-1, argv+1);
 	else if (strcmp(argv[1], "fillmd") == 0) return bam_fillmd(argc-1, argv+1);
@@ -93,11 +98,6 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "targetcut") == 0) return main_cut_target(argc-1, argv+1);
 	else if (strcmp(argv[1], "phase") == 0) return main_phase(argc-1, argv+1);
 	else if (strcmp(argv[1], "depth") == 0) return main_depth(argc-1, argv+1);
-	else if (strcmp(argv[1], "bam2fq") == 0) return main_bam2fq(argc-1, argv+1);
-	else if (strcmp(argv[1], "pileup") == 0) {
-		fprintf(stderr, "[main] The `pileup' command has been removed. Please use `mpileup' instead.\n");
-		return 1;
-	}
 #if _CURSES_LIB != 0
 	else if (strcmp(argv[1], "tview") == 0) return bam_tview_main(argc-1, argv+1);
 #endif
