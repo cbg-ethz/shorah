@@ -26,8 +26,7 @@ ShoRAH consists of several programs, the most imporant of which are:
 
 > `shorah.py`    - wrapper for everything
 
-## General usage:
-======
+## General usage
 
 ### Install
 
