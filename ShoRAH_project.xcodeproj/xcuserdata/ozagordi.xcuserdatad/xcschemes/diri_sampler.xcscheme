@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6CF29E8F1609D864009A5355"
-               BuildableName = "samtools"
-               BlueprintName = "samtools"
-               ReferencedContainer = "container:samtools.xcodeproj">
+               BlueprintIdentifier = "6C3A62B814C57E32002E92F9"
+               BuildableName = "diri_sampler"
+               BlueprintName = "diri_sampler"
+               ReferencedContainer = "container:ShoRAH_project.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

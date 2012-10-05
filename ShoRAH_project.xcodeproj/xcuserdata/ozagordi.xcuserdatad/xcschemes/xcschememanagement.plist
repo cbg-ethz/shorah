@@ -4,15 +4,15 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>samtools.xcscheme</key>
+		<key>diri_sampler.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>1</integer>
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>6CF29E8F1609D864009A5355</key>
+		<key>6C3A62B814C57E32002E92F9</key>
 		<dict>
 			<key>primary</key>
 			<true/>
