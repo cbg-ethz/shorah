@@ -1,3 +1,5 @@
 # Lines starting with '#' are considered comments.
 *.pyc
 *.o
+
+.DS_Store
