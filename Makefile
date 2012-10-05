@@ -6,7 +6,6 @@ hostname := $(shell hostname)
 whoami := $(shell whoami)
 host-type := $(shell uname)
 CCFLAGS = -pedantic -Wall -Wextra -O3# -ffast-math -funroll-loops# -m32 -DDEBUG
-WFLAGS =
 OLIBS = 
 CPP = g++
 SUBDIRS = ./samtools
@@ -50,7 +49,7 @@ LIB_BAM = samtools/libbam.a
 	@echo '*********************************'
 	@echo '   making object: $@ '
 	@echo '*********************************'
-	$(CPP) $(CFLAGS) $(WFLAGS) $(XLIBS) -c $< -o $@
+	$(CPP) $(CFLAGS) $(XLIBS) -c $< -o $@
 
 all: $(EXE_1) $(EXE_2) $(EXE_3) $(LIB_SAMTOOLS) $(EXE_4) $(EXE_5)
 
@@ -69,7 +68,7 @@ $(EXE_2): $(SRC_2) Makefile #contain
 	@echo '*********************************'
 	@echo ' making executable: $@ '
 	@echo '*********************************'
-	$(CPP) $(FLAGS_2) $(SRC_2) -o $(EXE_2)
+	$(CPP) $(SRC_2) -o $(EXE_2) $(FLAGS_2)
 
 	@echo '*******************'
 	@echo 'compiled for $(host-type)'
@@ -79,7 +78,7 @@ $(EXE_3): $(SRC_3) Makefile #freqEst
 	@echo '*********************************'
 	@echo ' making executable: $@ '
 	@echo '*********************************'
-	$(CPP) $(FLAGS_3) $(SRC_3) -o $(EXE_3)
+	$(CPP) $(SRC_3) -o $(EXE_3) $(FLAGS_3)
 
 	@echo '*******************'
 	@echo 'compiled for $(host-type)'
@@ -89,14 +88,14 @@ $(EXE_4): $(SRC_4) $(LIB_BAM) Makefile #b2w
 	@echo '*********************************'
 	@echo ' making executable: $@ '
 	@echo '*********************************'
-	$(CPP) $(SRC_4) $(CFLAGS) $(FLAGS_4) -o $(EXE_4)
+	$(CPP) $(SRC_4) -o $(EXE_4) $(CFLAGS) $(FLAGS_4)
 	
 $(EXE_5): $(SRC_5) Makefile #fil
 	@echo ''
 	@echo '*********************************'
 	@echo ' making executable: $@ '
 	@echo '*********************************'
-	$(CPP) $(SRC_5) $(CFLAGS) $(FLAGS_5) -o $(EXE_5)
+	$(CPP) $(SRC_5) -o $(EXE_5) $(CFLAGS) $(FLAGS_5)
 
 $(LIB_BAM): Makefile
 	@echo ''
