@@ -8,15 +8,15 @@ Full online documentation available [here]
 
 ShoRAH consists of several programs, the most imporant of which are
 
-* dec.py       - local error correction based on diri_sampler
-* diri_sampler - Gibbs sampling for error correction via Dirichlet
-process mixture
-* contain      - removal of redundant reads
-* mm.py        - maximum matching haplotype construction
-* freqEst      - EM algorithm for haplotype frequency
-* snv.py       - detects single nucleotide variants, taking strand bias into
-account
-* shorah.py    - wrapper for everything
+>* `dec.py`       - local error correction based on diri_sampler
+>* `diri_sampler` - Gibbs sampling for error correction via Dirichlet
+>process mixture
+>* `contain`      - removal of redundant reads
+>* `mm.py`        - maximum matching haplotype construction
+>* `freqEst`      - EM algorithm for haplotype frequency
+>* `snv.py`       - detects single nucleotide variants, taking strand bias into
+>account
+>* `shorah.py`    - wrapper for everything
 
 GENERAL USAGE:
 ======
