@@ -6,19 +6,21 @@ Repo for the software suite ShoRAH (Short Reads Assembly into Haplotypes)
 Full online documentation available [here]
 (https://wiki-bsse.ethz.ch/display/ShoRAH/Documentation)
 
-ShoRAH consists of several programs, the most imporant of which are
+If you use shorah, please cite the application note paper _Zagordi et al._ on
+[BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
->* `dec.py`       - local error correction based on diri_sampler
->* `diri_sampler` - Gibbs sampling for error correction via Dirichlet
+ShoRAH consists of several programs, the most imporant of which are:
+> `dec.py`       - local error correction based on diri_sampler
+> `diri_sampler` - Gibbs sampling for error correction via Dirichlet
 >process mixture
->* `contain`      - removal of redundant reads
->* `mm.py`        - maximum matching haplotype construction
->* `freqEst`      - EM algorithm for haplotype frequency
->* `snv.py`       - detects single nucleotide variants, taking strand bias into
+> `contain`      - removal of redundant reads
+> `mm.py`        - maximum matching haplotype construction
+> `freqEst`      - EM algorithm for haplotype frequency
+> `snv.py`       - detects single nucleotide variants, taking strand bias into
 >account
->* `shorah.py`    - wrapper for everything
+> `shorah.py`    - wrapper for everything
 
-GENERAL USAGE:
+## General usage:
 ======
 
 ### Install
