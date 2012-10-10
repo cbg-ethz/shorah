@@ -1,6 +1,20 @@
 # Lines starting with '#' are considered comments.
+####
+# object files
 *.pyc
+pythonlib/*.pyc
 *.o
+*dSYM
+
+####
+# binary
+b2w
+contain
+diri_sampler
+fil
+freqEst
+samtools/libbam.a
+
 
 #####
 # OS X temporary files that should never be committed
