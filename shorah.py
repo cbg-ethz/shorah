@@ -5,6 +5,7 @@
 # Nicholas Eriksson,
 # Moritz Gerstung,
 # Lukas Geyrhofer,
+# Kerensa McElroy,
 # Osvaldo Zagordi,
 # ETH Zurich
 
@@ -112,12 +113,20 @@ if __name__ == "__main__":
                          action="store_true", dest="k",
                          help="keep intermediate files <%default>")
 
+    optparser.add_option("-p", "--amplicon", default=False,
+                         action="store_true", dest="p",
+                         help="run in amplicon mode <%default>")
+
     (options, args) = optparser.parse_args()
     del(args)
     sholog.info(' '.join(sys.argv))
 
-    in_stem = os.path.split(options.b)[1].split('.')[0]
+    in_stem = '.'.join(os.path.split(options.b)[1].split('.')[:-1])
 
+    if options.p:
+        # amplicon_mode, run only diri_sampler and snv.py
+        amplian.main()
+    
     if not os.path.exists('snv/SNV.txt'):
         # 1. run dec.py
         sholog.debug('running dec.py')

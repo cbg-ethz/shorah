@@ -567,35 +567,36 @@ if __name__ == "__main__":
 
     optparser.add_option("-b", "--bam",
                          help="file with aligned reads in .bam format",
-                         default=opts[0], type="string", dest="b")
+                         default=opts[0], type="string", dest="in_bam")
 
     optparser.add_option("-f", "--fasta",
                          help="reference genome in fasta format",
-                         default=opts[1], type="string", dest="f")
+                         default=opts[1], type="string", dest="in_fasta")
 
     optparser.add_option("-w", "--windowsize", help="window size <%default>",
-                         default=opts[2], type="int", dest="w")
+                         default=opts[2], type="int", dest="win_length")
 
     optparser.add_option("-s", "--winshifts",
                          help="number of window shifts <%default>",
-                         default=opts[3], type="int", dest="s")
+                         default=opts[3], type="int", dest="win_shifts")
 
     optparser.add_option("-r", "--region",
                          help="region in format 'chrom:start-stop', \
                          eg 'ch3:1000-3000'",
-                         default=opts[4], type="string", dest="r")
+                         default=opts[4], type="string", dest="region")
 
     optparser.add_option("-x", "--maxcov",
                          help="approximate max coverage allowed <%default>",
-                         default=opts[5], type="int", dest="x")
+                         default=opts[5], type="int", dest="max_coverage")
 
     optparser.add_option("-a", "--alpha",
                          help="alpha in dpm sampling <%default>",
-                         default=opts[6], type="float", dest="a")
+                         default=opts[6], type="float", dest="alpha")
 
     optparser.add_option("-k", "--keep_files",
                          help="keep all intermediate files <%default>",
-                         action="store_true", dest="k", default=opts[7])
+                         action="store_true", dest="keep_files",
+                         default=opts[7])
 
     (options, args) = optparser.parse_args()
 
@@ -606,7 +607,7 @@ if __name__ == "__main__":
     declog.info(' '.join(sys.argv))
     # check the input file is in supported format
     try:
-        tmp_filename = os.path.split(options.b)[1]
+        tmp_filename = os.path.split(options.in_bam)[1]
         [in_stem, in_format] = [tmp_filename.split('.')[0],
                                 tmp_filename.split('.')[-1]]
         t = supported_formats[in_format]
