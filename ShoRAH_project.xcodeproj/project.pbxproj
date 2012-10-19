@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		6C0457DE16259A9800C4C023 /* amplian.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = amplian.py; sourceTree = "<group>"; };
 		6C0AFBF016009FCA008FAF58 /* snv.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = snv.py; sourceTree = "<group>"; };
 		6C592C3A161DCB850092BB21 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		6CB376D014C4448700F58E13 /* CHANGELOG */ = {isa = PBXFileReference; lastKnownFileType = text; path = CHANGELOG; sourceTree = "<group>"; };
@@ -65,6 +66,7 @@
 				6CB376F714C4448700F58E13 /* sam_files */,
 				6CB376FB14C4448700F58E13 /* sample_454.fasta */,
 				6CB376FC14C4448700F58E13 /* shorah.py */,
+				6C0457DE16259A9800C4C023 /* amplian.py */,
 				6C0AFBF016009FCA008FAF58 /* snv.py */,
 			);
 			sourceTree = "<group>";

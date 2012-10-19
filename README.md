@@ -10,6 +10,8 @@ If you use shorah, please cite the application note paper _Zagordi et al._ on
 [BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
 ShoRAH consists of several programs, the most imporant of which are:
+> `amplian.py`   - amplicon based analysis
+
 > `dec.py`       - local error correction based on diri_sampler
 
 > `diri_sampler` - Gibbs sampling for error correction via Dirichlet
