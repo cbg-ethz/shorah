@@ -43,9 +43,15 @@ Please download and install:
   installation is described in the included README and INSTALL files.
 - ncurses is required by samtools. It is usually included in Linux/Mac OS X.
 
+Please note that these dependencies can be satisfied also using the package
+manager of many operating system. For example
+[MacPorts](http://www.macports.org/) on Mac OS X,
+[yum](http://yum.baseurl.org/) on several linux installations and so on.
+
+
 Type 'make' to build the C++ programs. This should be enough in most cases. If
 your gsl installation is not standard, you might need to edit the relevant
-lines in the `Makefile` (`/opt/local/` is already included).
+lines in the `Makefile` (location `/opt/local/` is already included).
 
 ### Run
 
