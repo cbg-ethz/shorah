@@ -1,15 +1,15 @@
-shorah
+What is ShoRAH
+======
+ShoRAH is an open source project for the analysis of next generation sequencing
+data. It is designed to analyse genetically heterogeneous samples. Its tools
+are written in different programming languages and provide error correction,
+haplotype reconstruction and estimation of the frequency of the different
+genetic variants present in a mixed sample.
 ======
 
 Repo for the software suite ShoRAH (Short Reads Assembly into Haplotypes)
 
-Full online documentation available [here]
-(https://wiki-bsse.ethz.ch/display/ShoRAH/Documentation)
-
-If you use shorah, please cite the application note paper _Zagordi et al._ on
-[BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
-
-ShoRAH consists of several programs, the most imporant of which are:
+It consists of several programs, the most imporant of which are:
 > `amplian.py`   - amplicon based analysis
 
 > `dec.py`       - local error correction based on diri_sampler
@@ -28,15 +28,46 @@ ShoRAH consists of several programs, the most imporant of which are:
 
 > `shorah.py`    - wrapper for everything
 
+## Citation
+If you use shorah, please cite the application note paper _Zagordi et al._ on
+[BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
+
 ## General usage
 
-### Install
+### Dependencies and installation
+Please download and install:
 
-type 'make' to build the C++ programs. This should be enough in most cases.
+- [Biopython](http://biopython.org/wiki/Download), following the online
+  instructions.
+- [GNU scientific library GSL](http://www.gnu.org/software/gsl/),
+  installation is described in the included README and INSTALL files.
+- ncurses is required by samtools. It is usually included in Linux/Mac OS X.
+
+Type 'make' to build the C++ programs. This should be enough in most cases. If
+your gsl installation is not standard, you might need to edit the relevant
+lines in the `Makefile` (`/opt/local/` is already included).
 
 ### Run
 
-The whole process can be run one step after the other, or one can
-invoke `shorah.py`, that runs the whole process from bam file to
-frequency estimation and SNV calling. The local analysis alone
-can be run invoking	`dec.py` or directly `diri_sampler`.
+The input is a sorted bam file. Analysis can be performed in local or global
+mode.
+
+#### Local analysis
+
+The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
+for the amplicon mode). They work by cutting window from the multiple sequence
+alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
+SNV calling.
+
+#### Global analysis
+
+The whole global reconstruction consists of the following steps:
+
+1. error correction (*i.e.* local haplotype reconstruction);
+2. SNV calling;
+3. removal of redundant reads;
+4. global haplotype reconstruction;
+5. frequency estimation.
+
+These can be run one after the other, or one can invoke `shorah.py`, that runs
+the whole process from bam file to frequency estimation and SNV calling.
