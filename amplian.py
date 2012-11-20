@@ -51,13 +51,14 @@ win_min_ext = 0.95
 
 dn = os.path.dirname(__file__)
 
+
 def run_child(exe_name, arg_string):
     '''use subrocess to run an external program with arguments'''
     import subprocess
-    
+
     if not arg_string.startswith(' '):
         arg_string = ' ' + arg_string
-    
+
     try:
         retcode = subprocess.call(exe_name + arg_string, shell=True)
         if retcode < 0:
@@ -71,6 +72,48 @@ def run_child(exe_name, arg_string):
     return retcode
 
 
+def run_diagnostics(window_file, reads):
+    '''Performs some basic diagnostics on the quality of the MC sampling
+    '''
+    import warnings
+    import csv
+
+    smp_file = window_file.split('.')[0] + '.smp'
+    dbg_file = window_file.split('.')[0] + '.dbg'
+
+    with open(dbg_file) as l:
+        lines = l.readlines()
+    for line in lines:
+        if line.startswith('# q ='):
+            q = int(line.split('=')[1])
+        if line.startswith('#made'):
+            new_clusters = int(line.split()[1])
+
+    if new_clusters < reads:
+        warnings.warn('Few clusters created, maybe alpha is too low')
+
+    clusters = []
+    untouched = []
+    theta = []
+    gamma = []
+    with open(smp_file, 'rb') as smp_reader:
+        lines = smp_reader.readlines()
+        fields = lines[0].split()
+        for line in lines[1:]:
+            it, cl, unt = map(int, line.split()[:3])
+            the, gam = map(float, line.split()[3:])
+            clusters.append(cl)
+            untouched.append(unt)
+            theta.append(the)
+            gamma.append(gam)
+
+    untouched_hst = untouched[-2000:]
+    unt_mean = float(sum(untouched_hst)) / len(untouched_hst)
+    #unt_msg = '%f %% of untouched objects <should be around 90-95%>' %
+        
+    print >> sys.stderr, unt_mean
+
+
 def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
          alpha=0.1):
     '''
@@ -82,11 +125,12 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     ref_seq = list(SeqIO.parse(in_fasta, 'fasta'))[0]
     ref_name = ref_seq.id
     ref_length = len(ref_seq)
-    
+
     # output the reads, aligned to the amplicon
     b2w_exe = os.path.join(dn, 'b2w')
     b2w_args = ' -i 0 -w %d -m %d -x %d %s %s' % \
-    (ref_length, int(min_overlap * ref_length), max_coverage, in_bam, in_fasta)
+        (ref_length, int(min_overlap * ref_length),
+         max_coverage, in_bam, in_fasta)
     ret_b2w = run_child(b2w_exe, b2w_args)
 
     # run diri_sampler on the aligned reads
@@ -95,17 +139,15 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file not found'
     diri_exe = os.path.join(dn, 'diri_sampler')
-    diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, n_reads*10)
-    ret_diri = run_child(diri_exe, diri_args)
+    diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, n_reads * 10)
+    # ret_diri = run_child(diri_exe, diri_args)
 
-    # TODO: diagnostics on the convergence
-
-    # transform the output in popl.file
-    
+    # diagnostics on the convergence
+    run_diagnostics(win_file, n_reads)
 
 
 if __name__ == "__main__":
-    
+
     import optparse
     # parse command line
     optparser = optparse.OptionParser()
