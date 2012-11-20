@@ -5,11 +5,11 @@ data. It is designed to analyse genetically heterogeneous samples. Its tools
 are written in different programming languages and provide error correction,
 haplotype reconstruction and estimation of the frequency of the different
 genetic variants present in a mixed sample.
-======
 
-Repo for the software suite ShoRAH (Short Reads Assembly into Haplotypes)
+---
 
-It consists of several programs, the most imporant of which are:
+The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of
+several programs, the most imporant of which are:
 > `amplian.py`   - amplicon based analysis
 
 > `dec.py`       - local error correction based on diri_sampler
