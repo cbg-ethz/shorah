@@ -3,6 +3,10 @@ layout: slate_posts
 title: How to prepare the input
 permalink: input.html 
 ---
+## Prepare the input
+The input for any analysis, local or global, is a sorted bam file. Here below
+the basic steps to produce such an alignment.
+
 ### First of all, align the reads
 Since the mass adoption of next-generation sequencing, the bioinformatics
 community has produced an enormous number of read mappers (aligners). An
