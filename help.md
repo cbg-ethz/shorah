@@ -34,7 +34,7 @@ reference names.
 _reported by KMD_
 
 ### `diri_sampler` and memory leak
-It happens that diri_sampler fails to run with a cryptic message that reads
+It happens that `diri_sampler` fails to run with a cryptic message that reads
 like: `memory corruption: 0x0000000000. . .`
 Usually, changing the name of the input file to something shorter is enough.
 For obscure reasons, it seems to fail when the file name is 18 letter plus
