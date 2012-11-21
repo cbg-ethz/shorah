@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Shorah : Short Reads Assembly into Haplotypes" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <link rel="shortcut icon" />
+    <title>Shorah</title>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ozagordi/shorah">View on GitHub</a>
+
+          <h1 id="project_title">Shorah</h1>
+          <h2 id="project_tagline">Short Reads Assembly into Haplotypes</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ozagordi/shorah/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ozagordi/shorah/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+    <h3 id='first_of_all_align_the_reads'>First of all, align the reads</h3>
+
+<p>Since the mass adoption of next-generation sequencing, the bioinformatics community has produced an enormous number of read mappers (aligners). An incomplete list is <a href='http://lh3lh3.users.sourceforge.net/NGSalign.shtml'>here</a>.</p>
+
+<p>Whatever is your chosen aligner, it will most likely have the option to output a file in <a href='http://samtools.sourceforge.net/' title='samtools'>SAM format</a>. From the alignment in SAM format, you need to create a sorted bam alignment.</p>
+
+<h3 id='use__to_convert_and_sort_the_alignment'>Use <code>samtools</code> to convert and sort the alignment</h3>
+
+<p>The most common set of tools to manipulate SAM alignments is <a href='http://samtools.sourceforge.net/' title='samtools'>samtools</a>. This is shipped with ShoRAH, so you can navigate to the <code>samtools</code> directory and install it from there, or check if there is a more recent release, download and install it.</p>
+
+<p>In the following, we assume that a sam alignment file <code>my_reads.sam</code> has been created by aligning reads to a reference file <code>reference.fasta</code>. The following converts to sorted bam</p>
+
+<pre><code>[user@host]$ samtools view -b -T reference.fasta my_reads.sam | samtools sort - my_reads_sorted</code></pre>
+
+<p>The output is a sorted bam file called <code>my_reads_sorted.bam</code>.</p>
+
+<p>The above code is a shortcut to run conversion and sorting. The two commands would read</p>
+
+<pre><code>[user@host]$ samtools view -b -T reference.fasta -o my_reads.bam my_reads.sam
+[user@host]$ samtools sort my_reads.bam my_reads_sorted</code></pre>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Shorah maintained by <a href="https://github.com/ozagordi">ozagordi</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>

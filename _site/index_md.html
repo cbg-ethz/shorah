@@ -69,14 +69,14 @@
 <blockquote>
 <p><code>shorah.py</code> - wrapper for everything</p>
 </blockquote>
-<hr />
-<h3 id='citation'>Citation</h3>
+
+<h2 id='citation'>Citation</h2>
 
 <p>If you use shorah, please cite the application note paper <em>Zagordi et al.</em> on <a href='http://www.biomedcentral.com/1471-2105/12/119'>BMC Bioinformatics</a>.</p>
-<hr />
-<h3 id='general_usage'>General usage</h3>
 
-<h4 id='dependencies_and_installation'>Dependencies and installation</h4>
+<h2 id='general_usage'>General usage</h2>
+
+<h3 id='dependencies_and_installation'>Dependencies and installation</h3>
 
 <p>Please download and install:</p>
 
@@ -92,15 +92,15 @@
 
 <p>Type &#8216;make&#8217; to build the C++ programs. This should be enough in most cases. If your GSL installation is not standard, you might need to edit the relevant lines in the <code>Makefile</code> (location <code>/opt/local/</code> is already included).</p>
 
-<h4 id='run'>Run</h4>
+<h3 id='run'>Run</h3>
 
 <p>The input is a sorted bam file. Analysis can be performed in local or global mode.</p>
 
-<h5 id='local_analysis'><a href='local.html'>Local analysis</a></h5>
+<h4 id='local_analysis'><a href='local.html'>Local analysis</a></h4>
 
 <p>The local analysis alone can be run invoking <code>dec.py</code> or <code>amplian.py</code> (program for the amplicon mode). They work by cutting window from the multiple sequence alignment, invoking <code>diri_sampler</code> on the windows and calling <code>snv.py</code> for the SNV calling.</p>
 
-<h5 id='global_analysis'><a href='global.html'>Global analysis</a></h5>
+<h4 id='global_analysis'><a href='global.html'>Global analysis</a></h4>
 
 <p>The whole global reconstruction consists of the following steps:</p>
 
