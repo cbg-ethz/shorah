@@ -4,7 +4,7 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Shorah : Short Reads Assembly into Haplotypes" />
+    <meta name="description" content="ShoRAH : Short Reads Assembly into Haplotypes" />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
     <link rel="shortcut icon" />
@@ -17,7 +17,7 @@
         <header class="inner">
           <a id="forkme_banner" href="https://github.com/ozagordi/shorah">View on GitHub</a>
 
-          <h1 id="project_title">Shorah</h1>
+          <h1 id="project_title"><a href="index.html">ShoRAH</a></h1>
           <h2 id="project_tagline">Short Reads Assembly into Haplotypes</h2>
 
             <section id="downloads">
@@ -38,43 +38,27 @@
 <hr />
 <p>The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of several programs, the most imporant of which are:</p>
 
-<blockquote>
 <p><code>amplian.py</code> - amplicon based analysis</p>
-</blockquote>
 
-<blockquote>
 <p><code>dec.py</code> - local error correction based on diri_sampler</p>
-</blockquote>
 
-<blockquote>
 <p><code>diri_sampler</code> - Gibbs sampling for error correction via Dirichlet process mixture</p>
-</blockquote>
 
-<blockquote>
 <p><code>contain</code> - removal of redundant reads</p>
-</blockquote>
 
-<blockquote>
 <p><code>mm.py</code> - maximum matching haplotype construction</p>
-</blockquote>
 
-<blockquote>
 <p><code>freqEst</code> - EM algorithm for haplotype frequency</p>
-</blockquote>
 
-<blockquote>
 <p><code>snv.py</code> - detects single nucleotide variants, taking strand bias into account</p>
-</blockquote>
 
-<blockquote>
 <p><code>shorah.py</code> - wrapper for everything</p>
-</blockquote>
 <hr />
 <h3 id='citation'>Citation</h3>
 
-<p>If you use shorah, please cite the application note paper <em>Zagordi et al.</em> on <a href='http://www.biomedcentral.com/1471-2105/12/119'>BMC Bioinformatics</a>.</p>
+<p>If you use shorah, please cite the application note paper on <a href='http://www.biomedcentral.com/1471-2105/12/119'>BMC Bioinformatics</a>.</p>
 <hr />
-<h3 id='general_usage'>General usage</h3>
+<h3 id='usage'>Usage</h3>
 
 <h4 id='dependencies_and_installation'>Dependencies and installation</h4>
 
@@ -85,7 +69,7 @@
 
 <li><a href='http://www.gnu.org/software/gsl/'>GNU scientific library GSL</a>, installation is described in the included README and INSTALL files.</li>
 
-<li>ncurses is required by samtools. It is usually included in Linux/Mac OS X.</li>
+<li><a href='http://www.gnu.org/software/ncurses/ncurses.html'>ncurses</a> is required by samtools. It is usually already included in Linux/Mac OS X.</li>
 </ul>
 
 <p>Please note that these dependencies can be satisfied also using the package manager of many operating system. For example <a href='http://www.macports.org/'>MacPorts</a> on Mac OS X, <a href='http://yum.baseurl.org/'>yum</a> on several linux installations and so on.</p>
@@ -117,11 +101,15 @@
 </ol>
 
 <p>These can be run one after the other, or one can invoke <code>shorah.py</code>, that runs the whole process from bam file to frequency estimation and SNV calling.</p>
+<hr />
+<h3 id='getting_help'>Getting help</h3>
+
+<p>See the dedicated <a href='help.html'>page</a>.</p>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">Shorah maintained by <a href="https://github.com/ozagordi">ozagordi</a></p>
+        <p class="copyright">ShoRAH maintained by <a href="https://github.com/ozagordi">ozagordi</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>

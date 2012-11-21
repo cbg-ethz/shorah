@@ -15,33 +15,34 @@ genetic variants present in a mixed sample.
 
 The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of
 several programs, the most imporant of which are:
-> `amplian.py`   - amplicon based analysis
 
-> `dec.py`       - local error correction based on diri_sampler
+`amplian.py`   - amplicon based analysis
 
-> `diri_sampler` - Gibbs sampling for error correction via Dirichlet
->process mixture
+`dec.py`       - local error correction based on diri_sampler
 
-> `contain`      - removal of redundant reads
+`diri_sampler` - Gibbs sampling for error correction via Dirichlet
+process mixture
 
-> `mm.py`        - maximum matching haplotype construction
+`contain`      - removal of redundant reads
 
-> `freqEst`      - EM algorithm for haplotype frequency
+`mm.py`        - maximum matching haplotype construction
 
-> `snv.py`       - detects single nucleotide variants, taking strand bias into
->account
+`freqEst`      - EM algorithm for haplotype frequency
 
-> `shorah.py`    - wrapper for everything
+`snv.py`       - detects single nucleotide variants, taking strand bias into
+account
+
+`shorah.py`    - wrapper for everything
 
 ---
 
 ### Citation
-If you use shorah, please cite the application note paper _Zagordi et al._
+If you use shorah, please cite the application note paper
 on [BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
 ---
 
-### General usage
+### Usage
 
 #### Dependencies and installation
 Please download and install:
@@ -50,7 +51,8 @@ Please download and install:
   instructions.
 - [GNU scientific library GSL](http://www.gnu.org/software/gsl/),
   installation is described in the included README and INSTALL files.
-- ncurses is required by samtools. It is usually included in Linux/Mac OS X.
+- [ncurses](http://www.gnu.org/software/ncurses/ncurses.html) is
+  required by samtools. It is usually already included in Linux/Mac OS X.
 
 Please note that these dependencies can be satisfied also using the package
 manager of many operating system. For example
@@ -86,3 +88,8 @@ The whole global reconstruction consists of the following steps:
 
 These can be run one after the other, or one can invoke `shorah.py`, that runs
 the whole process from bam file to frequency estimation and SNV calling.
+
+---
+
+### Getting help
+See the dedicated [page](help.html).
