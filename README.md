@@ -1,1 +1,2 @@
-# This is the website for ShoRAH, version 0.6
+This is the gh-pages branch for the ShoRAH version 0.6 website.
+

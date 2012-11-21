@@ -33,3 +33,7 @@ would read
     [user@host]$ samtools sort my_reads.bam my_reads_sorted
 
 [samtools]: http://samtools.sourceforge.net/ "samtools"
+
+---
+
+Go back [home](index.html)

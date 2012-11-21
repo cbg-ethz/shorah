@@ -67,19 +67,22 @@ and the **sampling** file.
 The support file has the `support.fas` suffix. It is a fasta file with the
 reconstructed haplotypes. The header of each sequence contains information on
 the quality of the reconstruction (posterior probability of the haplotype) and
-the frequency of the haplotype. For example, 
+the frequency of the haplotype. For example,
+
     >hap_0|posterior=1 ave_reads=235.168
     CCTCAGATCACTCTTTGGCAACGACCCTTCGTC
+
 indicates that the reconstructed haplotype has a posterior probability of 1 (it
 was always present in the sampled Markov chain) and on average 235 reads were
 assigned to it. Good results have been obtained by discarding haplotypes with
 less than 90-95% support.
 
-`snv.py` takes care of parsing the single nucleotide variants, check the strand bias and write a CSV file with all the information (suffix `final.csv') in the
+`snv.py` takes care of parsing the single nucleotide variants, check the strand
+bias and write a CSV file with all the information (suffix `final.csv`) in the
 directory `snv`.
 
 #### Amplicon mode
-'amplian.py' will analyse a single window, corresponding to the reference
+`amplian.py` will analyse a single window, corresponding to the reference
 sequence passed with the option `-f`. Consequently, the output files from the
 support to the SNV file will refer to this single window (see shotgun mode
 above).
