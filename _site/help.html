@@ -19,6 +19,10 @@
 
           <h1 id="project_title"><a href="index.html">ShoRAH</a></h1>
           <h2 id="project_tagline">Short Reads Assembly into Haplotypes</h2>
+          <a id="menu_links" href="input.html">input</a>
+          <a id="menu_links" href="local.html">local</a>
+          <a id="menu_links" href="global.html">global</a>
+          <a id="menu_links" href="help.html">help</a>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/ozagordi/shorah/zipball/master">Download this project as a .zip file</a>
@@ -32,7 +36,10 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
 
-    <p>Despite our efforts to make the installation procedure as easy as possible, the variety of computers, operating systems, distributions and libraries make the installation outcome very difficult to predict. Should you have any problem, you might</p>
+
+    <h3 id='get_help'>Get help</h3>
+
+<p>Despite our efforts to make the installation procedure as easy as possible, the variety of computers, operating systems, distributions and libraries make the installation outcome very difficult to predict. Should you have any problem, you might</p>
 
 <ul>
 <li>check issues reported on this page,</li>
@@ -41,28 +48,28 @@
 
 <li><a href='mailto:shorah@bsse.ethz.ch'>contact us</a>.</li>
 </ul>
+<hr />
+<h3 id='problems_occurring_during_compilation'>Problems occurring during compilation</h3>
 
-<h2 id='problems_occurring_during_compilation'>Problems occurring during compilation</h2>
-
-<h3 id='gsl'>GSL</h3>
+<h4 id='gsl'>GSL</h4>
 
 <p>The Makefile has been written to match typical location for the installation of GSL on Linux and Mac OS X system. In case of different installation of the GSL, please edit CFLAGS and XLIBS in the Makefile.</p>
+<hr />
+<h3 id='problems_occurring_during_execution'>Problems occurring during execution</h3>
 
-<h2 id='problems_occurring_during_execution'>Problems occurring during execution</h2>
-
-<h3 id='memory_footprint'>Memory footprint</h3>
+<h4 id='memory_footprint'>Memory footprint</h4>
 
 <p>We work to keep the memory requirements at bay. Nevertheless, for large samples the required RAM might exceed 4 Gb. For example, a run of <code>diri_sampler</code> on a single window of 65000 reads from 454 required 4.1 Gb of RAM. If <code>dec.py</code> is used, this will run several jobs at the same time (parallelization), thus increasing the memory needs.</p>
 
-<h3 id='bam_files_give_me_problems'>BAM files give me problems</h3>
+<h4 id='bam_files_give_me_problems'>BAM files give me problems</h4>
 
 <p>We have heard from some users errors that might be due to colons <code>:</code> in the reference names.</p>
 
 <p><em>reported by KMD</em></p>
 
-<h3 id='_and_memory_leak'><code>diri_sampler</code> and memory leak</h3>
+<h4 id='_and_memory_leak'><code>diri_sampler</code> and memory leak</h4>
 
-<p>It happens that diri_sampler fails to run with a cryptic message that reads like: <code>memory corruption: 0x0000000000. . .</code> Usually, changing the name of the input file to something shorter is enough. For obscure reasons, it seems to fail when the file name is 18 letter plus the suffix <code>.far</code>. If you have the faintest idea why this happens, we would like to know.</p>
+<p>It happens that <code>diri_sampler</code> fails to run with a cryptic message that reads like: <code>memory corruption: 0x0000000000. . .</code> Usually, changing the name of the input file to something shorter is enough. For obscure reasons, it seems to fail when the file name is 18 letter plus the suffix <code>.far</code>. If you have the faintest idea why this happens, we would like to know.</p>
 <hr />
 <p>Go back <a href='index.html'>home</a></p>
 

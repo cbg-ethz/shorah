@@ -1,3 +1,6 @@
+---
+layout: slate_mod
+---
 <!DOCTYPE html>
 <html>
 
@@ -37,34 +40,7 @@
       <section id="main_content" class="inner">
 
 
-    <h3 id='generally_speaking'>Generally speaking</h3>
-
-<p>The global analysis is performed by running <code>shorah.py</code> on the input <a href='input.html'>sorted bam file</a>. This will perform a shotgun <a href='local.html'>local analysis</a>, followed by a global haplotype reconstruction and a frequency estimation. The output is a file with extension <code>.popl</code>. It is a fasta file with all the reconstructed haplotype sequences, with the header indicating the frequency after the underscore. So, for example</p>
-
-<pre><code>&gt;HAP0_0.264857
-CCTCAGATCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGG</code></pre>
-
-<p>means that the haplotype was estimated to have a frequency of 26.5%.</p>
-
-<h3 id='a_word_of_caution'>A word of caution</h3>
-
-<p>Inferring haplotypes over a region longer than the reads is hard. Many false positives can be introduced if reads are shorter than the region one would need to observe to capture enough diversity. See the references</p>
-
-<ul>
-<li>
-<p><a title='PLoS ONE' href='http://dx.doi.org/10.1371/journal.pone.0047046'><em>Zagordi et al.</em> (2012) PLoS ONE</a></p>
-</li>
-
-<li>
-<p><a title='Curr. Opin Vir.' href='http://dx.doi.org/10.1016/j.coviro.2011.07.008'><em>Beerenwinkel, Zagordi</em> (2011) Curr. Opin. Vir</a></p>
-</li>
-
-<li>
-<p><a title='Front. Microb.' href='http://dx.doi.org/10.3389/fmicb.2012.00329'><em>Beerenwinkel et al.</em> (2012) Front. Microb.</a></p>
-</li>
-</ul>
-<hr />
-<p>Go back <a href='index.html'>home</a></p>
+    {{ content }}
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">

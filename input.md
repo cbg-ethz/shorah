@@ -1,13 +1,13 @@
 ---
-layout: slate_posts
+layout: slate_mod
 title: How to prepare the input
 permalink: input.html 
 ---
-## Prepare the input
+### Prepare the input
 The input for any analysis, local or global, is a sorted bam file. Here below
 the basic steps to produce such an alignment.
 
-### First of all, align the reads
+#### First of all, align the reads
 Since the mass adoption of next-generation sequencing, the bioinformatics
 community has produced an enormous number of read mappers (aligners). An
 incomplete list is [here](http://lh3lh3.users.sourceforge.net/NGSalign.shtml).
@@ -16,7 +16,7 @@ Whatever is your chosen aligner, it will most likely have the option to
 output a file in [SAM format][samtools]. From the alignment in SAM format, you
 need to create a sorted bam alignment.
 
-### Use `samtools` to convert and sort the alignment
+#### Use `samtools` to convert and sort the alignment
 The most common set of tools to manipulate SAM alignments is [samtools]. This
 is shipped with ShoRAH, so you can navigate to the `samtools` directory and
 install it from there, or check if there is a more recent release, download

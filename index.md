@@ -1,5 +1,5 @@
 ---
-layout: slate_posts
+layout: slate_mod
 title: Shorah - Short Reads Assembly into Haplotypes
 permalink: index.html 
 ---
@@ -72,7 +72,7 @@ mode.
 ##### [Local analysis](local.html)
 
 The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
-for the amplicon mode). They work by cutting window from the multiple sequence
+for the amplicon mode). They work by cutting windows from the multiple sequence
 alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
 SNV calling.
 
@@ -93,3 +93,22 @@ the whole process from bam file to frequency estimation and SNV calling.
 
 ### Getting help
 See the dedicated [page](help.html).
+
+---
+
+### Authors and Contributors
+Niko Beerenwinkel
+
+Arnab Bhattacharya
+
+Nicholas Eriksson
+
+Moritz Gerstung
+
+Lukas Geyrhofer
+
+Fabio Luciani
+
+Kerensa McElroy
+
+Osvaldo Zagordi

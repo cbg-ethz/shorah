@@ -1,5 +1,5 @@
 ---
-layout: slate_posts
+layout: slate_mod
 title: Local analysis made simple
 permalink: local.html 
 ---
