@@ -9,7 +9,7 @@ the other by `amplian.py`. We will define these two as shotgun mode (albeit
 improperly) and amplicon mode. The input is always a [sorted bam
 file](input.html).
 
-#### Shotgun mode
+#### Shotgun mode: region longer than the reads
 This is performed when the amplicon is longer than the typical read length and
 we don't want to focus our analysis on a specific region of this amplicon.
 `dec.py` cuts on the aligment a set of overlapping regions (parameters can be
@@ -17,7 +17,7 @@ adjusted, run `dec.py -h` for help), and passes them to `diri_sampler` for error
 correction and local haplotype reconstruction. This is the first step of the
 [global analysis](global.html). Additionally, it runs `snv.py` for SNV calling.
 
-#### Amplicon mode
+#### Amplicon mode: region covered by a single read
 When the amplicon size is smaller than the read length or comparable to it, it
 is in general more appropriate to use `amplian.py`, which extracts the multiple
 alignment corresponding to the specified amplicon. By default, this includes
