@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
     tmp.in = samopen(argv[optind], "rb", 0); //open bam file
     if (tmp.in == 0) {
         fprintf(stderr, "Failed to open BAM file %s\n", argv[optind]);
-        return 1;
+        return 2;
         }
 
     fai_build(argv[optind + 1]); //generate reference index
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     idx = bam_index_load(argv[optind]); //load bam index
     if (idx == 0) {
         fprintf(stderr, "BAM indexing file is not available.\n");
-        return 1;
+        return 3;
         }
 
     int32_t n;
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
         bam_parse_region(tmp.in->header, argv[optind + 2], &ref, &tmp.b, &tmp.e);
         if (ref < 0) {
             fprintf(stderr, "Invalid region %s\n", argv[optind +2]);
-            return 1;
+            return 4;
             }
         tmp.b-=3*tmp.inc; //make sure start and end of region are covered by 3 windows
         tmp.e+=3*tmp.inc;
