@@ -511,21 +511,9 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
                 cb = 'X'
             to_correct[r][4].append(cb)
             del this
-    ##     ccst = []
-    ##     for i in range(rlen):
-    ##         if i not in corrstore: ccst.append(i)
-    ##     if len(ccst) > 50:
-    ##         print aligned_reads[r]
-    ##         print ccst
-    ##         print correction[r]
-    ##         sys.exit()
-    ##     print ccst
-    ##     storestore.append(len(ccst))
-    ## print storestore
 
-    # print reason
     ccx = {}
-    cin_stem = os.path.split(in_bam)[1].split('.')[0]
+    cin_stem = '.'.join(os.path.split(in_bam)[1].split('.')[:-1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
     for r in to_correct:
         cor_read = ''.join(to_correct[r][4])

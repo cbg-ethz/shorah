@@ -59,11 +59,13 @@ def run_child(exe_name, arg_string):
     if not arg_string.startswith(' '):
         arg_string = ' ' + arg_string
 
+    amplog.debug(exe_name + arg_string)
+
     try:
         retcode = subprocess.call(exe_name + arg_string, shell=True)
-        if retcode < 0:
+        if retcode > 0:
             amplog.error(exe_name + arg_string)
-            amplog.error("Child %s terminated by signal" % exe_name, -retcode)
+            amplog.error("Child %s terminated by signal" % exe_name, retcode)
         else:
             amplog.debug("Child %s returned %i" % (exe_name, retcode))
     except OSError, ee:
@@ -139,8 +141,9 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file not found'
     diri_exe = os.path.join(dn, 'diri_sampler')
-    diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, n_reads * 10)
-    # ret_diri = run_child(diri_exe, diri_args)
+    iterations = max(20000, n_reads * 10)
+    diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, iterations)
+    ret_diri = run_child(diri_exe, diri_args)
 
     # diagnostics on the convergence
     run_diagnostics(win_file, n_reads)
