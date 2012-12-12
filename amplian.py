@@ -141,7 +141,7 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file not found'
     diri_exe = os.path.join(dn, 'diri_sampler')
-    iterations = max(20000, n_reads * 10)
+    iterations = min(20000, n_reads * 10)
     diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, iterations)
     ret_diri = run_child(diri_exe, diri_args)
 
