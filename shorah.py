@@ -78,6 +78,7 @@ if __name__ == "__main__":
     import dec
     import mm
     import snv
+    import amplian
 
     # parse command line
     optparser = optparse.OptionParser()
@@ -125,8 +126,8 @@ if __name__ == "__main__":
 
     if options.p:
         # amplicon_mode, run only diri_sampler and snv.py
-        amplian.main()
-    
+        amplian.main(in_bam=options.b, in_fasta=options.f,
+                     max_coverage=options.x, alpha=options.a)
     if not os.path.exists('snv/SNV.txt'):
         # 1. run dec.py
         sholog.debug('running dec.py')
