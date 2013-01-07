@@ -1,4 +1,7 @@
-_site/*html
+_site/*
 .DS_Store
 images/.DS_Store
-
+images/.Rhistory
+images/*ttf
+images/*pdf
+images/*_skitch*
