@@ -62,12 +62,12 @@ static int fetch_func1(const bam1_t *b, void *data)
     int wSize; //window size
     uint32_t Rstart, Rend; //read start and end
 
-    Rstart=b->core.pos;
-    Rend=bam_calend(&b->core, bam1_cigar(b));
-    wSize=tmp->win;
+    Rstart = b->core.pos;
+    Rend = bam_calend(&b->core, bam1_cigar(b));
+    wSize = tmp->win;
 
     int *cv=(int*)tmp->rLen+Rstart; //tracks nr of reads starting at ref pos
-    *cv+=1;
+    *cv += 1;
 
     if (*cv<tmp->max) { //limit coverage
         if (Rstart <= tmp->beg && Rend >= tmp->end) { //calculate overlap
