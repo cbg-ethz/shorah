@@ -19,7 +19,9 @@ problem, you might
 ####GSL
 The Makefile has been written to match typical location for the installation of
 GSL on Linux and Mac OS X system. In case of different installation of the GSL,
-please edit CFLAGS and XLIBS in the Makefile.
+please edit CFLAGS and XLIBS in the Makefile. The [online documentation of GSL][1]
+provides a [sample program][2]. Try to compile this; it will give information
+on the correct setting of the flags.
 
 ---
 
@@ -48,3 +50,5 @@ like to know.
 ---
 
 Go back [home](index.html)
+[1]: http://www.gnu.org/software/gsl/manual/html_node/index.html
+[2]: http://www.gnu.org/software/gsl/manual/html_node/An-Example-Program.html
