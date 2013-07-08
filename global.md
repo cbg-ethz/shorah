@@ -28,6 +28,16 @@ to observe to capture enough diversity. See the references
 - [_Beerenwinkel et al._ (2012) Front. Microb.][beerenwinkel2012]
 
 
+The `.popl` file will typically contain many haplotypes, most of which at
+very low frequencies. You are advised not to give high confidence to
+haplotypes at frequency below a certain threshold that depends from case
+to case. Other software you could use for global reconstruction
+
+- [QuasiRecomb][http://www.bsse.ethz.ch/cbg/software/quasirecomb],
+  by [Armin Toepfer][https://github.com/armintoepfer]
+
+- [PredictHaplo][http://bmda.cs.unibas.ch/HivHaploTyper/index.html]
+
 [zagordi2012]: http://dx.doi.org/10.1371/journal.pone.0047046 "PLoS ONE"
 [beerenwinkel2011]: http://dx.doi.org/10.1016/j.coviro.2011.07.008 "Curr. Opin Vir."
 [beerenwinkel2012]: http://dx.doi.org/10.3389/fmicb.2012.00329 "Front. Microb."
