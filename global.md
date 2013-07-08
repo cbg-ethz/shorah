@@ -33,10 +33,10 @@ very low frequencies. You are advised not to give high confidence to
 haplotypes at frequency below a certain threshold that depends from case
 to case. Other software you could use for global reconstruction
 
-- [QuasiRecomb][http://www.bsse.ethz.ch/cbg/software/quasirecomb],
-  by [Armin Toepfer][https://github.com/armintoepfer]
+- [QuasiRecomb](http://www.bsse.ethz.ch/cbg/software/quasirecomb),
+  by [Armin Toepfer](https://github.com/armintoepfer)
 
-- [PredictHaplo][http://bmda.cs.unibas.ch/HivHaploTyper/index.html]
+- [PredictHaplo](http://bmda.cs.unibas.ch/HivHaploTyper/index.html)
 
 [zagordi2012]: http://dx.doi.org/10.1371/journal.pone.0047046 "PLoS ONE"
 [beerenwinkel2011]: http://dx.doi.org/10.1016/j.coviro.2011.07.008 "Curr. Opin Vir."
