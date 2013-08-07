@@ -81,12 +81,6 @@ int main(int argc, char** argv){
   ofstream out_file(outstr.c_str());
   ofstream stat_file(statstr.c_str());
   
-  char* astrchar = new char[strlen(alphastr.c_str())];
-  strcpy(astrchar, alphastr.c_str());
-
-  char* iterstrchar = new char[strlen(iterstr.c_str())];
-  strcpy(iterstrchar, iterstr.c_str());
-  
   stat_file << "# dna_code:\t";
   stat_file << i2dna_code;
   
@@ -299,7 +293,7 @@ int main(int argc, char** argv){
 #endif
     
     /// Modify alpha reading from an external file
-    alphafile = fopen(astrchar, "r");
+    alphafile = fopen(alphastr.c_str(), "r");
     if (alphafile != NULL){
       fscanf(alphafile, "%f", &alpha2);
       alpha = alpha2;
@@ -307,7 +301,7 @@ int main(int argc, char** argv){
     }
 
     /// Modify alpha reading from an external file
-    iterfile = fopen(iterstrchar, "r");
+    iterfile = fopen(iterstr.c_str(), "r");
     if (iterfile != NULL){
       fscanf(iterfile, "%ui", &iter2);
       if (iter != iter2 and iter2 > k+100){
@@ -404,18 +398,15 @@ int main(int argc, char** argv){
     out_file << setw(10) << setprecision(6) << theta  << setw(10) << gam << endl;
   }
   
-  if( remove( iterstrchar ) != 0 )
+  if( remove( iterstr.c_str() ) != 0 )
     stat_file << "# iter file was not created" << endl;
   else
     stat_file << "# iter file successfully deleted" << endl;
   
-  if( remove( astrchar ) != 0 )
+  if( remove( alphastr.c_str() ) != 0 )
     stat_file << "# alpha file was not created" << endl;
   else
     stat_file << "# alpha file successfully deleted" << endl;
-  
-  delete []astrchar;
-  delete []iterstrchar;
   
   (void) time(&t2);
   
