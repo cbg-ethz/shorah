@@ -117,12 +117,13 @@ def run_diagnostics(window_file, reads):
 
 
 def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
-         alpha=0.1):
+         alpha=0.1, i=0.01):
     '''
     Performs the amplicon analysis, running diri_sampler
     and analyzing the result
     '''
     from Bio import SeqIO
+    import snv
 
     ref_seq = list(SeqIO.parse(in_fasta, 'fasta'))[0]
     ref_name = ref_seq.id
@@ -139,14 +140,18 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     win_file = 'w-%s-1-%d.reads.fas' % (ref_name, ref_length)
     h = list(open('coverage.txt'))[0]
     n_reads = int(h.split()[-1])
-    assert os.path.exists(win_file), 'window file not found'
+    assert os.path.exists(win_file), 'window file %s not found' % win_file
     diri_exe = os.path.join(dn, 'diri_sampler')
     iterations = min(20000, n_reads * 10)
     diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, iterations)
-    ret_diri = run_child(diri_exe, diri_args)
+    #ret_diri = run_child(diri_exe, diri_args)
 
     # diagnostics on the convergence
     run_diagnostics(win_file, n_reads)
+
+    # run snv.py to parse single nucleotide variants
+    snv.main(reference=options.in_fasta, bam_file=options.in_bam,
+             sigma=options.i, increment=1)
 
 
 if __name__ == "__main__":
@@ -175,6 +180,10 @@ if __name__ == "__main__":
     optparser.add_option("-a", "--alpha",
                          help="alpha in dpm sampling <%default>",
                          default=opts[4], type="float", dest="alpha")
+
+    optparser.add_option("-i", "--sigma", default=opts[5], type="float",
+                         dest="i", help="sigma value to use when calling\
+                         SNVs <%default>")
 
     (options, args) = optparser.parse_args()
 

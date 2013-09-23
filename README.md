@@ -1,5 +1,5 @@
-What is ShoRAH
-======
+What is ShoRAH?
+===============
 ShoRAH is an open source project for the analysis of next generation sequencing
 data. It is designed to analyse genetically heterogeneous samples. Its tools
 are written in different programming languages and provide error correction,
@@ -35,7 +35,6 @@ If you use shorah, please cite the application note paper _Zagordi et al._ on
 [BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
 ## General usage
-
 ### Dependencies and installation
 Please download and install:
 
@@ -46,7 +45,7 @@ Please download and install:
 - ncurses is required by samtools. It is usually included in Linux/Mac OS X.
 
 Please note that these dependencies can be satisfied also using the package
-manager of many operating system. For example
+manager of many operating systems. For example
 [MacPorts](http://www.macports.org/) on Mac OS X,
 [yum](http://yum.baseurl.org/) on several linux installations and so on.
 
@@ -56,19 +55,16 @@ your gsl installation is not standard, you might need to edit the relevant
 lines in the `Makefile` (location `/opt/local/` is already included).
 
 ### Run
-
 The input is a sorted bam file. Analysis can be performed in local or global
 mode.
 
 #### Local analysis
-
 The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
 for the amplicon mode). They work by cutting window from the multiple sequence
 alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
 SNV calling.
 
 #### Global analysis
-
 The whole global reconstruction consists of the following steps:
 
 1. error correction (*i.e.* local haplotype reconstruction);

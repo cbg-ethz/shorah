@@ -358,7 +358,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     runlist = win_to_run(alpha)
 
     # run diri_sampler on all available processors but one
-    max_proc = cpu_count() - 1
+    max_proc = max(cpu_count() - 1, 1)
     pool = Pool(processes=max_proc)
     pool.map(run_dpm, runlist)
 
