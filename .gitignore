@@ -15,6 +15,11 @@ fil
 freqEst
 samtools/libbam.a
 
+###
+# misc
+*.log
+sam_files
+sam_files/*
 
 #####
 # OS X temporary files that should never be committed
