@@ -5,7 +5,7 @@ SHELL = /bin/bash
 hostname := $(shell hostname)
 whoami := $(shell whoami)
 host-type := $(shell uname)
-CCFLAGS = -Wall -Wextra -O3# -pedantic
+CCFLAGS = -Wall -Wextra# -O3# -pedantic
 OLIBS = 
 CPP = g++
 SUBDIRS = ./samtools
@@ -28,12 +28,12 @@ EXE_1 = diri_sampler
 
 SRC_2 = contain_src/contain.cc
 EXE_2 = contain
-FLAGS_2 = -g -O3 -Wall
+FLAGS_2 = -g -O2 -Wall
 
 #OBJS_3 = freqEst_src/freqEst.o
 SRC_3 = freqEst_src/freqEst.cc
 EXE_3 = freqEst
-FLAGS_3 = -g -O3 -Wall -ffast-math
+FLAGS_3 = -g -O2 -Wall -ffast-math
 
 SRC_4 = b2w_src/b2w.c
 EXE_4 = b2w
@@ -95,7 +95,7 @@ $(EXE_5): $(SRC_5) Makefile #fil
 	@echo '*********************************'
 	@echo ' making executable: $@ '
 	@echo '*********************************'
-	$(CPP) $(SRC_5) -o $(EXE_5) $(CFLAGS) $(FLAGS_5)
+	$(CPP) $(SRC_5) -o $(EXE_5) $(FLAGS_5)
 
 $(LIB_BAM): Makefile
 	@echo ''

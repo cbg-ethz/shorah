@@ -40,12 +40,12 @@ amplog = logging.getLogger("AmplianLog")
 amplog.setLevel(logging.DEBUG)
 # This handler writes everything to a file.
 LOG_FILENAME = './amplian.log'
-h = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
-                                         maxBytes=100000, backupCount=5)
+hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
+                                          maxBytes=100000, backupCount=5)
 f = logging.Formatter("%(levelname)s %(asctime)s %(funcName)s\
                       %(lineno)d %(message)s")
-h.setFormatter(f)
-amplog.addHandler(h)
+hl.setFormatter(f)
+amplog.addHandler(hl)
 
 win_min_ext = 0.95
 
@@ -78,7 +78,6 @@ def run_diagnostics(window_file, reads):
     '''Performs some basic diagnostics on the quality of the MC sampling
     '''
     import warnings
-    import csv
 
     smp_file = window_file.split('.')[0] + '.smp'
     dbg_file = window_file.split('.')[0] + '.dbg'
@@ -87,12 +86,13 @@ def run_diagnostics(window_file, reads):
         lines = l.readlines()
     for line in lines:
         if line.startswith('# q ='):
-            q = int(line.split('=')[1])
+            q = int(line.strip().split('=')[1])
         if line.startswith('#made'):
             new_clusters = int(line.split()[1])
 
-    if new_clusters < reads:
-        warnings.warn('Few clusters created, maybe alpha is too low')
+    if new_clusters < q:
+        warnings.warn('clusters created: %d, q: %d maybe alpha is too low'
+                      % (new_clusters, q))
 
     clusters = []
     untouched = []
@@ -100,7 +100,7 @@ def run_diagnostics(window_file, reads):
     gamma = []
     with open(smp_file, 'rb') as smp_reader:
         lines = smp_reader.readlines()
-        fields = lines[0].split()
+        # fields = lines[0].split()
         for line in lines[1:]:
             it, cl, unt = map(int, line.split()[:3])
             the, gam = map(float, line.split()[3:])
@@ -111,13 +111,16 @@ def run_diagnostics(window_file, reads):
 
     untouched_hst = untouched[-2000:]
     unt_mean = float(sum(untouched_hst)) / len(untouched_hst)
-    #unt_msg = '%f %% of untouched objects <should be around 90-95%>' %
-        
-    print >> sys.stderr, unt_mean
+    unt_ratio = 100 * unt_mean / q
+    unt_msg = '%3.1f %% of untouched objects <should be around 90-95%%>' %\
+        unt_ratio
+    amplog.info(unt_msg)
+    if unt_ratio < 90.0:
+        warnings.warn(unt_msg)
 
 
 def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
-         alpha=0.1, i=0.01):
+         alpha=0.5, s=0.01):
     '''
     Performs the amplicon analysis, running diri_sampler
     and analyzing the result
@@ -135,24 +138,25 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
         (ref_length, int(min_overlap * ref_length),
          max_coverage, in_bam, in_fasta)
     ret_b2w = run_child(b2w_exe, b2w_args)
+    amplog.debug('b2w returned %d' % ret_b2w)
 
     # run diri_sampler on the aligned reads
     win_file = 'w-%s-1-%d.reads.fas' % (ref_name, ref_length)
     h = list(open('coverage.txt'))[0]
     n_reads = int(h.split()[-1])
-    assert os.path.exists(win_file), 'window file %s not found' % win_file
+    assert os.path.exists(win_file), 'window file not found'
     diri_exe = os.path.join(dn, 'diri_sampler')
-    iterations = min(20000, n_reads * 10)
-    diri_args = '-i %s -j %d -a 0.1 -t 2000' % (win_file, iterations)
-    #ret_diri = run_child(diri_exe, diri_args)
+    iterations = min(20000, n_reads * 20)
+    diri_args = '-i %s -j %d -a %f -t 2000' % (win_file, iterations, alpha)
+    ret_diri = run_child(diri_exe, diri_args)
+    amplog.debug('diri_sampler returned %d' % ret_diri)
 
     # diagnostics on the convergence
     run_diagnostics(win_file, n_reads)
 
     # run snv.py to parse single nucleotide variants
     snv.main(reference=options.in_fasta, bam_file=options.in_bam,
-             sigma=options.i, increment=1)
-
+             sigma=s, increment=1)
 
 if __name__ == "__main__":
 
@@ -181,8 +185,8 @@ if __name__ == "__main__":
                          help="alpha in dpm sampling <%default>",
                          default=opts[4], type="float", dest="alpha")
 
-    optparser.add_option("-i", "--sigma", default=opts[5], type="float",
-                         dest="i", help="sigma value to use when calling\
+    optparser.add_option("-s", "--sigma", default=opts[5], type="float",
+                         dest="s", help="sigma value to use when calling\
                          SNVs <%default>")
 
     (options, args) = optparser.parse_args()

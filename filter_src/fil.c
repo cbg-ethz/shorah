@@ -76,7 +76,10 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n,
         double tail = 0.0;
         alpha = mean / sigma;   //alpha and beta for beta binomial
         beta = (1 - mean) / sigma;
-        cerr << mean << "\t" << sigma << "\t" << alpha << "\t" << beta << endl;
+		if (alpha < 1E-6 or beta < 1E-6){
+	        fprintf(stderr, "All reads in the same orientation?\n");
+	        return 11;
+		}
         if (fr < mean) {
             for (k = 0; k <= st_freq_Mut['f']; k++){
                 tail += gsl_sf_exp(
@@ -129,19 +132,20 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n,
 int main(int argc, char *argv[])
 {
     tmpstruct_t tmp;
-    int c =0;
+    int c = 0;
     bam_index_t *idx;
-    while((c=getopt(argc,argv,"b:v:"))!=EOF)
-    {
-        switch(c)
-        {
-        case 'b':
-            tmp.in=samopen(optarg,"rb",0);
-            idx = bam_index_load(optarg);
-            break;
-        case 'v':
-            tmp.sig= atof(optarg);
-            break;
+	int amplicon = 0;
+    while((c=getopt(argc, argv, "b:v:a"))!=EOF){
+        switch(c){
+			case 'b':
+            	tmp.in = samopen(optarg, "rb", 0);
+				idx = bam_index_load(optarg);
+				break;
+			case 'v':
+            	tmp.sig = atof(optarg);
+				break;
+			case 'a':
+				amplicon = 1;
         }
     }
     if (tmp.in==0){
@@ -150,37 +154,54 @@ int main(int argc, char *argv[])
         }
     if (idx==0){
         fprintf(stderr, "BAM indexing file is not available.\n");
-        return 1;
+        return 2;
     }
     int maxdepth;
-    maxdepth=100000;
+    maxdepth = 100000;
     bam_plbuf_t *buf;
     buf = bam_plbuf_init(pileup_func, &tmp);
     bam_plp_set_maxcnt(buf->iter, maxdepth);
     FILE *fl = fopen("SNV.txt","rt");
     if (fl==NULL){
         fprintf(stderr, "Failed to open SNV file.\n");
-        return 1;
+        return 3;
         }
     char chr[100], ref, var, fr1[7], fr2[7], fr3[7], p1[7], p2[7], p3[7];
-    int pos,name;
+    int pos, name;
     char str_buf[200];
     char reg[200];
     char filename [50];
     ofstream snpsOut;
-    sprintf(filename, "SNVs_%f.txt", tmp.sig); 
+    sprintf(filename, "SNVs_%f.txt", tmp.sig);
     snpsOut.open(filename, ios::out);
-    while (fgets(str_buf, 200, fl) !=NULL){
-        if (sscanf(str_buf, "%s %d %c %c %s %s %s %s %s %s", chr, &pos, &ref, &var, fr1, fr2, fr3, p1, p2, p3) == 10) {
-            tmp.nuc=var;
-            sprintf(reg,"%s:%d-%d",chr,pos,pos); 
-            bam_parse_region(tmp.in->header,reg,&name,&tmp.pos,&tmp.pos1);
-            bam_fetch(tmp.in->x.bam, idx, name,tmp.pos,tmp.pos1, buf, fetch_func);
-            bam_plbuf_push(0,buf);
-            bam_plbuf_reset(buf); 
-            snpsOut<<chr<<'\t'<<pos<<'\t'<<ref<<'\t'<<var<<'\t'<<fr1<<'\t'<<fr2<<'\t'<<fr3<<'\t'<<p1<<'\t'<<p2<<'\t'<<p3<<'\t'<<tmp.forwM<<'\t'<<tmp.revM<<'\t'<<tmp.forwT<<'\t'<<tmp.revT<<'\t'<<tmp.pval<<'\n';
-        } 
-    }
+
+	if (amplicon){
+		// amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1 only
+		while (fgets(str_buf, 200, fl) !=NULL){
+        	if (sscanf(str_buf, "%s %d %c %c %s %s", chr, &pos, &ref, &var, fr1, p1) == 6){
+            	tmp.nuc = var;
+				sprintf(reg, "%s:%d-%d", chr, pos, pos); 
+				bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
+				bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
+				bam_plbuf_push(0, buf);
+				bam_plbuf_reset(buf);
+				snpsOut<<chr<<'\t'<<pos<<'\t'<<ref<<'\t'<<var<<'\t'<<fr1<<'\t'<<p1<<'\t'<<tmp.forwM<<'\t'<<tmp.revM<<'\t'<<tmp.forwT<<'\t'<<tmp.revT<<'\t'<<tmp.pval<<'\n';
+			}
+    	}
+	}
+	else{
+		while (fgets(str_buf, 200, fl) !=NULL){
+        	if (sscanf(str_buf, "%s %d %c %c %s %s %s %s %s %s", chr, &pos, &ref, &var, fr1, fr2, fr3, p1, p2, p3) == 10){
+            	tmp.nuc = var;
+				sprintf(reg, "%s:%d-%d", chr, pos, pos); 
+				bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
+				bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
+				bam_plbuf_push(0, buf);
+				bam_plbuf_reset(buf); 
+				snpsOut<<chr<<'\t'<<pos<<'\t'<<ref<<'\t'<<var<<'\t'<<fr1<<'\t'<<fr2<<'\t'<<fr3<<'\t'<<p1<<'\t'<<p2<<'\t'<<p3<<'\t'<<tmp.forwM<<'\t'<<tmp.revM<<'\t'<<tmp.forwT<<'\t'<<tmp.revT<<'\t'<<tmp.pval<<'\n';
+			}
+    	}
+	}
     snpsOut.close();
     fclose(fl);
     bam_index_destroy(idx);

@@ -62,7 +62,7 @@ mode.
 The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
 for the amplicon mode). They work by cutting window from the multiple sequence
 alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
-SNV calling.
+SNV calling. See the `README` file in directory `amplicon_test`.
 
 #### Global analysis
 The whole global reconstruction consists of the following steps:
