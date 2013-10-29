@@ -34,7 +34,7 @@ import logging
 import logging.handlers
 
 # Make a global logging object.
-declog = logging.getLogger("DecLog")
+declog = logging.getLogger(__name__)
 
 #################################################
 # a common user should not edit above this line #
@@ -48,20 +48,9 @@ min_quality = 0.9  # quality under which discard the correction
 min_x_thresh = 10  # threshold of X in the correction
 init_K = 20  # initial number of clusters in diri_sampler
 
-# set logging level
-declog.setLevel(logging.DEBUG)
 #################################################
 # a common user should not edit below this line #
 #################################################
-
-# This handler writes everything to a file.
-LOG_FILENAME = './dec.log'
-hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
-                                          maxBytes=100000, backupCount=5)
-f = logging.Formatter("%(levelname)s %(asctime)s\
-                      %(funcName)s %(lineno)d %(message)s")
-hl.setFormatter(f)
-declog.addHandler(hl)
 
 to_correct = {}
 correction = {}
@@ -108,6 +97,8 @@ def parse_aligned_reads(reads_file):
 
     for h in handle:
         name, start, stop, mstart, mstop, this_m = h.rstrip().split('\t')
+        if this_m == '':
+            declog.warning('parsing empty read: %s' % h)
         out_reads[name] = [None, None, None, None, []]
         out_reads[name][0] = int(start)
         out_reads[name][1] = int(stop)
@@ -136,7 +127,7 @@ def windows(run_settings):
         else:
             declog.debug('Finished making windows')
             declog.debug('b2w returned %i' % retcode)
-    except OSError, ee:
+    except OSError as ee:
         declog.error('Execution of b2w failed: %s' % ee)
     return retcode
 
@@ -146,18 +137,36 @@ def run_dpm(run_setting):
     """
 
     import subprocess
+    import shutil
+
     filein, j, a = run_setting
+
+    # if cor.fas.gz exists, skip
+    stem = filein.split('.reads')[0]
+    corgz = 'corrected/%s.reads-cor.fas.gz' % stem
+    if os.path.exists(corgz):
+        declog.debug('file %s already analysed, skipping' % filein)
+        return
+
+    # if already run before, extract the read file
+    fstgz = 'raw_reads/%s.reads.fas.gz' % stem
+    if os.path.exists(filein):
+        pass
+    elif os.path.exists(fstgz):
+        shutil.move(fstgz, './')
+        subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
+
     dn = os.path.dirname(__file__)
     my_prog = os.path.join(dn, 'diri_sampler')
     my_arg = ' -i %s -j %i -t %i -a %f -K %d' % \
         (filein, j, int(j * hist_fraction), a, init_K)
 
     try:
-        #os.remove('./corrected.tmp' )
-        os.remove('./assignment.tmp')
+        os.remove('./corrected.tmp')
+        #os.remove('./assignment.tmp')
     except OSError:
         pass
-
+    declog.debug(my_prog + my_arg)
     # runs the gibbs sampler for the dirichlet process mixture
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
@@ -167,7 +176,7 @@ def run_dpm(run_setting):
         else:
             declog.debug('run %s finished' % my_arg)
             declog.debug('Child %s returned %i' % (my_prog, retcode))
-    except OSError, ee:
+    except OSError as ee:
         declog.error('Execution of %s failed: %s' % (my_prog, ee))
 
     return
@@ -270,8 +279,6 @@ def base_break(baselist):
 def win_to_run(alpha_w):
     '''returns windows to run on diri_sampler
     '''
-    import shutil
-    import subprocess
 
     rn_list = []
     try:
@@ -282,25 +289,15 @@ def win_to_run(alpha_w):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 15)
-        stem = winFile.split('.reads')[0]
-        fstgz = 'raw_reads/%s.reads.fas.gz' % stem
-        corgz = 'corrected/%s.reads-cor.fas.gz' % stem
-        if os.path.exists(corgz):
-            continue
-        else:
-            rn_list.append((winFile, j, alpha_w))
-            if os.path.exists(winFile):
-                continue
-            elif os.path.exists(fstgz):
-                shutil.move('raw_reads/%s.reads.fas.gz' % stem, './')
-                subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
+        rn_list.append((winFile, j, alpha_w))
+
     del(end)
     del(beg, chr1)
     return rn_list
 
 
 def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
-         max_coverage=10000, alpha=0.1, keep_files=False):
+         max_coverage=10000, alpha=0.1, keep_files=True):
     '''
     Performs the error correction analysis, running diri_sampler
     and analyzing the result
@@ -308,25 +305,35 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     from multiprocessing import Pool, cpu_count
     import shutil
     import glob
+    import time
+    import snv
 
+    # set logging level
+    declog.setLevel(logging.DEBUG)
+    # This handler writes everything to a file.
+    LOG_FILENAME = './dec.log'
+    hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
+                                              maxBytes=100000, backupCount=5)
+    f = logging.Formatter("%(levelname)s %(asctime)s\
+                          %(funcName)s %(lineno)d %(message)s")
+    hl.setFormatter(f)
+    declog.addHandler(hl)
+
+    # check options
     if win_length % win_shifts != 0:
         sys.exit('Window size must be divisible by win_shifts')
-
     if win_min_ext < 1 / float(win_shifts):
         declog.warning('Some bases might not be covered by any window')
-
     if max_coverage / win_length < 1:
         sys.exit('Please increase max_coverage')
+    if not os.path.isfile(in_bam):
+        sys.exit("File '%s' not found" % in_bam)
+    if not os.path.isfile(in_fasta):
+        sys.exit("File '%s' not found" % in_fasta)
 
     incr = win_length / win_shifts
     max_c = max_coverage / win_length
     keep_all_files = keep_files
-
-    if not os.path.isfile(in_bam):
-        sys.exit("File '%s' not found" % in_bam)
-
-    if not os.path.isfile(in_fasta):
-        sys.exit("File '%s' not found" % in_fasta)
 
     #run b2w
     retcode = windows((in_bam, in_fasta, win_length, incr,
@@ -356,7 +363,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     ############################################
 
     runlist = win_to_run(alpha)
-
+    declog.info('will run on %d windows' % len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
     pool = Pool(processes=max_proc)
@@ -381,6 +388,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
         beg = parts[-2]
         end = parts[-1]
         declog.info('reading windows for start position %s' % beg)
+        # correct reads populates correction and quality, globally defined
         correct_reads(chrom, beg, end)
         stem = 'w-%s-%s-%s' % (chrom, beg, end)
         declog.info('this is window %s' % stem)
@@ -391,6 +399,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
 
     # (re)move intermediate files
     if not keep_all_files:
+        declog.info('removing intermediate files')
         tr_files = glob.glob('./w*reads.fas')
         tr_files.extend(glob.glob('./*.smp'))
         tr_files.extend(glob.glob('./w*.dbg'))
@@ -404,6 +413,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
             if os.stat(trf).st_size == 0:
                 os.remove(trf)
     else:
+
         for dbg_file in glob.glob('./w*dbg'):
             if os.stat(dbg_file).st_size > 0:
                 gzf = gzip_file(dbg_file)
@@ -477,8 +487,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     ## quality[read_id][wstart] = posterior   ##
     # ##########################################
     reason = [0, 0, 0]
-    declog.info('now correct')
-
+    declog.info('now correct, %d reads will be analysed' % len(to_correct))
     creads = 0
     for r in to_correct:
         if r not in correction.keys():
@@ -486,6 +495,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
         creads += 1
         if creads % 500 == 0:
             declog.info('considered %d corrected reads' % creads)
+            print aligned_reads[r][4]
         rlen = len(aligned_reads[r][4])  # length of original read
         rst = aligned_reads[r][2]  # read start in the reference
 
@@ -495,12 +505,12 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
             for cst in correction[r]:
                 tp = rpos + rst - int(cst)
                 if tp < 0:
-                    reason[0] = reason[0] + 1
+                    reason[0] += 1
                 if tp >= len(correction[r][cst]):
-                    reason[1] = reason[1] + 1
+                    reason[1] += 1
                 if  (tp >= 0 and tp < len(correction[r][cst]) and
                      quality[r][cst] > min_quality):
-                    reason[2] = reason[2] + 1
+                    reason[2] += 1
                     tc = correction[r][cst][tp]
                     this.append(tc)
                     corrstore.append(rpos)
@@ -511,10 +521,12 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
                 cb = 'X'
             to_correct[r][4].append(cb)
             del this
+    declog.info('considered all corrected reads')
 
     ccx = {}
     cin_stem = '.'.join(os.path.split(in_bam)[1].split('.')[:-1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
+    declog.debug('writing to file %s.cor.fas' % cin_stem)
     for r in to_correct:
         cor_read = ''.join(to_correct[r][4])
         init_x = len(cor_read.lstrip('-')) - len(cor_read.lstrip('-X'))
@@ -535,6 +547,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
 
             if cc % fasta_length != 0:
                 fch.write('\n')
+    print ccx
     fch.close()
 
     # write proposed_per_step to file
@@ -546,45 +559,70 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
                      (kp, float(proposed[kp][0]) / proposed[kp][1]))
     ph.close()
 
+    declog.info('running snv.py')
+    snv.main(reference=in_fasta, bam_file=in_bam,
+             increment=win_length / win_shifts)
+
+    # tidy snvs
+    try:
+        os.mkdir('snv')
+    except OSError:
+        os.rename('snv', 'snv_before_%d' % int(time.time()))
+        os.mkdir('snv')
+    for snv_file in glob.glob('./SNV*'):
+        shutil.move(snv_file, 'snv/')
+
+    declog.info('dec.py ends')
+
 if __name__ == "__main__":
 
     import optparse
     # parse command line
     optparser = optparse.OptionParser()
     opts = main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
+    group1 = optparse.OptionGroup(optparser, "Input files", "Required input")
+    group2 = optparse.OptionGroup(optparser, "Run options",
+                                  "Parameters that can (maybe should) be \
+                                  changed according to the needs")
+    group3 = optparse.OptionGroup(optparser, "More options",
+                                  "Do you really want to change this?")
 
-    optparser.add_option("-b", "--bam",
-                         help="file with aligned reads in .bam format",
-                         default=opts[0], type="string", dest="in_bam")
+    group1.add_option("-b", "--bam",
+                      help="file with aligned reads in .bam format",
+                      default=opts[0], type="string", dest="in_bam")
 
-    optparser.add_option("-f", "--fasta",
-                         help="reference genome in fasta format",
-                         default=opts[1], type="string", dest="in_fasta")
+    group1.add_option("-f", "--fasta",
+                      help="reference genome in fasta format",
+                      default=opts[1], type="string", dest="in_fasta")
 
-    optparser.add_option("-w", "--windowsize", help="window size <%default>",
-                         default=opts[2], type="int", dest="win_length")
+    group2.add_option("-w", "--windowsize", help="window size <%default>",
+                      default=opts[2], type="int", dest="win_length")
 
-    optparser.add_option("-s", "--winshifts",
-                         help="number of window shifts <%default>",
-                         default=opts[3], type="int", dest="win_shifts")
+    group3.add_option("-s", "--winshifts",
+                      help="number of window shifts <%default>",
+                      default=opts[3], type="int", dest="win_shifts")
 
-    optparser.add_option("-r", "--region",
-                         help="region in format 'chrom:start-stop', \
-                         eg 'ch3:1000-3000'",
-                         default=opts[4], type="string", dest="region")
+    group2.add_option("-r", "--region",
+                      help="region in format 'chrom:start-stop', \
+                      eg 'ch3:1000-3000'",
+                      default=opts[4], type="string", dest="region")
 
-    optparser.add_option("-x", "--maxcov",
-                         help="approximate max coverage allowed <%default>",
-                         default=opts[5], type="int", dest="max_coverage")
+    group3.add_option("-x", "--maxcov",
+                      help="approximate max coverage allowed <%default>",
+                      default=opts[5], type="int", dest="max_coverage")
 
-    optparser.add_option("-a", "--alpha",
-                         help="alpha in dpm sampling <%default>",
-                         default=opts[6], type="float", dest="alpha")
+    group2.add_option("-a", "--alpha",
+                      help="alpha in dpm sampling <%default>",
+                      default=opts[6], type="float", dest="alpha")
 
-    optparser.add_option("-k", "--keep_files",
-                         help="keep all intermediate files <%default>",
-                         action="store_true", dest="keep_files",
-                         default=opts[7])
+    group3.add_option("-k", "--keep_files",
+                      help="keep all intermediate files <%default>",
+                      action="store_true", dest="keep_files",
+                      default=opts[7])
+
+    optparser.add_option_group(group1)
+    optparser.add_option_group(group2)
+    optparser.add_option_group(group3)
 
     (options, args) = optparser.parse_args()
 

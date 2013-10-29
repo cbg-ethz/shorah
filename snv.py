@@ -44,17 +44,7 @@ import logging
 import logging.handlers
 
 # Make a global logging object.
-snvlog = logging.getLogger("SNVLog")
-# set logging level
-snvlog.setLevel(logging.DEBUG)
-# This handler writes everything to a file.
-LOG_FILENAME = './snv.log'
-h = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
-                                         maxBytes=100000, backupCount=5)
-fl = logging.Formatter("%(levelname)s %(asctime)s %(funcName)s\
-                      %(lineno)d %(message)s")
-h.setFormatter(fl)
-snvlog.addHandler(h)
+snvlog = logging.getLogger(__name__)
 
 # used to parse variants from support files
 posterior_thresh = 0.9
@@ -353,6 +343,17 @@ def main(reference='', bam_file='', sigma=0.01, increment=1):
     '''
     import csv
     from Bio import SeqIO
+
+    # set logging level
+    snvlog.setLevel(logging.DEBUG)
+    # This handler writes everything to a file.
+    LOG_FILENAME = './snv.log'
+    h = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
+                                             maxBytes=100000, backupCount=5)
+    fl = logging.Formatter("%(levelname)s %(asctime)s %(funcName)s\
+                          %(lineno)d %(message)s")
+    h.setFormatter(fl)
+    snvlog.addHandler(h)
 
     ref_m = dict([[s.id, s.seq.tostring().upper()]
                  for s in SeqIO.parse(reference, 'fasta')])

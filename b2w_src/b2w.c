@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     tmp.buf = bam_plbuf_init(pileup_func, &tmp); //initiate pileup buffer
     covOut.open("coverage.txt", ios::out); //open file to store window coverage
     tmp.reads.open("reads.fas", ios::out);
-    if (argc == optind+2) { //region not specified
+    if (argc == optind + 2) { //region not specified
         for (int i=0; i < n; i++) { //take each chromosome in turn
             int lnth = (int)ln[i]; //chromosome length
             tmp.b=0;
@@ -269,39 +269,39 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Invalid region %s\n", argv[optind +2]);
             return 4;
             }
-        tmp.b-=3*tmp.inc; //make sure start and end of region are covered by 3 windows
-        tmp.e+=3*tmp.inc;
-        if (tmp.b<0){
-            tmp.b=0;
+        tmp.b -= 3 * tmp.inc; //make sure start and end of region are covered by 3 windows
+        tmp.e += 3 * tmp.inc;
+        if (tmp.b < 0){
+            tmp.b = 0;
             }
-        if ((uint32_t)tmp.e>=ln[ref]){
-            tmp.e=ln[ref]-1;
+        if ((uint32_t)tmp.e >= ln[ref]){
+            tmp.e = ln[ref] - 1;
             }
         int rLen[ln[ref]];
-        tmp.len=ln[ref];
+        tmp.len = ln[ref];
 
-        for (uint32_t j=0;j<ln[ref];j++){
-            rLen[j]=0;
+        for (uint32_t j=0; j<ln[ref]; j++){
+            rLen[j] = 0;
             } 
         tmp.rLen=rLen;
         bam_fetch(tmp.in->x.bam, idx, ref, tmp.b, tmp.e, &tmp, fetch_func2); //fetch and write reads
-        tmp.beg=tmp.b;
-        tmp.end=tmp.beg+tmp.win-1;
+        tmp.beg = tmp.b;
+        tmp.end = tmp.beg + tmp.win - 1;
 
 
         while (tmp.end < (uint32_t)tmp.e) { //make windows over region
-           tmp.cov=0;
-           for (uint32_t j=0;j<ln[ref];j++){ //restart read start coverage count for each window
-               rLen[j]=0;
+           tmp.cov = 0;
+           for (uint32_t j=0; j<ln[ref]; j++){ //restart read start coverage count for each window
+               rLen[j] = 0;
                }
-           tmp.rLen=rLen;
+           tmp.rLen = rLen;
            sprintf(filename, "w-%s-%d-%d.reads.fas", //read window filename
                tmp.in->header->target_name[ref],
-               tmp.beg+1,
-               tmp.end+1); 
+               tmp.beg + 1,
+               tmp.end + 1); 
            tmp.outFile.open(filename, ios::out);
            bam_fetch(tmp.in->x.bam, idx, ref, tmp.beg, tmp.end, &tmp, fetch_func1);  //fetch and write reads
-           if (tmp.cov !=0) { //ignore empty windows
+           if (tmp.cov != 0) { //ignore empty windows
                covOut << filename << "\t" 
                << tmp.in->header->target_name[ref] << "\t" 
                << tmp.beg+1<< "\t" 
@@ -309,9 +309,9 @@ int main(int argc, char *argv[])
                << tmp.cov << "\n";
                }
            tmp.outFile.close();
-           tmp.beg+=tmp.inc; //increment windows
-           tmp.end+=tmp.inc;
-            //if (tmp.inc == 0){break;} // OZ: in amplicon mode, one window only
+           tmp.beg += tmp.inc; //increment windows
+           tmp.end += tmp.inc;
+		   if (tmp.inc == 0){break;} // OZ: in amplicon mode, one window only
            }
         }
     bam_plbuf_destroy(tmp.buf);

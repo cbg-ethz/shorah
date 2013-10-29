@@ -20,6 +20,8 @@ samtools/libbam.a
 *.log
 sam_files
 sam_files/*
+ShoRAH_project.xcodeproj
+ShoRAH_project.xcodeproj/*
 
 #####
 # OS X temporary files that should never be committed
