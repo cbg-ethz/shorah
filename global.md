@@ -7,14 +7,17 @@ permalink: global.html
 The global analysis is performed by running `shorah.py` on the input [sorted
 bam file](input.html). This will perform a shotgun [local analysis](local.html),
 followed by a global haplotype reconstruction and a frequency estimation.
-The output is a file with extension `.popl`. It is a fasta file with all the
-reconstructed haplotype sequences, with the header indicating the frequency
-after the underscore. So, for example
+The output is a file with extension `.global_haps.fasta`. It is a fasta file
+with all the reconstructed haplotype sequences, with the header indicating the
+frequency after the underscore. So, for example
 
     >HAP0_0.264857
     CCTCAGATCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGG
 
 means that the haplotype was estimated to have a frequency of 26.5%.
+
+This file is a selection of the most frequent among all reconstructed
+haplotypes. These are in the file with extension `.popl`.
 
 ### A word of caution
 Inferring haplotypes over a region longer than the reads is hard. Many false

@@ -32,15 +32,21 @@ correction and `snv.py` for SNV calling.
 Run `dec.py -h` for help.
 
     [user@host]$ dec.py -h
-    Usage: dec.py [options]
-    Options:
-    -h, --help   show this help message and exit
-    -b IN_BAM, --bam=IN_BAM   file with aligned reads in .bam format
-    -f IN_FASTA, --fasta=IN_FASTA   reference genome in fasta format
+	Usage: dec.py [options]
+
+	Options:
+	  -h, --help            show this help message and exit
+
+	  Input files:
+	    Required input
+
+	    -b IN_BAM, --bam=IN_BAM
+	                        file with aligned reads in .bam format
+	    -f IN_FASTA, --fasta=IN_FASTA
+	                        reference genome in fasta format
     . . . more options . . .
-You should specify the window size (default is 201), add the `-k` flag
-if you want to save intermediate files (for example, to check the
-convergence of the Markov chain). Next line runs with a window length of 300
+You should specify the window size (default is 201). Intermediate files are
+now kept by default. Next line runs with a window length of 300
 and keeps intermediate files. `ref_file.fasta` contains the reference sequence
 that has been used to align reads.
 
@@ -53,8 +59,20 @@ As usual, the help is available with `-h`.
 
 `amplian.py` uses the option `-m` to specify minimum overlap that the reads
 are required to have with the amplicon in order to be included (default 95%).
-The file `amplicon.fasta` contains the amplicon sequence used to align reads,
-which should be slightly smaller than the typical read length.
+The file `amplicon.fasta` contains the reference sequence used to align reads.
+If this is longer than the read length, the user can specify a shorter region
+with the option `-r chromosome_name:region_start-region_stop`.
+
+#### Find the highest diversity region
+Starting from version 0.7, `amplian` is capable of detecting the region
+corresponding to the highest Shannon entropy. The size of the region is the
+trimmed mean of the read length (_i.e._ the mean computed on reads between 10th
+and 90th percentile of length). This method can be used, for example, if one
+is interested in the lower bound on the number of haplotypes. See also our
+paper on [PLoS ONE](http://www.plosone.org/article/info%3Adoi%2F10.1371%2Fjournal.pone.0047046)
+(figure 1). If [matplotlib](http://matplotlib.org) is installed, a plot of the
+entropy is saved in file `entropy.pdf`. All entropy values are saved in the
+comma-separated value file `entropy.csv`.
 
 ### Output of local analysis
 #### Shotgun mode
@@ -84,8 +102,8 @@ bias and write a CSV file with all the information (suffix `final.csv`) in the
 directory `snv`.
 
 #### Amplicon mode
-`amplian.py` will analyse a single window, corresponding to the reference
-sequence passed with the option `-f`. Consequently, the output files from the
+`amplian.py` will analyse a single window, either passed by the user or
+determined by the program (see above). Consequently, the output files from the
 support to the SNV file will refer to this single window (see shotgun mode
 above).
 
