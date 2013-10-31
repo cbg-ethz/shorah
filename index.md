@@ -5,6 +5,10 @@ permalink: index.html
 ---
 What is ShoRAH
 ======
+
+_ShoRAH was updated in October 2013 to version 0.7. See
+[changes](https://github.com/ozagordi/shorah/commit/91db761fee38600691bed986f9757f5899e6be2e)_
+
 ShoRAH is an open source project for the analysis of next generation sequencing
 data. It is designed to analyse genetically heterogeneous samples. Its tools
 are written in different programming languages and provide error correction,
@@ -63,6 +67,21 @@ manager of many operating system. For example
 Type 'make' to build the C++ programs. This should be enough in most cases.
 If your GSL installation is not standard, you might need to edit the relevant
 lines in the `Makefile` (location `/opt/local/` is already included).
+
+#### Windows users
+Although we did not develop shorah for Windows, [Cygwin](http://www.cygwin.com)
+offers a Linux-like environment on Windows machines. Users have reported
+successful compilation by installing Cygwin and then
+- C++/g++
+- GSL
+- python
+- Biopython (with an
+  [installer](http://biopython.org/DIST/docs/install/Installation.html#htoc29)
+  or from
+  [source](http://biopython.org/DIST/docs/install/Installation.html#htoc30))
+
+Then, compile shorah with `make`. We would like to hear if you succeed.
+_Thanks to NKC_
 
 #### Run
 
