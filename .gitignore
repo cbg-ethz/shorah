@@ -22,6 +22,8 @@ sam_files
 sam_files/*
 ShoRAH_project.xcodeproj
 ShoRAH_project.xcodeproj/*
+samtools/samtools.xcodeproj/
+samtools/samtools.xcodeproj/*
 
 #####
 # OS X temporary files that should never be committed
