@@ -41,8 +41,8 @@ reference names.
 _reported by KMD_
 
 #### `diri_sampler` and memory leak
-This seems to be solved now (_thanks to
-[Manuel Holtgrewe](https://github.com/ozagordi/shorah/pull/1)_).
+This seems to be solved now (thanks to
+[Manuel Holtgrewe](https://github.com/ozagordi/shorah/pull/1)).
 
 It happened that `diri_sampler` failed to run with a cryptic message that reads
 like: `memory corruption: 0x0000000000. . .`
