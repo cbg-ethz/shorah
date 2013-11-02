@@ -41,13 +41,14 @@ reference names.
 _reported by KMD_
 
 #### `diri_sampler` and memory leak
-<s>It happens that `diri_sampler` fails to run with a cryptic message that reads
-like: `memory corruption: 0x0000000000. . .`
-Usually, changing the name of the input file to something shorter is enough.
-For obscure reasons, it seems to fail when the file name is 18 letter plus
-the suffix `.far`. If you have the faintest idea why this happens, we would
-like to know.</s> This seems to be solved now (_thanks to
+This seems to be solved now (_thanks to
 [Manuel Holtgrewe](https://github.com/ozagordi/shorah/pull/1)_).
+
+It happened that `diri_sampler` failed to run with a cryptic message that reads
+like: `memory corruption: 0x0000000000. . .`
+Usually, changing the name of the input file to something shorter was enough.
+For obscure reasons, it seemed to fail when the file name is 18 letter plus
+the suffix `.far`.
 
 ---
 
