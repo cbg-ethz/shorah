@@ -6,7 +6,9 @@ permalink: index.html
 What is ShoRAH
 ======
 
-_ShoRAH was updated in October 2013 to version 0.7. See
+_ShoRAH was updated in October 2013 to
+[version 0.8](https://github.com/ozagordi/shorah/releases/tag/v0.8). 
+See
 [changes](https://github.com/ozagordi/shorah/commit/91db761fee38600691bed986f9757f5899e6be2e)_
 
 ShoRAH is an open source project for the analysis of next generation sequencing
