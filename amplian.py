@@ -194,8 +194,8 @@ def highest_entropy(bam_file, fasta_file):
     # Build the mpileup and compute the entropy per position
     ref_seq = list(SeqIO.parse(fasta_file, 'fasta'))[0]
     entropy = [None] * (len(ref_seq) + 1)
-    #run_child('samtools', 'mpileup  -f %s -d %d %s > sample.mpu' %
-     #         (fasta_file, cutoff_depth, bam_file))
+    run_child('samtools', 'mpileup  -f %s -d %d %s > sample.mpu' %
+              (fasta_file, cutoff_depth, bam_file))
     for l in open('sample.mpu'):
         pos, refbase, depth = int(l.split()[1]), l.split()[2], \
             int(l.split()[3])
