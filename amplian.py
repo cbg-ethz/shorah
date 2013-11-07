@@ -184,17 +184,18 @@ def highest_entropy(bam_file, fasta_file):
     os.remove('rl.txt')
     read_len = sorted(read_len)
     n_reads = len(read_len)
+    amplog.info('n_reads: %d' % n_reads)
     # max_len = max(read_len)
     trimmed_mean = sum([read_len[i] for i in range(int(0.1 * n_reads),
                                                    int(0.9 * n_reads))])
     trimmed_mean /= (0.8 * n_reads)
     trimmed_mean = int(round(trimmed_mean, 0))
-
+    amplog.info('trimmed_mean: %d' % trimmed_mean)
     # Build the mpileup and compute the entropy per position
     ref_seq = list(SeqIO.parse(fasta_file, 'fasta'))[0]
     entropy = [None] * (len(ref_seq) + 1)
-    run_child('samtools', 'mpileup  -f %s -d %d %s > sample.mpu' %
-              (fasta_file, cutoff_depth, bam_file))
+    #run_child('samtools', 'mpileup  -f %s -d %d %s > sample.mpu' %
+     #         (fasta_file, cutoff_depth, bam_file))
     for l in open('sample.mpu'):
         pos, refbase, depth = int(l.split()[1]), l.split()[2], \
             int(l.split()[3])
@@ -225,7 +226,8 @@ def highest_entropy(bam_file, fasta_file):
         if start and e is None:
             stop = i
             break
-
+        stop = i
+    amplog.info('start: %d, stop: %d' % (start, stop))
     max_ent = -1.0
     high_ent_start = -1
     ent_mean = [None] * (len(ref_seq) + 1)
