@@ -318,6 +318,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
                           %(funcName)s %(lineno)d %(message)s")
     hl.setFormatter(f)
     declog.addHandler(hl)
+    declog.info(' '.join(sys.argv))
 
     # check options
     if win_length % win_shifts != 0:
@@ -630,7 +631,6 @@ if __name__ == "__main__":
         'bam': 'aligned reads',
         'fasta': 'reference genome'
     }
-    declog.info(' '.join(sys.argv))
     # check the input file is in supported format
     try:
         tmp_filename = os.path.split(options.in_bam)[1]

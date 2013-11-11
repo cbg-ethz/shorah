@@ -283,7 +283,7 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
                           %(lineno)d %(message)s")
     hl.setFormatter(f)
     amplog.addHandler(hl)
-
+    amplog.info(' '.join(sys.argv))
     # info on reference and region if given, or discover high entropy one
     ref_seq = list(SeqIO.parse(in_fasta, 'fasta'))[0]
     ref_name = ref_seq.id
@@ -391,7 +391,6 @@ if __name__ == "__main__":
         'bam': 'aligned reads',
         'fasta': 'reference genome'
     }
-    amplog.info(' '.join(sys.argv))
     # check the input file is in supported format
     try:
         tmp_filename = os.path.split(options.in_bam)[1]
