@@ -64,7 +64,7 @@ If this is longer than the read length, the user can specify a shorter region
 with the option `-r chromosome_name:region_start-region_stop`.
 
 #### Find the highest diversity region
-Starting from version 0.7, `amplian` is capable of detecting the region
+Starting from version 0.8, `amplian` is capable of detecting the region
 corresponding to the highest Shannon entropy. The size of the region is the
 trimmed mean of the read length (_i.e._ the mean computed on reads between 10th
 and 90th percentile of length). This method can be used, for example, if one
