@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="ShoRAH : Short Reads Assembly into Haplotypes" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <link rel="shortcut icon" href="favicon.ico" />
+    <title>Shorah</title>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ozagordi/shorah">View on GitHub</a>
+
+          <h1 id="project_title"><a href="index.html">ShoRAH</a></h1>
+          <h2 id="project_tagline">Short Reads Assembly into Haplotypes</h2>
+          <a id="input" class="menu_links" href="input.html">input</a>
+          <a id="local" class="menu_links" href="local.html">local</a>
+          <a id="global" class="menu_links" href="global.html">global</a>
+          <a id="help" class="menu_links" href="help.html">help</a>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ozagordi/shorah/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ozagordi/shorah/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+    <h1 id='what_is_shorah'>What is ShoRAH</h1>
+
+<p>ShoRAH is an open source project for the analysis of next generation sequencing data. It is designed to analyse genetically heterogeneous samples. Its tools are written in different programming languages and provide error correction, haplotype reconstruction and estimation of the frequency of the different genetic variants present in a mixed sample.</p>
+<hr />
+<p>The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of several programs, the most imporant of which are:</p>
+
+<p><code>amplian.py</code> - amplicon based analysis</p>
+
+<p><code>dec.py</code> - local error correction based on diri_sampler</p>
+
+<p><code>diri_sampler</code> - Gibbs sampling for error correction via Dirichlet process mixture</p>
+
+<p><code>contain</code> - removal of redundant reads</p>
+
+<p><code>mm.py</code> - maximum matching haplotype construction</p>
+
+<p><code>freqEst</code> - EM algorithm for haplotype frequency</p>
+
+<p><code>snv.py</code> - detects single nucleotide variants, taking strand bias into account</p>
+
+<p><code>shorah.py</code> - wrapper for everything</p>
+<hr />
+<h3 id='citation'>Citation</h3>
+
+<p>If you use shorah, please cite the application note paper on <a href='http://www.biomedcentral.com/1471-2105/12/119'>BMC Bioinformatics</a>.</p>
+<hr />
+<h3 id='usage'>Usage</h3>
+
+<h4 id='dependencies_and_installation'>Dependencies and installation</h4>
+
+<p>Please download and install:</p>
+
+<ul>
+<li><a href='http://biopython.org/wiki/Download'>Biopython</a>, following the online instructions.</li>
+
+<li><a href='http://www.gnu.org/software/gsl/'>GNU scientific library GSL</a>, installation is described in the included README and INSTALL files.</li>
+
+<li><a href='http://www.gnu.org/software/ncurses/ncurses.html'>ncurses</a> is required by samtools. It is usually already included in Linux/Mac OS X.</li>
+</ul>
+
+<p>Please note that these dependencies can be satisfied also using the package manager of many operating system. For example <a href='http://www.macports.org/'>MacPorts</a> on Mac OS X, <a href='http://yum.baseurl.org/'>yum</a> on several linux installations and so on.</p>
+
+<p>Type &#8216;make&#8217; to build the C++ programs. This should be enough in most cases. If your GSL installation is not standard, you might need to edit the relevant lines in the <code>Makefile</code> (location <code>/opt/local/</code> is already included).</p>
+
+<h4 id='run'>Run</h4>
+
+<p>The input is a sorted bam file. Analysis can be performed in local or global mode.</p>
+
+<h5 id='local_analysis'><a href='local.html'>Local analysis</a></h5>
+
+<p>The local analysis alone can be run invoking <code>dec.py</code> or <code>amplian.py</code> (program for the amplicon mode). They work by cutting windows from the multiple sequence alignment, invoking <code>diri_sampler</code> on the windows and calling <code>snv.py</code> for the SNV calling.</p>
+
+<h5 id='global_analysis'><a href='global.html'>Global analysis</a></h5>
+
+<p>The whole global reconstruction consists of the following steps:</p>
+
+<ol>
+<li>error correction (<em>i.e.</em> local haplotype reconstruction);</li>
+
+<li>SNV calling;</li>
+
+<li>removal of redundant reads;</li>
+
+<li>global haplotype reconstruction;</li>
+
+<li>frequency estimation.</li>
+</ol>
+
+<p>These can be run one after the other, or one can invoke <code>shorah.py</code>, that runs the whole process from bam file to frequency estimation and SNV calling.</p>
+<hr />
+<h3 id='getting_help'>Getting help</h3>
+
+<p>See the dedicated <a href='help.html'>page</a>.</p>
+<hr />
+<h3 id='authors_and_contributors'>Authors and Contributors</h3>
+
+<p>Niko Beerenwinkel</p>
+
+<p>Arnab Bhattacharya</p>
+
+<p>Nicholas Eriksson</p>
+
+<p>Moritz Gerstung</p>
+
+<p>Lukas Geyrhofer</p>
+
+<p>Fabio Luciani</p>
+
+<p>Kerensa McElroy</p>
+
+<p>Osvaldo Zagordi</p>
+
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">ShoRAH maintained by <a href="https://github.com/ozagordi">ozagordi</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="ShoRAH : Short Reads Assembly into Haplotypes" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <link rel="shortcut icon" href="favicon.ico" />
+    <title>Shorah</title>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/ozagordi/shorah">View on GitHub</a>
+
+          <h1 id="project_title"><a href="index.html">ShoRAH</a></h1>
+          <h2 id="project_tagline">Short Reads Assembly into Haplotypes</h2>
+          <a id="input" class="menu_links" href="input.html">input</a>
+          <a id="local" class="menu_links" href="local.html">local</a>
+          <a id="global" class="menu_links" href="global.html">global</a>
+          <a id="help" class="menu_links" href="help.html">help</a>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/ozagordi/shorah/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/ozagordi/shorah/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+    <h3 id='get_help'>Get help</h3>
+
+<p>Despite our efforts to make the installation procedure as easy as possible, the variety of computers, operating systems, distributions and libraries make the installation outcome very difficult to predict. Should you have any problem, you might</p>
+
+<ul>
+<li>check issues reported on this page,</li>
+
+<li>ask your local administrator,</li>
+
+<li><a href='mailto:shorah@bsse.ethz.ch'>contact us</a>.</li>
+</ul>
+<hr />
+<h3 id='problems_occurring_during_compilation'>Problems occurring during compilation</h3>
+
+<h4 id='gsl'>GSL</h4>
+
+<p>The Makefile has been written to match typical location for the installation of GSL on Linux and Mac OS X system. In case of different installation of the GSL, please edit CFLAGS and XLIBS in the Makefile.</p>
+<hr />
+<h3 id='problems_occurring_during_execution'>Problems occurring during execution</h3>
+
+<h4 id='memory_footprint'>Memory footprint</h4>
+
+<p>We work to keep the memory requirements at bay. Nevertheless, for large samples the required RAM might exceed 4 Gb. For example, a run of <code>diri_sampler</code> on a single window of 65000 reads from 454 required 4.1 Gb of RAM. If <code>dec.py</code> is used, this will run several jobs at the same time (parallelization), thus increasing the memory needs.</p>
+
+<h4 id='bam_files_give_me_problems'>BAM files give me problems</h4>
+
+<p>We have heard from some users errors that might be due to colons <code>:</code> in the reference names.</p>
+
+<p><em>reported by KMD</em></p>
+
+<h4 id='_and_memory_leak'><code>diri_sampler</code> and memory leak</h4>
+
+<p>It happens that <code>diri_sampler</code> fails to run with a cryptic message that reads like: <code>memory corruption: 0x0000000000. . .</code> Usually, changing the name of the input file to something shorter is enough. For obscure reasons, it seems to fail when the file name is 18 letter plus the suffix <code>.far</code>. If you have the faintest idea why this happens, we would like to know.</p>
+<hr />
+<p>Go back <a href='index.html'>home</a></p>
+
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">ShoRAH maintained by <a href="https://github.com/ozagordi">ozagordi</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>

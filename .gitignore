@@ -98,3 +98,11 @@ xcuserdata
 # UNKNOWN: recommended by others, but I can't discover what these files are
 #
 # ...none. Everything is now explained.
+=======
+_site/*
+.DS_Store
+images/.DS_Store
+images/.Rhistory
+images/*ttf
+images/*pdf
+images/*_skitch*

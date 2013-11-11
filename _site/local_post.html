@@ -1,0 +1,37 @@
+<h1 id='generally_speaking'>Generally speaking</h1>
+
+<p>Two kinds of local analysis are possible, one invoked by the program <code>dec.py</code>, the other by <code>amplian.py</code>. We will define these two as shotgun mode (albeit improperly) and amplicon mode. The input is always a <a href='input.html'>sorted bam file</a>.</p>
+
+<h2 id='shotgun_mode'>Shotgun mode</h2>
+
+<p>This is performed when the amplicon is longer than the typical read length and we don&#8217;t want to focus our analysis on a specific region of this amplicon. <code>dec.py</code> cuts on the aligment a set of overlapping regions (parameters can be adjusted, run <code>dec.py -h</code> for help), and passes them to <code>diri_sampler</code> for error correction and local haplotype reconstruction. This is the first step of the <a href='global.html'>global analysis</a>. Additionally, it runs <code>snv.py</code> for SNV calling.</p>
+
+<h2 id='amplicon_mode'>Amplicon mode</h2>
+
+<p>When the amplicon size is smaller than the read length or comparable to it, it is in general more appropriate to use <code>amplian.py</code>, which extracts the multiple alignment corresponding to the specified amplicon. By default, this includes reads that cover at least 95% of the amplicon region (this can be adjusted with the option <code>-m MIN_OVERLAP</code>). It then runs <code>diri_sampler</code> for error correction and <code>snv.py</code> for SNV calling.</p>
+
+<h1 id='examples'>Examples</h1>
+
+<h4 id='shotgun_mode_'>Shotgun mode: <code>dec.py</code></h4>
+
+<p>Run <code>dec.py -h</code> for help.</p>
+
+<blockquote>
+<p>[user@host]$ dec.py -h Usage: dec.py <span>options</span> Options: -h, &#8211;help show this help message and exit -b IN_BAM, &#8211;bam=IN_BAM file with aligned reads in .bam format -f IN_FASTA, &#8211;fasta=IN_FASTA reference genome in fasta format</p>
+</blockquote>
+
+<p>You should specify the window size (default is 201), add the <code>-k</code> flag if you want to save intermediate files (for example, to check the convergence of the Markov chain).</p>
+
+<blockquote>
+<p>[user@host]$ dec.py -b my_sorted_bam.bam -f ref_file.fasta -w 300 -k</p>
+</blockquote>
+
+<h4 id='amplicon_mode_amplianpy'>Amplicon mode: amplian.py</h4>
+
+<blockquote>
+<p>[user@host]$ amplian.py -b my_sorted_bam.bam -f ref_file.fasta -m 0.95</p>
+</blockquote>
+
+<p><code>amplian.py</code> uses the option <code>-m</code> to specify minimum overlap of the reads.</p>
+<hr />
+<p>Go back <a href='index.html'>home</a></p>
