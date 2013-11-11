@@ -49,10 +49,14 @@ manager of many operating systems. For example
 [MacPorts](http://www.macports.org/) on Mac OS X,
 [yum](http://yum.baseurl.org/) on several linux installations and so on.
 
-
 Type 'make' to build the C++ programs. This should be enough in most cases. If
 your gsl installation is not standard, you might need to edit the relevant
 lines in the `Makefile` (location `/opt/local/` is already included).
+
+#### Windows users
+You can install and run `shorah` with [Cygwin](http://www.cygwin.com).
+Please see the relevant paragraph on the
+[documentation page](http://ozagordi.github.io/shorah/).
 
 ### Run
 The input is a sorted bam file. Analysis can be performed in local or global
@@ -62,7 +66,10 @@ mode.
 The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
 for the amplicon mode). They work by cutting window from the multiple sequence
 alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
-SNV calling. See the `README` file in directory `amplicon_test`.
+SNV calling. See the
+[`README`](https://github.com/ozagordi/shorah/blob/master/amplicon_test/README.md)
+file in directory
+[`amplicon_test`](https://github.com/ozagordi/shorah/blob/master/amplicon_test/).
 
 #### Global analysis
 The whole global reconstruction consists of the following steps:
