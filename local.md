@@ -7,7 +7,8 @@ permalink: local.html
 Two kinds of local analysis are possible, one invoked by the program `dec.py`,
 the other by `amplian.py`. We will define these two as shotgun mode (albeit
 improperly) and amplicon mode. The input is always a [sorted bam
-file](input.html).
+file](input.html). The window size should be slightly smaller than the read
+length.
 
 #### Shotgun mode: region longer than the reads
 ![shotgun mode](images/shotgun.png)
