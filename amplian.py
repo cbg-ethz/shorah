@@ -138,7 +138,7 @@ def shannon_entropy(bases):
     return -sum([(c / sc) * math.log(c / sc) / math.log(2.0) for c in counts])
 
 
-def plot_entropy(pos_ent, ave_ent, win_coords):
+def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
     '''Plot entropies and window to a pdf file with matplotlib'''
     try:
         import matplotlib.pyplot as plt
@@ -147,11 +147,12 @@ def plot_entropy(pos_ent, ave_ent, win_coords):
         return
     high_start, high_stop = win_coords
 
-    X = range(len(pos_ent))
-    
+    ent_start, ent_stop = pos_coords
+    X = range(ent_start, ent_stop)
+
     fig, ax1 = plt.subplots()
     #ax1.plot(X, pos_ent, '-', color='#E69F00', alpha=0.8)
-    ax1.vlines(X, 0, pos_ent, color='#E69F00', alpha=0.8)
+    ax1.vlines(X, 0, pos_ent[ent_start:ent_stop], color='#E69F00', alpha=0.8)
     ax1.set_xlabel('position on reference')
     # Make the y-axis label and tick labels match the line color.
     ax1.set_ylabel('entropy per position', color='#E69F00')
@@ -159,18 +160,19 @@ def plot_entropy(pos_ent, ave_ent, win_coords):
         tl.set_color('#E69F00')
 
     ax2 = ax1.twinx()
-    ax2.plot(X, ave_ent, ':', lw=2., color='#56B4E9', alpha=1.0)
+    ax2.plot(X, ave_ent[ent_start:ent_stop], ':', lw=2., color='#56B4E9',
+             alpha=1.0)
     ax2.set_ylabel('window average', color='#56B4E9')
     for tl in ax2.get_yticklabels():
         tl.set_color('#56B4E9')
-    
+
     ax2.axvspan(high_start, high_stop, color='#CC79A7', alpha=0.4,
                 label='highest entropy window')
 
-    plt.title('highest entropy window is %d-%d' % (high_start, high_stop))
+    plt.title('chosen entropy window is %d-%d' % (high_start, high_stop))
     plt.savefig('entropy.pdf')
 
-def highest_entropy(bam_file, fasta_file):
+def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     '''Parse reads to have their length distribution and compute the
     trimmed mean read length'''
 
@@ -221,18 +223,41 @@ def highest_entropy(bam_file, fasta_file):
     # identifies the start and stop of the high entropy region
     start, stop = None, None
     for i, e in enumerate(entropy):
-        if start is None and e is not None:
+        if start is None and e is not None and e > 0.0:
             start = i
         if start and e is None:
             stop = i
             break
         stop = i
     amplog.info('start: %d, stop: %d' % (start, stop))
-    max_ent = -1.0
-    high_ent_start = -1
+
+    # mean entropy
     ent_mean = [None] * (len(ref_seq) + 1)
     delta = int(trimmed_mean / 2)  # used to center the moving window
     for i in range(start, stop - trimmed_mean):
+        ent_mean[i + delta] = sum(entropy[i:i + trimmed_mean]) / trimmed_mean
+
+    # max entropy per position, excluding the first and last 10 positions
+    max_ent_per_pos = -1.0
+    for i in range(start + 10, stop - 10):
+        if entropy[i] > max_ent_per_pos:
+            max_ent_per_pos = entropy[i]
+            highest_ent_pos = i
+    amplog.info('highest entropy found at position %d' % highest_ent_pos)
+
+    # the window is chosen as the absolute max mean_entropy or as the
+    # max mean entropy covering the position with max entropy
+    max_ent = -1.0
+    high_ent_start = -1
+
+    if ent_sel == 'absolute':
+        rsta = start
+        rsto = stop - trimmed_mean
+    elif ent_sel == 'relative':
+        rsta = max(start, highest_ent_pos - trimmed_mean + 1)
+        rsto = min(stop - trimmed_mean, highest_ent_pos + 1)
+
+    for i in range(rsta, rsto):
         ent_mean[i + delta] = sum(entropy[i:i + trimmed_mean]) / trimmed_mean
         if ent_mean[i + delta] >= max_ent:
             max_ent = ent_mean[i + delta]
@@ -259,7 +284,8 @@ def highest_entropy(bam_file, fasta_file):
     eh.close()
 
     # plot entropy; requires matplotlib
-    plot_entropy(entropy, ent_mean, (high_ent_start, high_ent_stop))
+    plot_entropy(entropy, (start, stop), ent_mean,
+                 (high_ent_start, high_ent_stop))
 
     return high_ent_start, high_ent_stop
 
