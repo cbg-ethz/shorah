@@ -9,8 +9,8 @@ the basic steps to produce such an alignment.
 
 #### First of all, align the reads
 Since the mass adoption of next-generation sequencing, the bioinformatics
-community has produced an enormous number of read mappers (aligners). An
-incomplete list is [here](http://lh3lh3.users.sourceforge.net/NGSalign.shtml).
+community has produced an enormous number of read mappers (aligners). A
+list is [here](http://wwwdev.ebi.ac.uk/fg/hts_mappers/).
 
 Whatever is your chosen aligner, it will most likely have the option to
 output a file in [SAM format][samtools]. From the alignment in SAM format, you
