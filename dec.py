@@ -158,7 +158,7 @@ def run_dpm(run_setting):
 
     dn = os.path.dirname(__file__)
     my_prog = os.path.join(dn, 'diri_sampler')
-    my_arg = ' -i %s -j %i -t %i -a %f -K %d' % \
+    my_arg = ' -i "%s" -j %i -t %i -a %f -K %d' % \
         (filein, j, int(j * hist_fraction), a, init_K)
 
     try:
