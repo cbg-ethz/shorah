@@ -342,7 +342,7 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file %s not found' % win_file
     diri_exe = os.path.join(dn, 'diri_sampler')
-    iterations = min(200000, n_reads * 20)
+    iterations = min(30000, n_reads * 20)
     diri_args = '-i %s -j %d -a %f -t 2000' % (win_file, iterations, alpha)
     ret_diri = run_child(diri_exe, diri_args)
     amplog.debug('diri_sampler returned %d' % ret_diri)

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright 2007-2012
+# Copyright 2007-2014
 # Niko Beerenwinkel,
 # Nicholas Eriksson,
 # Moritz Gerstung,
@@ -105,11 +105,14 @@ def parseWindow(line, ref1):
     elif os.path.exists(filename + '.gz'):
         filename = filename + '.gz'
 
-    snvlog.debug('File %s found' % filename)
-    if filename.endswith('.gz'):
-        window = gzip.open(filename)
-    else:
-        window = open(filename)
+    try:
+        if filename.endswith('.gz'):
+            window = gzip.open(filename)
+        else:
+            window = open(filename)
+    except IOError:
+        snvlog.error('File not found')
+        return snp
 
     beg = int(beg)
     end = int(end)
@@ -117,7 +120,7 @@ def parseWindow(line, ref1):
     max_snv = -1
     # sequences in support file exceeding the posterior threshold
     for s in SeqIO.parse(window, 'fasta'):
-        seq = s.seq.tostring().upper()
+        seq = str(s.seq).upper()
         match_obj = search('posterior=(.*)\s*ave_reads=(.*)', s.description)
         post, av = float(match_obj.group(1)), float(match_obj.group(2))
         if post > 1.0:
@@ -343,6 +346,7 @@ def main(reference='', bam_file='', sigma=0.01, increment=1):
     '''
     import csv
     from Bio import SeqIO
+    import inspect
 
     # set logging level
     snvlog.setLevel(logging.DEBUG)
@@ -355,7 +359,8 @@ def main(reference='', bam_file='', sigma=0.01, increment=1):
     h.setFormatter(fl)
     snvlog.addHandler(h)
 
-    ref_m = dict([[s.id, s.seq.tostring().upper()]
+    snvlog.info(str(inspect.getargspec(main)))
+    ref_m = dict([[s.id, str(s.seq).upper()]
                  for s in SeqIO.parse(reference, 'fasta')])
 
     # number of windows per segment
@@ -422,19 +427,19 @@ if __name__ == "__main__":
     opts = main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
 
     optparser.add_option("-r", "--ref", default=opts[0], type="string",
-                         dest="r", help="reference file")
+                         dest="reference", help="reference file")
 
     optparser.add_option("-b", "--bam", default=opts[1], type="string",
-                         dest="b", help="sorted bam format alignment file")
+                         dest="bam_file", help="sorted bam format alignment file")
 
     optparser.add_option("-s", "--sigma", default=opts[2], type="float",
-                         dest="s", help="value of sigma to use when calling\
+                         dest="sigma", help="value of sigma to use when calling\
                          SNVs <%default>")
 
     optparser.add_option("-i", "--increment", default=opts[3], type="int",
-                         dest="i", help="value of increment to use when\
-                         calling SNVs (1 used by amplian.py) <%default>")
+                         dest="increment", help="value of increment to use \
+                         when calling SNVs (1 used by amplian.py) <%default>")
 
     (options, args) = optparser.parse_args()
 
-    main(*args, **vars(opts))
+    main(*args, **vars(options))

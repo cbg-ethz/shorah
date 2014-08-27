@@ -18,10 +18,14 @@ samtools/libbam.a
 ###
 # misc
 *.log
+amplicon_test
+amplicon_test/*
 sam_files
 sam_files/*
 ShoRAH_project.xcodeproj
 ShoRAH_project.xcodeproj/*
+samtools/
+samtools/*
 samtools/samtools.xcodeproj/
 samtools/samtools.xcodeproj/*
 
