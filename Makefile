@@ -18,8 +18,9 @@ DOXYFILE_1 = dpm_src/doxyfile
 # EDIT LINES BELOW TO INCLUDE GSL #
 ###################################
 CXLIBS = -lgsl -lgslcblas
-CFLAGS = $(CCFLAGS) -I/opt/local/include
-XLIBS  = -L/opt/local/lib $(CXLIBS)
+CFLAGS = $(CCFLAGS) # -I/opt/local/include
+#XLIBS  = -L/opt/local/lib $(CXLIBS)
+XLIBS = $(CXLIBS)
 CPPFLAGS = $(CFLAGS)
 
 #SRC_1 = dpm_src/dmm_sampler.cpp
