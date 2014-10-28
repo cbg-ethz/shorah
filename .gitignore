@@ -18,8 +18,6 @@ samtools/libbam.a
 ###
 # misc
 *.log
-amplicon_test
-amplicon_test/*
 sam_files
 sam_files/*
 ShoRAH_project.xcodeproj
