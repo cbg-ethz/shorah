@@ -6,7 +6,7 @@ are written in different programming languages and provide error correction,
 haplotype reconstruction and estimation of the frequency of the different
 genetic variants present in a mixed sample.
 
-More information [here](http://ozagordi.github.com/shorah/).
+More information [here](http://ozagordi.github.com/shorah).
 
 ---
 
