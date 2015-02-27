@@ -38,7 +38,7 @@ FLAGS_3 = -g -O2 -Wall -ffast-math
 
 SRC_4 = b2w_src/b2w.c
 EXE_4 = b2w
-FLAGS_4 = -Isamtools -Lsamtools -lbam -lm -lz
+FLAGS_4 = -Isamtools -Lsamtools -lbam -lm -lz -lpthread
 
 SRC_5 = filter_src/fil.c
 EXE_5 = fil
