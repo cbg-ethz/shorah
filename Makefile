@@ -17,7 +17,7 @@ DOXYFILE_1 = dpm_src/doxyfile
 ###################################
 # EDIT LINES BELOW TO INCLUDE GSL #
 ###################################
-CXLIBS = -lgsl -lgslcblas -lpthreads
+CXLIBS = -lgsl -lgslcblas -lpthread
 CFLAGS = $(CCFLAGS) # -I/opt/local/include
 #XLIBS  = -L/opt/local/lib $(CXLIBS)
 XLIBS = $(CXLIBS)
