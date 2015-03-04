@@ -48,12 +48,19 @@ Please download and install:
 
 Please note that these dependencies can be satisfied also using the package
 manager of many operating systems. For example
-[MacPorts](http://www.macports.org/) on Mac OS X,
+[Homebre](http://brew.sh) on Mac OS X,
 [yum](http://yum.baseurl.org/) on several linux installations and so on.
 
 Type 'make' to build the C++ programs. This should be enough in most cases. If
 your gsl installation is not standard, you might need to edit the relevant
 lines in the `Makefile` (location `/opt/local/` is already included).
+
+#### GSL on Ubuntu
+The following commands install GSL on Ubuntu 12.04 LTS Server Edition 64 bit,
+as reported by [Travis](http://travis-ci.org/)
+
+	sudo apt-get update -qq
+	sudo apt-get install -y gsl-bin libgsl0-dev
 
 #### Windows users
 You can install and run `shorah` with [Cygwin](http://www.cygwin.com).
