@@ -10,7 +10,7 @@ sort the alignment. The commands given are
     [user@host amplicon_test]$ smalt map -f sam -o ampli.sam ref amplicon_reads.fastq
     [user@host amplicon_test]$ samtools view -S -b ampli.sam | samtools sort - ampli_sorted
 
-You can then run `amplian` as follows 
+You can then run `amplian` as follows
     [user@host amplicon_test]$ amplian.py -b ampli_sorted.bam -f reference.fasta
 
 Some warning will be raised. The output files will be `SNV.txt` and `SNVs_0.010000_final.csv`.
@@ -18,6 +18,7 @@ Only SNVs exceeding the threshold of 5% are returned (see [paper](http://www.bio
 
 #### Tips
 You can inspect the alignment with `samtools tview`:
+
     [user@host amplicon_test]$ samtools index ampli_sorted.bam
     [user@host amplicon_test]$ samtools tview ampli_sorted.bam reference.fasta
 
@@ -27,4 +28,3 @@ Within tview, press ? for help.
 
 `amplian` is still under development and thus should be considered in
 beta more than the rest of ShoRAH (say, alpha).
-
