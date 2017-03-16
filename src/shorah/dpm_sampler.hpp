@@ -32,7 +32,7 @@ const unsigned int B=5; //characters in the alphabet
 const int one_int = 153391689;
 const int two_int = 306783378;
 const int four_int = 613566756;
-const int LIMIT = 100;//000;
+const int LIMIT = 100000;
 
 char* filein;
 char** id;
@@ -139,11 +139,11 @@ int isdna(char c);
 
 unsigned int d2i(char c);
 
-int* seq_distance_new(int* A, crnode* B, int seq_length);
+std::pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length);
 
-int* seq_distance_rr(int* A, crnode* B, int seq_length);
+std::pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length);
 
-int* seq_distance(unsigned short int* a, unsigned short int* b, int seq_length);
+std::pair<int,int> seq_distance(unsigned short int* a, unsigned short int* b, int seq_length);
 
 ssret* sample_class(unsigned int i,unsigned int step);
 
