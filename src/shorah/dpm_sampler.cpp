@@ -39,6 +39,7 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
+#include <nmmintrin.h>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -54,7 +55,7 @@ int main(int argc, char** argv){
   
   unsigned int i, j, k, ll, K1=0, iter2, tot_untouch, new_proposed=0;
   int dk1, hapbases;
-  int* p;
+  std::pair<int,int> p;
   cnode* tn;
   //rnode* rn;
   rnode* tr;
@@ -124,82 +125,95 @@ int main(int argc, char** argv){
     //ftable[j][i] = 0.0;
     for (k =0; k<n; k++){
       if(r[k][j] < B){
-	ftable[j][r[k][j]] ++;
-	ftable_sum[j]++;
+	    ftable[j][r[k][j]] ++;
+	    ftable_sum[j]++;
       }
     }
     //for (i=0;i<B; i++){
     //  ftable[j][i] = ftable[j][i]/tot_pos;
     //}  
   }
-  stat_file << "# Number of reads, n = "<<n<<endl<<"# Read length, J = "<<J<<endl<<"# J/10 + 1 = "<<J/10 + 1<<endl<<endl;
+  stat_file << "# Number of reads, n = " << n << endl;
+  stat_file << "# Read length, J = " << J << endl; 
+  stat_file << "# J/10 + 1 = " << J/10 + 1 << endl << endl;
 
-   // creads = (int**)calloc(n, sizeof(int*));
+  // creads = (int**)calloc(n, sizeof(int*));
 
-   readtable = (crnode**)calloc(n, sizeof(crnode*));
+  readtable = (crnode**)calloc(n, sizeof(crnode*));
 
-   for(i=0; i<n; i++){
-     readtable[i] = (crnode*)calloc(1, sizeof(crnode));
-     readtable[i]->creads = new int[J/10 + 1];
-     readtable[i]->mindices = new int[LIMIT + 1];
-   }
+  for(i=0; i<n; i++){
+    readtable[i] = (crnode*)calloc(1, sizeof(crnode));
+    readtable[i]->creads = new int[J/10 + 1];
+    readtable[i]->mindices = new int[LIMIT + 1];
+  }
 
-   for(i=0; i<n; i++){
-     read_conversion(readtable[i], r[i], J);
-     readtable[i]->mindex = 0;
-     readtable[i]->weight = 1; // mapped = no
-   }
-
-   
-   //multimap<string,int>::iterator it;
-   //string stemp = ("");
-   //int mapcount, mflag;
-   /*
-   for(j=0; j<J/10 + 1; j++)
-     stemp += static_cast<ostringstream*>( &(ostringstream() << readtable[0]->creads[j]) )->str();
-
-   readmap.insert ( pair<string,int>(stemp, 1) );
-   readtable[0]->mindex = 0;
+  for(i=0; i<n; i++){
+    read_conversion(readtable[i], r[i], J);
+    readtable[i]->mindex = 0;
+    readtable[i]->weight = 1; // mapped = no
+  }
 
    
-   for(i=1; i<n; i++){
-     stemp = ("");
-     for(j=0; j<J/10 + 1; j++)
-       stemp += static_cast<ostringstream*>( &(ostringstream() << readtable[i]->creads[j]) )->str();
-     mapcount = 0;
-     mflag = 0;
-     for(it = readmap.begin(); it != readmap.end(); it++, mapcount++){
-       if(it->first.compare(stemp) == 0 && it->second < LIMIT){
-	 it->second ++;
-	 readtable[i]->mindex = mapcount;
-	 mflag = 1;
-	 break;
-       }
-     }
-     if(mflag == 0){
-       readmap.insert ( pair<string,int>(stemp, 1) );
-       readtable[i]->mindex = mapcount;
-       }
-   }
-   */
+  //multimap<string,int>::iterator it;
+  //string stemp = ("");
+  //int mapcount, mflag;
+  /*
+  for(j=0; j<J/10 + 1; j++)
+    stemp += static_cast<ostringstream*>( &(ostringstream() << readtable[0]->creads[j]) )->str();
+  
+  readmap.insert ( pair<string,int>(stemp, 1) );
+  readtable[0]->mindex = 0;
+  
+  
+  for(i=1; i<n; i++){
+    stemp = ("");
+    for(j=0; j<J/10 + 1; j++)
+      stemp += static_cast<ostringstream*>( &(ostringstream() << readtable[i]->creads[j]) )->str();
+    mapcount = 0;
+    mflag = 0;
+    for(it = readmap.begin(); it != readmap.end(); it++, mapcount++){
+      if(it->first.compare(stemp) == 0 && it->second < LIMIT){
+    it->second ++;
+    readtable[i]->mindex = mapcount;
+    mflag = 1;
+    break;
+      }
+    }
+    if(mflag == 0){
+      readmap.insert ( pair<string,int>(stemp, 1) );
+      readtable[i]->mindex = mapcount;
+      }
+  }
+  */
 
-   int* hd;
+  // Tuple for storing hamming distance
+  std::pair<int,int> hd; 
 
-   for(i=0; i<n; i++){
-     if(readtable[i]->weight > 0){         // only if not mapped
-       readtable[i]->mindex = i;          // then it is unique
-       for(j=i+1; j<n; j++){
-	 if(readtable[i]->weight < LIMIT){
-	   hd = seq_distance_rr(readtable[i]->creads, readtable[j], J);
-	   if(hd[0] == 0){
-	     readtable[j]->mindex = i;
-	     readtable[j]->weight = 0;     // not unique, mapped = yes
-	     readtable[i]->weight++;
-	   } 
-	 }
-       }
-     }
-   }
+  for(i=0; i<n; i++){
+    if(readtable[i]->weight > 0){         // only if read i has not been mapped to a previous read
+      readtable[i]->mindex = i;           // then it is unique
+      for(j=i+1; j<n; j++){
+        if(readtable[i]->weight >= LIMIT){
+          stat_file << "# LIMIT reached!" << endl;
+          break;
+        }
+
+        /* NOTE: hd is the hamming distance of string 'i' and 'j'. We only check 
+         * whether hd == 0, which is equivalent to strings being identical. The 
+         * same could be achieved using a lexicographic sort of the strings 
+         * followed by a linear scan in 0(n*long(n)). Actually, by using the 
+         * strings as keys for a STL std::has_map, the whole problem can be 
+         * solved in O(n).
+         */
+        hd = seq_distance_rr(readtable[i]->creads, readtable[j], J);
+        if(hd.first == 0){
+	      readtable[j]->mindex = i;
+	      readtable[j]->weight = 0;       // not unique, mapped = yes
+	      readtable[i]->weight++;
+        } 
+      }
+    }
+  }
        
    /*  
 
@@ -335,7 +349,7 @@ int main(int argc, char** argv){
       while (tr != NULL){
 	p = seq_distance_new(temp, readtable2[tr->ri], J);
 	//p = seq_distance(tn->h, r[tr->ri], J);
-	dt += p[1] * readtable2[tr->ri]->weight;
+	dt += p.second * readtable2[tr->ri]->weight;
 	//dt += p[1];
 	//dt += p[0];
 	tr = tr->next;
@@ -345,15 +359,15 @@ int main(int argc, char** argv){
       for (ll=0; ll<q; ll++){
 	p = seq_distance_new(temp, readtable2[ll], J);
 	//p = seq_distance(tn->h, r[ll], J);
-	tn->rd0[ll] = p[0];
-	tn->rd1[ll] = p[1];
+	tn->rd0[ll] = p.first;
+	tn->rd1[ll] = p.second;
       }
       
       // compute distance of haplotypes to reference
       //p = seq_distance_new(conversion(tn->h, J), conversion(h, J), J);
       p = seq_distance(tn->h, h, J);
-      dk1 += p[1];
-      hapbases += p[1] + p[0];
+      dk1 += p.second;
+      hapbases += p.first + p.second;
       K1++;
       
       if(k == iter - HISTORY + 1){// starts recording
@@ -703,7 +717,7 @@ void build_assignment(std::ofstream& out_file){
   unsigned int ci;
   cnode* cn;
   rnode* rn;
-  int* p;
+  std::pair<int,int> p;
   double* p_k;
   //double* p_q;
   gsl_ran_discrete_t* g;
@@ -786,8 +800,8 @@ void build_assignment(std::ofstream& out_file){
   conversion(temp, cn->h, J);
   for (ll=0; ll < q; ll++){
     p = seq_distance_new(temp, readtable2[ll], J);
-    cn->rd0[ll] = p[0];
-    cn->rd1[ll] = p[1];
+    cn->rd0[ll] = p.first;
+    cn->rd1[ll] = p.second;
   }
   
   // have to go through the list with ->next, because dont want to loose connection between the elements of the list
@@ -812,8 +826,8 @@ void build_assignment(std::ofstream& out_file){
       conversion(temp, cn->next->h, J);
       for (ll=0; ll < q; ll++){
 	p = seq_distance_new(temp, readtable2[ll], J);
-	cn->next->rd0[ll] = p[0];
-	cn->next->rd1[ll] = p[1];
+	cn->next->rd0[ll] = p.first;
+	cn->next->rd1[ll] = p.second;
       }
       cn = cn->next;
     }
@@ -1180,66 +1194,94 @@ unsigned int d2i (char c){
   return 0;
 }
 
-int* seq_distance_new(int* A, crnode* B, int seq_length){
-  int *X, i;
-  X = new int[seq_length/10 + 1];
 
-  dist[0] = 0;
-  dist[1] = 0;
+std::pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length){
+  /* dist(A, B): Number of positions where A[i] != B[i]. If B[i] == 'N', it counts
+   *             as a match. Note that, if A[i] == B[i] == 'N', the distance is 
+   *             mistakenly reduced. The assumption is that is rare. In addition, 
+   *             if A[i] == 'N', it counts as a mismatch. FIRST ENTRY OF RETURNED
+   *             PAIR corresponds to the hamming distance.
+   * sim(A, B):  Number of positions where A[i] == B[i]. If either A[i] == 'N' 
+   *             or B[i] == 'N', it counts as a mismatch. Note that, if
+   *             A[i] == B[i] == 'N', it counts as match. SECOND ENTRY OF
+   *             RETURNED PAIR corresponds to the similarity. 
+   */
+  std::pair<int,int> dist;
 
-  for(i=0; i<seq_length/10 + 1; i++, A++){
-    X[i] = *A ^ B->creads[i];
-    X[i] = (X[i] & one_int) | ((X[i] & two_int) >> 1) | ((X[i] & four_int) >> 2);
+  for(int i=0; i<seq_length/10 + 1; ++i){
+    int X = *(A+i) ^ B->creads[i];
+    X = (X & one_int) | ((X & two_int) >> 1) | ((X & four_int) >> 2);
 
     //Count the number of set bits (Knuth's algorithm)
-    while(X[i]){
-      dist[0] ++;
-      X[i] &= X[i] - 1;
+#ifdef HAVE_POPCNT
+    // using the POPCNT method
+    dist.first += _mm_popcnt_u64(X);
+#else
+    while(X) {
+        dist.first ++;
+        X &= X - 1;
     }
+#endif
   }
-  dist[1] = seq_length - dist[0];
-  dist[0] = dist[0] - B->missing;
-  delete[] X;
+  dist.second = seq_length - dist.first;
+  dist.first -= B->missing;
   return dist;
 }
 
-int* seq_distance_rr(int* A, crnode* B, int seq_length){
-  int *X, i;
-  X = new int[seq_length/10 + 1];
+std::pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length){
+  /* dist(A, B): Number of positions where A[i] != B[i]. If A[i] == 'N' XOR 
+   *             B[i] == 'N', it counts as a mismatch. Note that, if 
+   *             A[i] == B[i] == 'N', it counts as a match. FIRST ENTRY OF 
+   *             RETURNED PAIR corresponds to the hamming distance.
+   * Tends to be on the conservative side, as ambiguous matches (i.e., N-to-any,
+   * but not N-to-N) are considered as mismatches. 
+   */
+  std::pair<int,int> dist;
 
-  dist[0] = 0;
-  dist[1] = 0;
+  for(int i=0; i<seq_length/10 + 1; ++i){
+    int X = *(A+i) ^ B->creads[i];
+    X = (X & one_int) | ((X & two_int) >> 1) | ((X & four_int) >> 2);
 
-  for(i=0; i<seq_length/10 + 1; i++, A++){
-    X[i] = *A ^ B->creads[i];
-    X[i] = (X[i] & one_int) | ((X[i] & two_int) >> 1) | ((X[i] & four_int) >> 2);
+    // Count the number of set bits (Knuth's algorithm) 
+    /* NOTES: 1. Make sure the processor supports the instruction.
+     *        2. There are only 2^10 possible outcomes for X, a lookup-table is an 
+     *         alternative.
+     */
 
-    //Count the number of set bits (Knuth's algorithm)
-    while(X[i]){
-      dist[0] ++;
-      X[i] &= X[i] - 1;
+#ifdef HAVE_POPCNT
+    // using the POPCNT method
+    dist.first += _mm_popcnt_u64(X);
+#else
+    while(X) {
+        dist.first ++;
+        X &= X - 1;
     }
+#endif
   }
-  //ns = B->missing;
-  //dist[1] = seq_length - dist[0] - N->missing;
-  //dist[0] = dist[0] - ns;
-  delete[] X;
   return dist;
 }
 
-int* seq_distance(unsigned short int* a, unsigned short int* b, int seq_length){
-  int i, ns=0;
-  //int d=sizeof(unsigned short int);
-  dist[0] = 0;
-  dist[1] = 0;
-  for (i=0; i<seq_length; i++, a++, b++){
-    if (*a != B && *b != B){
-      dist[0] += (*a != *b);
+std::pair<int,int> seq_distance(unsigned short int* a, unsigned short int* b,
+                                int seq_length){
+  /* dist(A, B): Number of positions where A[i] != B[i]. If either A[i] == 'N' 
+   *             or B[i] == 'N', it counts as a match. FIRST ENTRY OF RETURNED  
+   *             PAIR corresponds to the hamming distance.
+   * sim(A, B):  Number of positiions where A[i] == B[i]. If either A[i] == 'N'
+   *             or B[i] == 'N', it counts as a mismatch. Note that, if 
+   *             A[i] == B[i] == 'N' counts as mismatch. SECOND ENTRY OF RETURNED
+   *             PAIR corresponds to the similarity. 
+   */
+  int ns=0;
+  std::pair<int,int> dist;
+
+  for(int i=0; i<seq_length; ++i, ++a, ++b){
+    if(*a != B && *b != B){
+      dist.first += (*a != *b);
     }else{
       ns++;
     }
   }
-  dist[1] = seq_length - dist[0] - ns;
+  dist.second = seq_length - dist.first - ns;
   return dist;
 }
 
@@ -1249,7 +1291,7 @@ ssret* sample_class(unsigned int i, unsigned int step){
   ******************************************/
   unsigned int dist, nodist, removed = 0, sz, ll;
   unsigned int tw;
-  int* p;
+  std::pair<int,int> p;
   //  int local_ci;
 #ifdef DEBUG
   unsigned int j;
@@ -1417,8 +1459,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
   conversion(temp, h, J);  
   p = seq_distance_new(temp, readtable2[i], J);
   delete[] temp;
-  dist = p[0];
-  nodist = p[1];
+  dist = p.first;
+  nodist = p.second;
   
   b1 = (theta * gam) + (1. - gam)*(1. - theta)/((double)B - 1.);
   b2 = (theta + gam + B*(1. - gam * theta) - 2.)/(gsl_sf_pow_int((double)B - 1., 2));
@@ -1549,8 +1591,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
       for (ll=0; ll < q; ll++){
 	p = seq_distance_new(temp, readtable2[ll], J);
 	//p = seq_distance(mxt->h, r[ll], J);
-	mxt->rd0[ll] = p[0];
-	mxt->rd1[ll] = p[1];
+	mxt->rd0[ll] = p.first;
+	mxt->rd1[ll] = p.second;
       }
       delete[] temp;
       c_ptr[i] = NULL;
@@ -1619,8 +1661,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
       for (ll=0; ll < q; ll++){
 	p = seq_distance_new(temp, readtable2[ll], J);
 	//p = seq_distance(mxt->h, r[ll], J);
-	mxt->rd0[ll] = p[0];
-	mxt->rd1[ll] = p[1];
+	mxt->rd0[ll] = p.first;
+	mxt->rd1[ll] = p.second;
       }
       delete[] temp;
       
@@ -1730,13 +1772,13 @@ void old_record_conf(cnode* tn, unsigned int step){
   /**
      record configuration of a single node at a single step
    */
-  int* p;
+  std::pair<int,int> p;
   rnode* rn;
   
   if(tn->step < step) { // if the node has been created in a previous step
     //p = seq_distance_new(conversion(tn->h, J), conversion(tn->hh->h, J), J);
     p = seq_distance(tn->h, tn->hh->h, J);
-    if(p[0] != 0) { // if the haplotype has changed
+    if(p.first != 0) { // if the haplotype has changed
       add_hap(&hst, tn->hh, tn->ci, J, step);
       memcpy(hst->h, tn->h, J*sizeof(unsigned short int)); // copy into history 
       tn->hh = hst; // and then update
@@ -1928,7 +1970,7 @@ void write_posterior_files(string instr){
 double setfinalhaplotype(unsigned int i)  {
   unsigned int j,k;
   int hap; //last haplotype
-  int *p;
+  std::pair<int,int> p;
   double quality;
   
   // sort lexicographically the haplotypes
@@ -1955,7 +1997,7 @@ double setfinalhaplotype(unsigned int i)  {
     //p = seq_distance_new(conversion(haplotypes[k-1], J), conversion(haplotypes[k], J), J);
     p = seq_distance(haplotypes[k-1], haplotypes[k], J);
     
-    if (p[0] == 0 ) {
+    if (p.first == 0 ) {
       ch[hap] += 1;
       
     }else{
@@ -1997,7 +2039,7 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount) {
   unsigned int i, j, hap, running_sum=0;
   float rnh_ratio=0.0;
   hnode_single** all_haplo;
-  int* p;
+  std::pair<int,int> p;
   
   /*
   int k;
@@ -2039,7 +2081,7 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount) {
   for(i=1; i<n*HISTORY; i++) {
     //p = seq_distance_new(conversion(all_haplo[i]->h, J), conversion(all_haplo[i-1]->h, J), J);
     p = seq_distance(all_haplo[i]->h, all_haplo[i-1]->h, J);
-    if(p[0] == 0) {
+    if(p.first == 0) {
       all_haplo[hap]->count++;
       all_haplo[i]->count = 0;
     }else{
