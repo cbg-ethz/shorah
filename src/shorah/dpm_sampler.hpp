@@ -45,7 +45,6 @@ int* ftable_sum;
 //int** creads;
 unsigned short int* h;
 ssret* res;
-int* dist;
 int* res_dist;
 int* cbase;
 double* pbase;

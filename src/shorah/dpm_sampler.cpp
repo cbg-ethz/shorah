@@ -82,11 +82,10 @@ int main(int argc, char** argv){
   ofstream out_file(outstr.c_str());
   ofstream stat_file(statstr.c_str());
   
-  stat_file << "# dna_code:\t";
-  stat_file << i2dna_code;
+  stat_file << "# dna_code:\t" << i2dna_code << endl;
   
   //  randseed = 1257501510;
-  stat_file << "# randseed = " << randseed << "\n";
+  stat_file << "# randseed = " << randseed << endl;
   
   // random number generator via gsl
   gsl_rng_env_setup();
@@ -94,8 +93,6 @@ int main(int argc, char** argv){
   rg = gsl_rng_alloc(T);
   gsl_rng_set(rg, randseed);
   
-  dist = (int*)calloc(2, sizeof(int));
-  if (dist == NULL) exit(EXIT_FAILURE);
   res_dist = (int*)calloc(2, sizeof(int));
   if (res_dist == NULL) exit(EXIT_FAILURE);
   res = (ssret*)malloc(sizeof(ssret));
@@ -144,7 +141,7 @@ int main(int argc, char** argv){
   for(i=0; i<n; i++){
     readtable[i] = (crnode*)calloc(1, sizeof(crnode));
     readtable[i]->creads = new int[J/10 + 1];
-    readtable[i]->mindices = new int[LIMIT + 1];
+    readtable[i]->mindices = new int;      //instantiated, although not used
   }
 
   for(i=0; i<n; i++){
@@ -215,72 +212,72 @@ int main(int argc, char** argv){
     }
   }
        
-   /*  
+  /*  
 
-   for(i=0; i<n; i++){
-     hd = seq_distance_rr(readtable[i]->creads, readtable[readtable[i]->mindex], J); 
-     cout<<" Read "<<i<<" is mapped to "<<readtable[i]->mindex<<" with distance = "<<hd[0]<<" and has weight = "<<readtable[i]->weight<<endl;
-   }
-   */
-   //q = readmap.size();
-   q = 0;
+  for(i=0; i<n; i++){
+    hd = seq_distance_rr(readtable[i]->creads, readtable[readtable[i]->mindex], J); 
+    cout<<" Read "<<i<<" is mapped to "<<readtable[i]->mindex<<" with distance = "<<hd[0]<<" and has weight = "<<readtable[i]->weight<<endl;
+  }
+  */
+  //q = readmap.size();
+  q = 0;
 
-   for(i=0; i<n; i++){
-     if(readtable[i]->weight > 0)
-       q++;
-   }
+  for(i=0; i<n; i++){
+    if(readtable[i]->weight > 0)
+      q++;
+  }
 
-   stat_file << "# q = "<<q<<endl;
+  stat_file << "# q = " << q << endl;
 
-   readtable2 = (crnode**)calloc(q, sizeof(crnode*));
+  readtable2 = (crnode**)calloc(q, sizeof(crnode*));
 
-   for(i=0; i<q; i++){
-     readtable2[i] = (crnode*)malloc(sizeof(crnode));
-     //  readtable2[i]->creads = new int[J/10 + 1];
-     readtable2[i]->weight = 0;
-     readtable2[i]->mindex = 0;
-     readtable2[i]->mindices = new int[LIMIT + 1];
-   }
-   
-   int wcount;
+  for(i=0; i<q; i++){
+    readtable2[i] = (crnode*)malloc(sizeof(crnode));
+    //  readtable2[i]->creads = new int[J/10 + 1];
+    readtable2[i]->weight = 0;
+    readtable2[i]->mindex = 0;
+    readtable2[i]->mindices = new int[LIMIT + 1]; 
+  }
+  
+  int wcount;
 
-   for(i=0; i<q; i++){
-     for(wcount=0; wcount<LIMIT + 1; wcount++)
-       readtable2[i]->mindices[wcount] = 0;
-   }
+  for(i=0; i<q; i++){
+    for(wcount=0; wcount<LIMIT + 1; wcount++)
+      readtable2[i]->mindices[wcount] = 0;
+  }
 
-   j = 0;
-   unsigned int hope;
-   int* itrack = new int[q];
+  j = 0;
+  unsigned int hope;
+  int* itrack = new int[q];
 
-   for(i=0; i<q; i++)
-     itrack[i] = 0;
+  for(i=0; i<q; i++)
+    itrack[i] = 0;
 
-   for(i=0; i<n; i++){
-     if(readtable[i]->weight > 0){
-       readtable2[j]->creads = readtable[i]->creads;
-       readtable2[j]->missing = readtable[i]->missing;
-       readtable2[j]->mindex = i;
-       readtable2[j]->weight = readtable[i]->weight;
-       readtable2[j]->mindices[0] = i;
-       itrack[j]++;
-       j++;
-     }
-     else{
-       for(hope=0; hope<j; hope++){
-	 if(readtable2[hope]->mindex == readtable[i]->mindex){
-	   readtable2[hope]->mindices[itrack[hope]] = i;
-	   itrack[hope]++;
-	 }
-       }
-     }
-   }
+  for(i=0; i<n; i++){
+    if(readtable[i]->weight > 0){
+      readtable2[j]->creads = readtable[i]->creads;
+      readtable2[j]->missing = readtable[i]->missing;
+      readtable2[j]->mindex = i;
+      readtable2[j]->weight = readtable[i]->weight;
+      readtable2[j]->mindices[0] = i;
+      itrack[j]++;
+      j++;
+    }
+    else{
+      for(hope=0; hope<j; hope++){
+        if(readtable2[hope]->mindex == readtable[i]->mindex){
+          readtable2[hope]->mindices[itrack[hope]] = i;
+          itrack[hope]++;
+        }
+      }
+    }
+  }
 
 
   delete[] itrack;
   build_assignment(stat_file);
 
-  stat_file << "# Assignment built"<<endl;
+  stat_file << "# Assignment built" << endl;
 
   stat_file << "# +++++++++++++++++++ BEFORE THE SAMPLING +++++++++++++++++++\n";
   //  print_stats(out_file, mxt, J);
@@ -314,16 +311,16 @@ int main(int argc, char** argv){
       fclose(alphafile);
     }
 
-    /// Modify alpha reading from an external file
+    /// Modify iter reading from an external file
     iterfile = fopen(iterstr.c_str(), "r");
     if (iterfile != NULL){
       fscanf(iterfile, "%ui", &iter2);
       if (iter != iter2 and iter2 > k+100){
-	if (iter2 < iter){
-	  HISTORY = iter2 - k - 1;
-	  cerr << "HISTORY just changed to " << HISTORY << endl;
-	}
-	iter = iter2;
+        if (iter2 < iter){
+          HISTORY = iter2 - k - 1;
+          cerr << "HISTORY just changed to " << HISTORY << endl;
+        }
+        iter = iter2;
       }
       fclose(iterfile);
     }
@@ -722,7 +719,7 @@ void build_assignment(std::ofstream& out_file){
   //double* p_q;
   gsl_ran_discrete_t* g;
   
-  out_file << "# building assignment\n";
+  out_file << "# Building assignment" << endl;
   h = (short unsigned int*)calloc(J, sizeof(unsigned int));
   c_ptr = (cnode**)calloc(n, sizeof(cnode*));
 
@@ -748,7 +745,7 @@ void build_assignment(std::ofstream& out_file){
 
   // make the class list of K (or q?) initial components 
 
-  out_file << "# Initial number of clusters, K = "<<K<<endl;
+  out_file << "# Initial number of clusters, K = " << K << endl;
 
   mxt = NULL;
   for(i=0; i<K; i++) {
@@ -764,9 +761,9 @@ void build_assignment(std::ofstream& out_file){
     cn = mxt;
     while(cn != NULL) {
       if(ci == cn->ci){
-	add_read(&cn->rlist, m);
-	cn->size++;
-	break;
+        add_read(&cn->rlist, m);
+        cn->size++;
+        break;
       }
       cn=cn->next;
     }
@@ -825,9 +822,9 @@ void build_assignment(std::ofstream& out_file){
       sample_hap(cn->next);
       conversion(temp, cn->next->h, J);
       for (ll=0; ll < q; ll++){
-	p = seq_distance_new(temp, readtable2[ll], J);
-	cn->next->rd0[ll] = p.first;
-	cn->next->rd1[ll] = p.second;
+        p = seq_distance_new(temp, readtable2[ll], J);
+        cn->next->rd0[ll] = p.first;
+        cn->next->rd1[ll] = p.second;
       }
       cn = cn->next;
     }
@@ -873,19 +870,19 @@ void build_assignment(std::ofstream& out_file){
     for (rr=0; rr<q; rr++) {
       if(r[readtable2[rr]->mindex][i] < B) {
      	//cbase[r[rr][i]]++;
-	cbase[r[readtable2[rr]->mindex][i]] += readtable2[rr]->weight;
-	//bmax += 1;
-	bmax += readtable2[rr]->weight;
+        cbase[r[readtable2[rr]->mindex][i]] += readtable2[rr]->weight;
+        //bmax += 1;
+        bmax += readtable2[rr]->weight;
       }
     }
     if(bmax > 0) { 
       bmax = cbase[0];
       bi = 0;
       for(rr=1; rr<B; rr++) {
-	if(cbase[rr] > bmax) {
-	  bmax = cbase[rr];
-	  bi = rr;
-	}
+        if(cbase[rr] > bmax) {
+          bmax = cbase[rr];
+          bi = rr;
+        }
       }
       h[i] = bi;
     }
