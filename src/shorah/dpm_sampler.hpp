@@ -126,11 +126,9 @@ void read_conversion(crnode* b, unsigned short int* a, int seq_length);
 
 void conversion(int* b, unsigned short int* a, int seq_length);
 
-int weight(cnode* wn);
+int weight(const cnode* wn);
 
-int weight_shift(cnode* wn, unsigned int i);
-
-int weight_final(const cnode* wn);
+int weight_shift(const cnode* wn, unsigned int i, unsigned int removed);
 
 void build_assignment(std::ofstream& out_file);
 
