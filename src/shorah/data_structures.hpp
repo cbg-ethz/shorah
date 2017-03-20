@@ -169,14 +169,21 @@ typedef struct cns {
   /** *********************************************************
       Components list structure:
       c -> indexes the component
-      theta -> mutation parameter
+      size -> component size (number of unique reads)
+      weight -> weighted component size (accounting for reads represented by 
+                each unique read)
       rlist -> points to the list of reads
-      h -> haplotype
+      hh -> points to the list of haplotypes
+      h -> haplotype sequence
+      rd0 -> points to a vector storing hamming distances between h and all 
+             unique reads
+      rd1 -> points to a vector storing similarities between h and all unique
+             reads
       next -> next node
       ********************************************************** */
   unsigned int ci;
   unsigned int size;
-  //double theta,theta2;
+  unsigned int weight; 
   struct rns* rlist;
   struct hns* hh;
   unsigned short int* h;
@@ -314,14 +321,14 @@ void move_read(unsigned int i, cnode** from, cnode** to){
     while(rn->next != NULL){
       
       if(rn->next->ri == i){
-	tmp = rn->next;
-	rn->next = rn->next->next;
-
-	tmp2 = (*to)->rlist;
-	(*to)->rlist = tmp;
-	(*to)->rlist->next = tmp2;
+        tmp = rn->next;
+        rn->next = rn->next->next;
+        
+        tmp2 = (*to)->rlist;
+        (*to)->rlist = tmp;
+        (*to)->rlist->next = tmp2;
 	
-	break;
+        break;
       }
       
       rn = rn->next;

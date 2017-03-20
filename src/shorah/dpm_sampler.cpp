@@ -46,6 +46,7 @@
 #include <gsl/gsl_sf_pow_int.h>
 #include <gsl/gsl_sf_log.h>
 #include <gsl/gsl_sf_exp.h>
+
 using namespace std;
 #include "data_structures.hpp"
 #include "dpm_sampler.hpp"
@@ -55,7 +56,7 @@ int main(int argc, char** argv){
   
   unsigned int i, j, k, ll, K1=0, iter2, tot_untouch, new_proposed=0;
   int dk1, hapbases;
-  std::pair<int,int> p;
+  pair<int,int> p;
   cnode* tn;
   //rnode* rn;
   rnode* tr;
@@ -292,10 +293,23 @@ int main(int argc, char** argv){
     sampling procedure
   *********************/
   (void) time(&t1);
-  
+   
   int* temp;
   temp = new int[J/10 + 1];
-  
+ 
+  // precalculate weights in order to speed-up weight_shift()
+  tn = mxt;
+  while(tn != NULL){
+    tn->weight = weight(tn);
+    //rnode* rn = tn->rlist;
+    //tn->weight = 0;
+    //while(rn != NULL){
+    //  tn->weight += readtable2[rn->ri]->weight;
+    //  rn = rn->next;
+    //}
+    tn = tn->next;
+  }
+   
   for(k=0; k<=iter; k++){
 #ifdef DEBUG
     printf("-----------------------------------------------\n");
@@ -344,38 +358,38 @@ int main(int argc, char** argv){
       conversion(temp, tn->h, J);
       tr = tn->rlist;
       while (tr != NULL){
-	p = seq_distance_new(temp, readtable2[tr->ri], J);
-	//p = seq_distance(tn->h, r[tr->ri], J);
-	dt += p.second * readtable2[tr->ri]->weight;
-	//dt += p[1];
-	//dt += p[0];
-	tr = tr->next;
+        p = seq_distance_new(temp, readtable2[tr->ri], J);
+        //p = seq_distance(tn->h, r[tr->ri], J);
+        dt += p.second * readtable2[tr->ri]->weight;
+        //dt += p[1];
+        //dt += p[0];
+        tr = tr->next;
       }
       
       // compute distance of all reads to their haplotype
       for (ll=0; ll<q; ll++){
-	p = seq_distance_new(temp, readtable2[ll], J);
-	//p = seq_distance(tn->h, r[ll], J);
-	tn->rd0[ll] = p.first;
-	tn->rd1[ll] = p.second;
+        p = seq_distance_new(temp, readtable2[ll], J);
+        //p = seq_distance(tn->h, r[ll], J);
+        tn->rd0[ll] = p.first;
+        tn->rd1[ll] = p.second;
       }
       
       // compute distance of haplotypes to reference
       //p = seq_distance_new(conversion(tn->h, J), conversion(h, J), J);
       p = seq_distance(tn->h, h, J);
       dk1 += p.second;
-      hapbases += p.first + p.second;
+      hapbases += p.first + p.second; //J - (number of positions reporting N's)
       K1++;
       
       if(k == iter - HISTORY + 1){// starts recording
-	if(record == 0){
-	  //  create_history(k);
-	  record = 1;
-	}
+        if(record == 0){
+          //create_history(k);
+          record = 1;
+        }
       }
       
       if(record)
-	record_conf(tn, HISTORY + k - iter - 1);
+        record_conf(tn, HISTORY + k - iter - 1);
       
 
       tn = tn->next;
@@ -400,7 +414,7 @@ int main(int argc, char** argv){
     // sample_ref();    // sampling the reference every step gives strange behaviour...
     
 #ifdef DEBUG
-    cerr << "dt=" << dt <<  "\ttheta=" << theta<< "\tgamma=" << gamma << endl;
+    cerr << "dt=" << dt <<  "\ttheta=" << theta<< "\tgamma=" << gam << endl;
 #endif
     //    out_file("iteration\t%i\t%i\t%i\t%f\t%f\n", k+1, count_classes(mxt), tot_untouch, theta, gam); 
     out_file << setw(6) << k+1;// << "\t";
@@ -665,11 +679,9 @@ void conversion(int* b, unsigned short int* a, int seq_length){
   return;// b;
 }
 
-int weight(cnode* wn){
+int weight(const cnode* wn){
   int w = 0;
-  rnode* rn = NULL;
-  
-  rn = wn->rlist;
+  rnode* rn = wn->rlist;
       
   while(rn != NULL){
     w += readtable2[rn->ri]->weight;
@@ -679,34 +691,29 @@ int weight(cnode* wn){
   return w;
 }
 
-int weight_shift(cnode* wn, unsigned int i){
-  int w = 0;
-  rnode* rn = NULL;
-  
-  rn = wn->rlist;
-      
-  while(rn != NULL){
-    if(rn->ri != i)
-      w += readtable2[rn->ri]->weight;
-    rn = rn->next;
-  }
+int weight_shift(const cnode* wn, unsigned int i, unsigned int removed){
+  int w = wn->weight;
+  // retrieve the component to which read i has been assigned to
+  cnode* cn = (c_ptr[i] != NULL) ? c_ptr[i]->next : mxt;
+  if(!removed && cn == wn)
+    w -= readtable2[i]->weight;
 
   return w;
 }
 
-int weight_final(const cnode* wn){
-  int w = 0;
-  rnode* rn = NULL;
-  
-  rn = wn->rlist;
-      
-  while(rn != NULL){
-    w += readtable2[rn->ri]->weight;
-    rn = rn->next;
-  }
-
-  return w;
-}
+//int weight_final(const cnode* wn){
+//  int w = 0;
+//  rnode* rn = NULL;
+//  
+//  rn = wn->rlist;
+//      
+//  while(rn != NULL){
+//    w += readtable2[rn->ri]->weight;
+//    rn = rn->next;
+//  }
+//
+//  return w;
+//}
 
 void build_assignment(std::ofstream& out_file){
   
@@ -747,6 +754,8 @@ void build_assignment(std::ofstream& out_file){
 
   out_file << "# Initial number of clusters, K = " << K << endl;
 
+  // create a linked list storing clusters/components/classes. 
+  // nodes are of type cnode's. 
   mxt = NULL;
   for(i=0; i<K; i++) {
     add_comp(&mxt, &hst, i, 0, NULL, NULL, NULL, NULL, J, 0, record);
@@ -756,6 +765,7 @@ void build_assignment(std::ofstream& out_file){
   cn = mxt;
   g = gsl_ran_discrete_preproc(K, p_k);
   
+  // assign reads to initial clusters randomly
   for(m=0; m<q; m++){
     ci = gsl_ran_discrete(rg, g);
     cn = mxt;
@@ -1034,11 +1044,11 @@ void sample_hap(cnode* cn){
     tr = cn->rlist;
     while (tr != NULL){ // correct for missing data
       if (r[readtable2[tr->ri]->mindex][j] < B) {
-	cbase[r[readtable2[tr->ri]->mindex][j]] += readtable2[tr->ri]->weight;
-	//cbase[r[readtable2[tr->ri]->mindex][j]] ++;
-	//cbase[r[tr->ri][j]]++;
-	tot_reads += readtable2[tr->ri]->weight;
-	//tot_reads++;
+        cbase[r[readtable2[tr->ri]->mindex][j]] += readtable2[tr->ri]->weight;
+        //cbase[r[readtable2[tr->ri]->mindex][j]] ++;
+        //cbase[r[tr->ri][j]]++;
+        tot_reads += readtable2[tr->ri]->weight;
+        //tot_reads++;
       }
       tr = tr->next;
     }
@@ -1053,32 +1063,32 @@ void sample_hap(cnode* cn){
 
     if(b1 != 1.0) {	
       for(i=0; i<B; i++){
-	if(tot_reads > 0) { //base is not N: sample from reads in the cluster
-	  log_pbase[i] = cbase[i] * gsl_sf_log(b1) + (tot_reads - cbase[i]) * gsl_sf_log(b2);
-	}
-	else //base is N: sample from all reads
-	  log_pbase[i] = ftable[j][i] * gsl_sf_log(b1) + (ftable_sum[j] - ftable[j][i]) * gsl_sf_log(b2);	      
+        if(tot_reads > 0) { //base is not N: sample from reads in the cluster
+          log_pbase[i] = cbase[i] * gsl_sf_log(b1) + (tot_reads - cbase[i]) * gsl_sf_log(b2);
+        }
+        else //base is N: sample from all reads
+          log_pbase[i] = ftable[j][i] * gsl_sf_log(b1) + (ftable_sum[j] - ftable[j][i]) * gsl_sf_log(b2);	      
       }
       max_log_pbase = log_pbase[0];
       base_id = 0;
       for(i=1; i<B; i++) {
-	if(log_pbase[i] > max_log_pbase) {
-	  max_log_pbase = log_pbase[i];
-	  base_id = i;
-	}
+        if(log_pbase[i] > max_log_pbase) {
+          max_log_pbase = log_pbase[i];
+          base_id = i;
+        }
       }
       for(i=0; i<B; i++) {
-	if(i == base_id) {
-	  pbase[i] = 1.0;
-	}else{
-	  log_pbase[i] -= max_log_pbase;
-	  if(log_pbase[i] < double_threshold_min) {
-	    pbase[i] = 0.0;
-	  }else{
-	    //cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<endl;
-	    pbase[i] = gsl_sf_exp(log_pbase[i]);
-	  }
-	}
+        if(i == base_id) {
+          pbase[i] = 1.0;
+        }else{
+          log_pbase[i] -= max_log_pbase;
+          if(log_pbase[i] < double_threshold_min) {
+            pbase[i] = 0.0;
+          }else{
+            //cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<endl;
+            pbase[i] = gsl_sf_exp(log_pbase[i]);
+          }
+        }
       }
 	
       g = gsl_ran_discrete_preproc(B, pbase);
@@ -1087,40 +1097,38 @@ void sample_hap(cnode* cn){
     }
     else{ // theta == 1.0
       if(tot_reads>0){//base not N: sample from reads in cluster.
-	max_cbase = cbase[0];
-	base_id = 0;
-	for(i=1; i<B; i++) {
-	  if(cbase[i] >= max_cbase) {
-	    max_cbase = cbase[i];
-	    base_id = i;
-	  }
-	}
-	cn->h[j] = base_id;
+        max_cbase = cbase[0];
+        base_id = 0;
+        for(i=1; i<B; i++) {
+          if(cbase[i] >= max_cbase) {
+            max_cbase = cbase[i];
+            base_id = i;
+            }
+        }
+        cn->h[j] = base_id;
       }
       else{//missing data: sample from all reads.
-	max_cbase = ftable[j][0];
-	base_id = 0;
-	for(i=1; i<B; i++) {
-	  if(ftable[j][i] >= max_cbase) {
-	    max_cbase = ftable[j][i];
-	    base_id = i;
-	  }
-	}
-	cn->h[j] = base_id;
+        max_cbase = ftable[j][0];
+        base_id = 0;
+        for(i=1; i<B; i++) {
+          if(ftable[j][i] >= max_cbase) {
+            max_cbase = ftable[j][i];
+            base_id = i;
+          }
+        }
+        cn->h[j] = base_id;
       }
     }
     
     /*
-  else{ // tot_reads == 0
+    else{ // tot_reads == 0
       //cn->h[j] = h[j]; // equals to the reference
       //cn->h[j] = B; // equals to N
       for(i=0; i<B; i++)
-	pbase[i] = ftable[j][i];
-      g = gsl_ran_discrete_preproc(B, pbase);
-      cn->h[j] = gsl_ran_discrete(rg, g);
-      gsl_ran_discrete_free(g);
-
-
+        pbase[i] = ftable[j][i];
+        g = gsl_ran_discrete_preproc(B, pbase);
+        cn->h[j] = gsl_ran_discrete(rg, g);
+        gsl_ran_discrete_free(g);
     }
     */
 #ifdef DEBUG
@@ -1345,8 +1353,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
       
       rn = c_ptr[i]->next->next->rlist;
       while(rn != NULL){
-	c_ptr[rn->ri] = c_ptr[i];
-	rn = rn->next;
+      c_ptr[rn->ri] = c_ptr[i];
+      rn = rn->next;
       }
       
     }
@@ -1386,62 +1394,67 @@ ssret* sample_class(unsigned int i, unsigned int step){
   b2 = (1. - theta)/((double)B - 1.);
 
   if(theta == 0.0) {
-    cerr << "# There is something wrong wih THETA! ( == 0.0 )\n";
+    cerr << "# There is something wrong wih THETA! ( == 0.0 )" << endl;
     exit(EXIT_FAILURE);
   }
   if(gam == 0.0) {
-    cerr << "# There is something wrong with GAMMA! ( == 0.0 )\n" ;
+    cerr << "# There is something wrong with GAMMA! ( == 0.0 )" << endl;
     exit(EXIT_FAILURE);
   }
 
   while (cn != NULL){
     if(cn->size > 0) {
       sz = cn->size;
-//      read_came_from_current = 0;
+      //read_came_from_current = 0;
       if(removed == 0){
-	if(c_ptr[i] != NULL && cn == c_ptr[i]->next) {
-	  sz--;
-//	  read_came_from_current = 1;
-	}
-	if(c_ptr[i] == NULL && cn == mxt) {
-	  sz--;
-//	  read_came_from_current = 1;
-	}
+        if(c_ptr[i] != NULL && cn == c_ptr[i]->next) {
+          sz--;
+          //read_came_from_current = 1;
+        }
+        if(c_ptr[i] == NULL && cn == mxt) {
+          sz--;
+          //read_came_from_current = 1;
+        }
       }
       
+      // Sanity check
       if(sz == 0){
-	cerr << "THIS IS ZERO!!!\n";
-	exit(EXIT_FAILURE);
+        // This component should have been removed previously, because only 
+        // consists of read i
+        cerr << "# Size of component " << cn->ci << " is zero" << endl;
+        exit(EXIT_FAILURE);
       }
       cl_ptr[st] = cn;
 
       tw = 0;
 
-      tw = weight_shift(cn, i); //total weight of class - weight of read i if present in the class
+      // Weighted component size, excluding read i if it is present in the current component
+      tw = weight_shift(cn, i, removed); //total weight of class - weight of read i if present in the class
       if (tw == 0){
-	cout << cn << "cannot be zero "<< i<< endl;
-	exit(EXIT_FAILURE);
+        // This component should have been removed previously, because only 
+        // consists of read i
+        cerr << " # Weighted size of component " << cn->ci << "cannot be zero" << endl;
+        exit(EXIT_FAILURE);
       }
       
       dist = cn->rd0[i]; //seq_distance(cn->h, r[i], J);
       nodist = cn->rd1[i];
       
       if(b1 != 1.0) { // theta < 1.0
-	log_P[st] = gsl_sf_log((double)tw);
-	log_P[st] += nodist * gsl_sf_log(b1);
-	log_P[st] += dist * gsl_sf_log(b2);
-	P[st] = 1.0; // all probabilities, which should change afterwards, set to 1
+        log_P[st] = gsl_sf_log((double)tw);
+        log_P[st] += nodist * gsl_sf_log(b1);
+        log_P[st] += dist * gsl_sf_log(b2);
+        P[st] = 1.0; // all probabilities, which should change afterwards, set to 1
       }
-      
       else{ // theta == 1.0, not needed
-	if (dist != 0){
-	  log_P[st] = double_threshold_min - 1.0;
-	  P[st] = 0.0;
-	}
-	else{
-	  log_P[st] = gsl_sf_log((double)tw);
-	  P[st] = 1.0; // same as above, P != 0 later
-	}	
+        if (dist != 0){
+          log_P[st] = double_threshold_min - 1.0;
+          P[st] = 0.0;
+        }
+        else{
+          log_P[st] = gsl_sf_log((double)tw);
+          P[st] = 1.0; // same as above, P != 0 later
+        }	
       }
     }
     else{
@@ -1452,7 +1465,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
     st++;
     cn = cn->next;
   }
-  // plus the newly instantiated one
+  // plus the newly instantiated one (h corresponds to sequence of reference
+  // haplotype)
   conversion(temp, h, J);  
   p = seq_distance_new(temp, readtable2[i], J);
   delete[] temp;
@@ -1497,9 +1511,9 @@ ssret* sample_class(unsigned int i, unsigned int step){
     if(P[ll] > 0.0) {      
       log_P[ll] += delta_log;
       if(log_P[ll] < double_threshold_min)
-	P[ll] = DBL_MIN;
+        P[ll] = DBL_MIN;
       else if (log_P[ll] > double_threshold_max)
-	P[ll] = DBL_MAX;
+        P[ll] = DBL_MAX;
       else {
         P[ll] = gsl_sf_exp(log_P[ll]);
       }
@@ -1553,6 +1567,8 @@ ssret* sample_class(unsigned int i, unsigned int step){
       move_read(i, &from_class, &to_class);
       (from_class->size)--;
       (to_class->size)++;
+      from_class->weight -= readtable2[i]->weight;
+      to_class->weight += readtable2[i]->weight;
       
       //      free(P);
       //      free(cl_ptr);
@@ -1571,12 +1587,14 @@ ssret* sample_class(unsigned int i, unsigned int step){
       
       remove_read( search_read(&from_class->rlist, i) );
       (from_class->size)--;
+      from_class->weight -= readtable2[i]->weight;
 
       add_comp(&mxt, &hst, lowest_free, 1, NULL, NULL, NULL, NULL, J, step, record);
       
       lowest_free++;
       
       add_read(&mxt->rlist, i);
+      mxt->weight = readtable2[i]->weight;
       
       mxt->h = (unsigned short int*) malloc(J * sizeof(unsigned short int));
       sample_hap(mxt);
@@ -1586,24 +1604,26 @@ ssret* sample_class(unsigned int i, unsigned int step){
       mxt->rd0 = (unsigned short int*) malloc(q * sizeof(unsigned short int));
       mxt->rd1 = (unsigned short int*) malloc(q * sizeof(unsigned short int));
       for (ll=0; ll < q; ll++){
-	p = seq_distance_new(temp, readtable2[ll], J);
-	//p = seq_distance(mxt->h, r[ll], J);
-	mxt->rd0[ll] = p.first;
-	mxt->rd1[ll] = p.second;
+        p = seq_distance_new(temp, readtable2[ll], J);
+        //p = seq_distance(mxt->h, r[ll], J);
+        mxt->rd0[ll] = p.first;
+        mxt->rd1[ll] = p.second;
       }
       delete[] temp;
       c_ptr[i] = NULL;
       
       rn = mxt->next->rlist;
       
+      // Sanity check - there should have been at least one component before 
+      // adding a new one
       if(rn == NULL){
-	printf("STOP!!! There should be something\n");
-	exit(21);
+        printf("STOP!!! There should be something\n");
+        exit(21);
       }
       
       while (rn != NULL){
-	c_ptr[rn->ri] = mxt;
-	rn = rn->next;
+       c_ptr[rn->ri] = mxt;
+       rn = rn->next;
       }
       
       //      free(P);
@@ -1626,6 +1646,7 @@ ssret* sample_class(unsigned int i, unsigned int step){
       add_read(&to_class->rlist, i);
 
       (to_class->size)++;
+      to_class->weight += readtable2[i]->weight;
       c_ptr[i] = c_ptr[ to_class->rlist->next->ri ];
       
       
@@ -1642,11 +1663,12 @@ ssret* sample_class(unsigned int i, unsigned int step){
       cn = mxt->next;
       rn = cn->rlist;
       while (rn != NULL){
-	c_ptr[rn->ri] = mxt;
-	rn = rn->next;
+        c_ptr[rn->ri] = mxt;
+        rn = rn->next;
       }
       
       add_read(&mxt->rlist, i);
+      mxt->weight = readtable2[i]->weight;
     
       mxt->h = (unsigned short int*) malloc(J * sizeof(unsigned short int));
       sample_hap(mxt);
@@ -1656,10 +1678,10 @@ ssret* sample_class(unsigned int i, unsigned int step){
       mxt->rd0 = (unsigned short int*) malloc(q * sizeof(unsigned short int));
       mxt->rd1 = (unsigned short int*) malloc(q * sizeof(unsigned short int));
       for (ll=0; ll < q; ll++){
-	p = seq_distance_new(temp, readtable2[ll], J);
-	//p = seq_distance(mxt->h, r[ll], J);
-	mxt->rd0[ll] = p.first;
-	mxt->rd1[ll] = p.second;
+        p = seq_distance_new(temp, readtable2[ll], J);
+        //p = seq_distance(mxt->h, r[ll], J);
+        mxt->rd0[ll] = p.first;
+        mxt->rd1[ll] = p.second;
       }
       delete[] temp;
       
@@ -2148,7 +2170,7 @@ void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J){
       p = p->next;
     }
     
-    out_file << "\n# component " << cn->ci << " at " << (void*)cn << " has " << i << " reads size= " << weight_final(cn) <<"\n";
+    out_file << "\n# component " << cn->ci << " at " << (void*)cn << " has " << i << " reads size= " << cn->weight << endl;
     out_file << "# haplotype is:\n# >h" << cn->ci <<"\n# ";
     for(j=0; j<J; j++)
       out_file << i2dna_code[cn->h[j]];
