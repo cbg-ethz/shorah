@@ -426,7 +426,7 @@ int main(int argc, char** argv){
       sampling ends
   *********************/
   
-  stat_file << "# Survived sampling"<<endl;
+  stat_file << "# Survived sampling" << endl;
   stat_file << "# sampling took " << difftime(t2, t1) << " seconds\n";
   
   //  write_assignment(k, new_proposed, mxt);
@@ -437,11 +437,11 @@ int main(int argc, char** argv){
   for(j=0; j<J; j++)
     stat_file << i2dna_code[h[j]];
   stat_file << "\n\n\n";
-  stat_file << "\n#gamma = " << gam << "\n";
-  stat_file << "\n#theta = " << theta << "\n";
+  stat_file << "\n#gamma = " << gam << endl;
+  stat_file << "\n#theta = " << theta << endl;
   stat_file << "\n#final number of components = " << K1 << "\n";
   stat_file << "\n#made "<< new_proposed << " new clusters\n";
-  stat_file << "\n#number of haplotypes in history = " << haplotypecount << "\n";
+  stat_file << "\n#number of haplotypes in history = " << haplotypecount << endl;
   
   /******************
     write corrected
@@ -476,7 +476,7 @@ int main(int argc, char** argv){
   
   cleanup();
   (void) time(&t1);
-  stat_file << "# after sampling took " << difftime(t1, t2) << " seconds";
+  stat_file << "# after sampling took " << difftime(t1, t2) << " seconds" << endl;
   /*
   tn = mxt;
   cnode* tn2;
@@ -629,8 +629,8 @@ void read_conversion(crnode* b, unsigned short int* a, int seq_length){
 
   for(i=0; i<seq_length/10; i++){
     for(j=10; j>0; j--){
-      temp = (int) pow(8.0, (double)j-1);
-      b->creads[i] += temp * a[10 * i + 10 - j];
+      // NOTE: slightly faster version using bitwise left shift operator 
+      b->creads[i] += a[10*(i+1)-j] << 3*(j-1);
       b->missing += (a[10 * i + 10 - j] == B);
     }
   }
@@ -791,7 +791,7 @@ void build_assignment(ofstream& out_file){
   int* temp;
   temp = new int[J/10+1];
   conversion(temp, cn->h, J);
-  for (ll=0; ll < q; ll++){
+  for(ll=0; ll < q; ll++){
     p = seq_distance_new(temp, readtable2[ll], J);
     cn->rd0[ll] = p.first;
     cn->rd1[ll] = p.second;
@@ -860,7 +860,7 @@ void build_assignment(ofstream& out_file){
   for(i=0; i<n; i++)
     printf("predecessor of %i is %p\n", i, c_ptr[i]);
   */
-  unsigned short int rr;
+  unsigned int rr;
   
   int bmax = 0;
   unsigned short int bi;
@@ -870,7 +870,7 @@ void build_assignment(ofstream& out_file){
     for(rr=0;rr<B;rr++)
       cbase[rr] = 0;
     
-    for (rr=0; rr<q; rr++) {
+    for(rr=0; rr<q; rr++){
       if(r[readtable2[rr]->mindex][i] < B) {
      	//cbase[r[rr][i]]++;
         cbase[r[readtable2[rr]->mindex][i]] += readtable2[rr]->weight;
@@ -1567,7 +1567,7 @@ ssret* sample_class(unsigned int i, unsigned int step){
     
     else if (to_class == NULL){
 #ifdef DEBUG    
-      printf("moving %i to a new class from %p\n", index, from_class);
+      printf("moving %i to a new class from %p\n", i, from_class);
 #endif
       
       remove_read( search_read(&from_class->rlist, i) );
