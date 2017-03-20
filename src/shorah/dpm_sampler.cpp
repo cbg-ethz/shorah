@@ -185,7 +185,7 @@ int main(int argc, char** argv){
   */
 
   // Tuple for storing hamming distance
-  std::pair<int,int> hd; 
+  pair<int,int> hd; 
 
   for(i=0; i<n; i++){
     if(readtable[i]->weight > 0){         // only if read i has not been mapped to a previous read
@@ -200,7 +200,7 @@ int main(int argc, char** argv){
          * whether hd == 0, which is equivalent to strings being identical. The 
          * same could be achieved using a lexicographic sort of the strings 
          * followed by a linear scan in 0(n*long(n)). Actually, by using the 
-         * strings as keys for a STL std::has_map, the whole problem can be 
+         * strings as keys for a STL hash_map, the whole problem can be 
          * solved in O(n).
          */
         hd = seq_distance_rr(readtable[i]->creads, readtable[j], J);
@@ -296,19 +296,6 @@ int main(int argc, char** argv){
    
   int* temp;
   temp = new int[J/10 + 1];
- 
-  // precalculate weights in order to speed-up weight_shift()
-  tn = mxt;
-  while(tn != NULL){
-    tn->weight = weight(tn);
-    //rnode* rn = tn->rlist;
-    //tn->weight = 0;
-    //while(rn != NULL){
-    //  tn->weight += readtable2[rn->ri]->weight;
-    //  rn = rn->next;
-    //}
-    tn = tn->next;
-  }
    
   for(k=0; k<=iter; k++){
 #ifdef DEBUG
@@ -529,7 +516,7 @@ int main(int argc, char** argv){
 }
 
 
-void read_data(char* filename, std::ofstream& out_file)
+void read_data(char* filename, ofstream& out_file)
 {
   FILE* data;
   char c;
@@ -715,13 +702,13 @@ int weight_shift(const cnode* wn, unsigned int i, unsigned int removed){
 //  return w;
 //}
 
-void build_assignment(std::ofstream& out_file){
+void build_assignment(ofstream& out_file){
   
   unsigned int i, m, ll;
   unsigned int ci;
   cnode* cn;
   rnode* rn;
-  std::pair<int,int> p;
+  pair<int,int> p;
   double* p_k;
   //double* p_q;
   gsl_ran_discrete_t* g;
@@ -762,7 +749,6 @@ void build_assignment(std::ofstream& out_file){
     p_k[i] = 1.;
     //p_q[i] = 1;
   }
-  cn = mxt;
   g = gsl_ran_discrete_preproc(K, p_k);
   
   // assign reads to initial clusters randomly
@@ -840,7 +826,14 @@ void build_assignment(std::ofstream& out_file){
     }
   }
   delete[] temp;
-  
+
+  // precompute weights in order to speed-up weight_shift()
+  cn = mxt;
+  while(cn != NULL){
+    cn->weight = weight(cn);
+    cn = cn->next;
+  }
+
   // define the predecessor of each read
   cn = mxt;
   
@@ -1200,7 +1193,7 @@ unsigned int d2i (char c){
 }
 
 
-std::pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length){
+pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length){
   /* dist(A, B): Number of positions where A[i] != B[i]. If B[i] == 'N', it counts
    *             as a match. Note that, if A[i] == B[i] == 'N', the distance is 
    *             mistakenly reduced. The assumption is that is rare. In addition, 
@@ -1211,7 +1204,7 @@ std::pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length){
    *             A[i] == B[i] == 'N', it counts as match. SECOND ENTRY OF
    *             RETURNED PAIR corresponds to the similarity. 
    */
-  std::pair<int,int> dist;
+  pair<int,int> dist;
 
   for(int i=0; i<seq_length/10 + 1; ++i){
     int X = *(A+i) ^ B->creads[i];
@@ -1233,7 +1226,7 @@ std::pair<int,int> seq_distance_new(int* A, crnode* B, int seq_length){
   return dist;
 }
 
-std::pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length){
+pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length){
   /* dist(A, B): Number of positions where A[i] != B[i]. If A[i] == 'N' XOR 
    *             B[i] == 'N', it counts as a mismatch. Note that, if 
    *             A[i] == B[i] == 'N', it counts as a match. FIRST ENTRY OF 
@@ -1241,7 +1234,7 @@ std::pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length){
    * Tends to be on the conservative side, as ambiguous matches (i.e., N-to-any,
    * but not N-to-N) are considered as mismatches. 
    */
-  std::pair<int,int> dist;
+  pair<int,int> dist;
 
   for(int i=0; i<seq_length/10 + 1; ++i){
     int X = *(A+i) ^ B->creads[i];
@@ -1266,7 +1259,7 @@ std::pair<int,int> seq_distance_rr(int* A, crnode* B, int seq_length){
   return dist;
 }
 
-std::pair<int,int> seq_distance(unsigned short int* a, unsigned short int* b,
+pair<int,int> seq_distance(unsigned short int* a, unsigned short int* b,
                                 int seq_length){
   /* dist(A, B): Number of positions where A[i] != B[i]. If either A[i] == 'N' 
    *             or B[i] == 'N', it counts as a match. FIRST ENTRY OF RETURNED  
@@ -1277,7 +1270,7 @@ std::pair<int,int> seq_distance(unsigned short int* a, unsigned short int* b,
    *             PAIR corresponds to the similarity. 
    */
   int ns=0;
-  std::pair<int,int> dist;
+  pair<int,int> dist;
 
   for(int i=0; i<seq_length; ++i, ++a, ++b){
     if(*a != B && *b != B){
@@ -1296,7 +1289,7 @@ ssret* sample_class(unsigned int i, unsigned int step){
   ******************************************/
   unsigned int dist, nodist, removed = 0, sz, ll;
   unsigned int tw;
-  std::pair<int,int> p;
+  pair<int,int> p;
   //  int local_ci;
 #ifdef DEBUG
   unsigned int j;
@@ -1366,14 +1359,6 @@ ssret* sample_class(unsigned int i, unsigned int step){
 #endif
   }
   
-  /// run through the classes to count them
-  cn = mxt;
-  st = 0;
-  while (cn->next != NULL){
-    st++;
-    cn = cn->next;
-  }
-  st++;
   //  log_P = (double*) realloc(log_P, st*sizeof(double));
   //  P = (double*) realloc(P, st*sizeof(double));
   
@@ -1791,7 +1776,7 @@ void old_record_conf(cnode* tn, unsigned int step){
   /**
      record configuration of a single node at a single step
    */
-  std::pair<int,int> p;
+  pair<int,int> p;
   rnode* rn;
   
   if(tn->step < step) { // if the node has been created in a previous step
@@ -1989,7 +1974,7 @@ void write_posterior_files(string instr){
 double setfinalhaplotype(unsigned int i)  {
   unsigned int j,k;
   int hap; //last haplotype
-  std::pair<int,int> p;
+  pair<int,int> p;
   double quality;
   
   // sort lexicographically the haplotypes
@@ -2058,7 +2043,7 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount) {
   unsigned int i, j, hap, running_sum=0;
   float rnh_ratio=0.0;
   hnode_single** all_haplo;
-  std::pair<int,int> p;
+  pair<int,int> p;
   
   /*
   int k;
@@ -2144,7 +2129,7 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount) {
 
 }
 
-void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J){
+void print_stats(ofstream& out_file, const cnode* cn, unsigned int J){
   
   unsigned int i, j;
   rnode* p;
