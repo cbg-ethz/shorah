@@ -28,6 +28,7 @@
 import sys
 import os
 import pipes
+import numpy as np
 
 import logging
 import logging.handlers
@@ -138,7 +139,7 @@ def run_dpm(run_setting):
     import subprocess
     import shutil
 
-    filein, j, a = run_setting
+    filein, j, a, seed = run_setting
 
     # if cor.fas.gz exists, skip
     stem = filein.split('.reads')[0]
@@ -157,8 +158,8 @@ def run_dpm(run_setting):
 
     dn = sys.path[0]
     my_prog = os.path.join(dn, 'diri_sampler')
-    my_arg = ' -i %s -j %i -t %i -a %f -K %d' % \
-        (pipes.quote(filein), j, int(j * hist_fraction), a, init_K)
+    my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
+        (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
 
     try:
         os.remove('./corrected.tmp')
@@ -275,7 +276,7 @@ def base_break(baselist):
     return rc
 
 
-def win_to_run(alpha_w):
+def win_to_run(alpha_w, seed):
     '''returns windows to run on diri_sampler
     '''
 
@@ -288,7 +289,7 @@ def win_to_run(alpha_w):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 15)
-        rn_list.append((winFile, j, alpha_w))
+        rn_list.append((winFile, j, alpha_w, seed))
 
     del(end)
     del(beg, chr1)
@@ -296,7 +297,7 @@ def win_to_run(alpha_w):
 
 
 def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
-         max_coverage=10000, alpha=0.1, keep_files=True):
+         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
     '''
     Performs the error correction analysis, running diri_sampler
     and analyzing the result
@@ -330,6 +331,8 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
         sys.exit("File '%s' not found" % in_bam)
     if not os.path.isfile(in_fasta):
         sys.exit("File '%s' not found" % in_fasta)
+    if seed is None:
+        seed = np.random.randint(100, size=1)
 
     incr = win_length / win_shifts
     max_c = max_coverage / win_length
@@ -362,7 +365,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     # Now the windows and the error correction #
     ############################################
 
-    runlist = win_to_run(alpha)
+    runlist = win_to_run(alpha, seed)
     declog.info('will run on %d windows' % len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
@@ -381,7 +384,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a = i
+        winFile, j, a, s = i
         del(a)  # in future alpha might be different on each window
         parts = winFile.split('.')[0].split('-')
         chrom = '-'.join(parts[1:-2])

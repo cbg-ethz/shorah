@@ -47,6 +47,10 @@ group3.add_option("-k", "--keep_files",
                   action="store_true", dest="keep_files",
                   default=opts[7])
 
+group2.add_option("-S", "--seed",
+                  help="Set seed for reproducibility",
+                  default=opts[8], type=int, dest="seed")
+
 optparser.add_option_group(group1)
 optparser.add_option_group(group2)
 optparser.add_option_group(group3)
