@@ -14,57 +14,89 @@ More information [here](http://ozagordi.github.com/shorah).
 
 The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of
 several programs, the most imporant of which are:
-> `amplian.py`   - amplicon based analysis
 
-> `dec.py`       - local error correction based on diri_sampler
-
-> `diri_sampler` - Gibbs sampling for error correction via Dirichlet
->process mixture
-
-> `contain`      - removal of redundant reads
-
-> `mm.py`        - maximum matching haplotype construction
-
-> `freqEst`      - EM algorithm for haplotype frequency
-
-> `snv.py`       - detects single nucleotide variants, taking strand bias into
->account
-
-> `shorah.py`    - wrapper for everything
+| Tool           | What it does                                                        |
+| -------------- | ------------------------------------------------------------------- |
+| `amplian.py`   | amplicon based analysis                                             |
+| `dec.py`       | local error correction based on diri_sampler                        |
+| `diri_sampler` | Gibbs sampling for error correction via Dirichlet process mixture   |
+| `contain`      | removal of redundant reads                                          |
+| `mm.py`        | maximum matching haplotype construction                             |
+| `freqEst`      | EM algorithm for haplotype frequency                                |
+| `snv.py`       | detects single nucleotide variants, taking strand bias into account |
+| `shorah.py`    | wrapper for everything                                              |
 
 ## Citation
 If you use shorah, please cite the application note paper _Zagordi et al._ on
 [BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
 ## General usage
-### Dependencies and installation
-Please download and install:
+### Dependencies
+shorah requires the following pieces of software:
 
-- [Biopython](http://biopython.org/wiki/Download), following the online
-  instructions.
-- [GNU scientific library GSL](http://www.gnu.org/software/gsl/),
-  installation is described in the included README and INSTALL files.
-- ncurses is required by samtools. It is usually included in Linux/Mac OS X.
+1. **Python 2**, which is generally available on most Unix-like system. The required dependencies are:
 
-Please note that these dependencies can be satisfied also using the package
-manager of many operating systems. For example
-[Homebrew](http://brew.sh) on Mac OS X,
-[yum](http://yum.baseurl.org/) on several linux installations and so on.
+   a) **Biopython**, which can be downloaded using pip or anaconda
 
-Type 'make' to build the C++ programs. This should be enough in most cases. If
-your gsl installation is not standard, you might need to edit the relevant
-lines in the `Makefile` (location `/opt/local/` is already included).
+2. **Perl**, for some scripts
 
-#### GSL on Ubuntu
-The following commands install GSL on Ubuntu 12.04 LTS Server Edition 64 bit,
-as reported by [Travis](http://travis-ci.org/)
+3. **zlib**, which is used by the bundled samtools for compressing bam files
 
-	sudo apt-get update -qq
-	sudo apt-get install -y gsl-bin libgsl0-dev
+4. **pkg-config**, for discovering dependencies, which most Unix-like systems include
 
-#### GSL on CentOS
+5. **GNU scientific library**, for random number generation
 
-	sudo yum install -y gsl gsl-devel
+In addition, if you want to boostrap the git version of shorah instead of using the provided tarballs,
+you will need the GNU Autotools:
+
+1. **Autoconf** 2.69
+
+2. **Automake** 1.15
+
+3. **m4**, which most Unix-like system include
+
+### Installation
+We strongly recommend you use one of the versioned tarballs from the releases page. ShoRAH uses Autoconf
+and Automake, and these tarballs include all necessary scripts and files required for installation, whereas
+the git tree only contains a none of these pre-generated files.
+
+Further, we strongly recommend you use a virtualenv for python installation that shares the same directory
+root as where you'd like to install shorah to. Not using a virtualenv means that the python dependencies will
+not be located in the installation root, which will likely require you to specify `PYTHONPATH`, making the
+installation more brittle.
+
+Say for instance, you would like to install shorah to `/usr/local/shorah`. The first step consists of installing
+the required python dependencies. Create a virtualenv:
+
+	/opt/local/bin/virtualenv-2.7 /usr/local/shorah
+
+where `/opt/local/bin/virtualenv-2.7` is the virtualenv command for python 2.7 on MacPorts. Now install
+the python dependencies:
+
+	/usr/local/shorah/bin/pip install Biopython
+
+Now call the `configure` script from the shorah tarball, taking care to specify the **absolute** path of the
+python interpreter, as this gets inserted into the shebang line of all python scripts:
+
+	./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python2.7
+
+The configure script finds the dependencies using pkg-config. Once it completes, run:
+
+	make -j4
+
+where the number specifies the number of compilation threads to use. Finally, after compilation, install using:
+
+	make install
+
+All the programs should now be located in `/usr/local/shorah/bin`
+
+### Boostrapping from git
+If you opted to clone the git repository instead of downloading a prepared tarball, you will need to boostrap
+the configure script:
+
+	autoreconf -vif
+
+After this, you can run the `configure` script as described previously.
 
 
 #### Windows users
