@@ -68,8 +68,8 @@ if __name__ == "__main__":
 
     from Bio import SeqIO
 
-    import dec
-    import mm
+    import shorah_dec
+    import shorah_mm
 
     # parse command line
     optparser = optparse.OptionParser()
@@ -133,10 +133,10 @@ if __name__ == "__main__":
 
     in_stem = '.'.join(os.path.split(options.b)[1].split('.')[:-1])
 
-    # 1. run dec.py; it will also launch snv.py
+    # 1. run main from shorah_dec; it will also launch snv.py
     if not os.path.exists('%s.cor.fas' % in_stem):
         sholog.debug('running dec.py')
-        dec.main(in_bam=options.b, in_fasta=options.f,
+        shorah_dec.main(in_bam=options.b, in_fasta=options.f,
                  win_length=options.w, win_shifts=options.s,
                  max_coverage=options.x, region=options.r,
                  keep_files=options.k, alpha=options.a)
@@ -170,9 +170,9 @@ if __name__ == "__main__":
     else:
         sholog.debug('contain exited successfully')
 
-    # 4. run mm.py to find minimal matching
+    # 4. run main from mm.py to find minimal matching
     sholog.debug('running mm.py')
-    mm.main('%s_cor.rest' % in_stem, maxhaplo=200)
+    shorah_mm.main('%s_cor.rest' % in_stem, maxhaplo=200)
 
     # 5. run EM freqEst output: sample.$nr.popl
     sholog.debug('running freqEst')

@@ -297,7 +297,7 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     and analyzing the result
     '''
 
-    import snv
+    import shorah_snv
 
     # set logging level
     amplog.setLevel(logging.DEBUG)
@@ -351,7 +351,7 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     run_diagnostics(win_file, n_reads)
 
     # run snv.py to parse single nucleotide variants
-    snv.main(reference=options.in_fasta, bam_file=options.in_bam,
+    shorah_snv.main(reference=options.in_fasta, bam_file=options.in_bam,
              sigma=s, increment=1)
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ bin_SCRIPTS = \
 	src/scripts/shorah.py \
 	src/scripts/snv.py \
 	fas2read.pl
-CLEANFILES = fas2read.pl
+CLEANFILES = $(bin_SCRIPTS)
 EXTRA_DIST = \
 	src/scripts/amplian.py.in \
 	src/scripts/dec.py.in \
@@ -93,9 +93,11 @@ dist_perl_DATA = \
 	src/perl/Util.pm
 
 # python modules
-dist_pkgpython_DATA = \
-	src/python/__init__.py \
-	src/python/matching.py
+python_PYTHON = \
+	src/python/shorah_dec.py \
+	src/python/shorah_matching.py \
+	src/python/shorah_mm.py \
+	src/python/shorah_snv.py
 
 # example files
 dist_pkgdata_DATA = \
