@@ -46,8 +46,8 @@
 #include <gsl/gsl_sf_log.h>
 #include <gsl/gsl_sf_exp.h>
 using namespace std;
-#include "data_structures.h"
-#include "dpm_sampler.h"
+#include "data_structures.hpp"
+#include "dpm_sampler.hpp"
 
 #define PROPHISTSIZE 100
 int main(int argc, char** argv){
