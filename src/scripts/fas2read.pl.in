@@ -1,7 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 #translate a fasta file to read format
 
-use lib "perllib";
+use lib "@perldir@";
 use strict;
 use Getopt::Long;
 use DNA;
