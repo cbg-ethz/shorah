@@ -96,3 +96,15 @@ dist_perl_DATA = \
 dist_pkgpython_DATA = \
 	src/python/__init__.py \
 	src/python/matching.py
+
+# example files
+dist_pkgdata_DATA = \
+	examples/ref_genome.fasta \
+	examples/sample_454.fasta
+
+ampliconpkgdatadir = $(pkgdatadir)/amplicon_test
+dist_ampliconpkgdata_DATA = \
+	examples/amplicon_test/README.md \
+	examples/amplicon_test/ampli_sorted.bam \
+	examples/amplicon_test/amplicon_reads.fastq \
+	examples/amplicon_test/reference.fasta
