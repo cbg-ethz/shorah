@@ -1,3 +1,23 @@
+dnl   How to cut a new release
+dnl   ========================
+dnl
+dnl   1.) Bootstrap the autotools by running:
+dnl
+dnl           autoreconf -vif
+dnl
+dnl   2.) Run the configure script:
+dnl
+dnl           ./configure
+dnl
+dnl   3.) Check that the build system and out-of-source builds work fine:
+dnl
+dnl           make distcheck
+dnl
+dnl   4.) If the last command succedded succesfully, upload the produced bz2 tarball to the Github releases page:
+dnl
+dnl           https://github.com/cbg-ethz/shorah/releases
+
+
 dnl Initialise Autoconf
 AC_PREREQ([2.69])
 AC_INIT(
