@@ -5,6 +5,7 @@ AC_INIT(
 	[1.0.0],
 	[osvaldo.zagordi@gmail.com])
 AC_CONFIG_SRCDIR([src/shorah/freqEst.cpp])
+AC_CONFIG_MACRO_DIR([m4])
 
 
 
@@ -39,13 +40,18 @@ AS_IF([test "x${enable_debug}" = "xno"],
 dnl =======================================
 dnl Check for standard headers and programs
 dnl =======================================
-AX_COMPILER_VENDOR
-AX_COMPILER_VERSION
 AC_PROG_SED
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_RANLIB
 
+AC_LANG([C])
+AX_COMPILER_VENDOR
+AX_COMPILER_VERSION
+
+AC_LANG([C++])
+AX_COMPILER_VENDOR
+AX_COMPILER_VERSION
 
 dnl required by samtools on linux
 AX_PTHREAD
@@ -120,12 +126,11 @@ dnl Report configuration to user
 dnl ============================
 AC_MSG_RESULT([
 	${PACKAGE_NAME} ${VERSION}
-	Using ${ax_cv_cxx_compiler_vendor}, ${ax_cv_cxx_compiler_version}
 
-	CC:         ${CC}
+	CC:         ${CC} (${ax_cv_c_compiler_vendor}, ${ax_cv_c_compiler_version})
 	CFLAGS:     ${CFLAGS}
 
-	CXX:        ${CXX}
+	CXX:        ${CXX} (${ax_cv_cxx_compiler_vendor}, ${ax_cv_cxx_compiler_version})
 	CXXFLAGS:   ${CXXFLAGS}
 
 	CPPFLAGS:   ${CPPFLAGS}
