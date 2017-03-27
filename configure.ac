@@ -13,7 +13,7 @@ dnl   3.) Check that the build system and out-of-source builds work fine:
 dnl
 dnl           make distcheck
 dnl
-dnl   4.) If the last command succedded succesfully, upload the produced bz2 tarball to the Github releases page:
+dnl   4.) If the last command succeeded successfully, upload the produced bz2 tarball to the Github releases page:
 dnl
 dnl           https://github.com/cbg-ethz/shorah/releases
 
