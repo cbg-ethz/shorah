@@ -8,7 +8,7 @@ are written in different programming languages and provide error correction,
 haplotype reconstruction and estimation of the frequency of the different
 genetic variants present in a mixed sample.
 
-More information [here](http://ozagordi.github.com/shorah).
+More information [here](http://cbg-ethz.github.io/shorah).
 
 ---
 
@@ -102,7 +102,7 @@ After this, you can run the `configure` script as described previously.
 #### Windows users
 You can install and run `shorah` with [Cygwin](http://www.cygwin.com).
 Please see the relevant paragraph on the
-[documentation page](http://ozagordi.github.io/shorah/).
+[documentation page](http://cbg-ethz.github.io/shorah/).
 
 ### Run
 The input is a sorted bam file. Analysis can be performed in local or global
@@ -113,9 +113,9 @@ The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
 for the amplicon mode). They work by cutting window from the multiple sequence
 alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
 SNV calling. See the
-[`README`](https://github.com/ozagordi/shorah/blob/master/amplicon_test/README.md)
+[`README`](https://github.com/cbg-ethz/shorah/blob/master/examples/amplicon_test/README.md)
 file in directory
-[`amplicon_test`](https://github.com/ozagordi/shorah/blob/master/amplicon_test/).
+[`amplicon_test`](https://github.com/cbg-ethz/shorah/blob/master/examples/amplicon_test/).
 
 #### Global analysis
 The whole global reconstruction consists of the following steps:
