@@ -576,7 +576,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
 
     declog.info('running snv.py')
     shorah_snv.main(reference=in_fasta, bam_file=in_bam,
-             increment=win_length / win_shifts)
+             increment=win_length / win_shifts, max_coverage=max_coverage)
 
     # tidy snvs
     try:
