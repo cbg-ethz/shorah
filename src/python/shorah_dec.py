@@ -52,8 +52,10 @@ init_K = 20  # initial number of clusters in diri_sampler
 # a common user should not edit below this line #
 #################################################
 
-to_correct = {}
+# Dictionary storing by read ID (key) all subsequences which are part of 
+# different windows
 correction = {}
+# Dictionary storing by read ID (key) the posterior for each of window 
 quality = {}
 
 count = {}
@@ -100,10 +102,10 @@ def parse_aligned_reads(reads_file):
         if this_m == '':
             declog.warning('parsing empty read: %s' % h)
         out_reads[name] = [None, None, None, None, []]
-        out_reads[name][0] = int(start)
-        out_reads[name][1] = int(stop)
-        out_reads[name][2] = int(mstart)  # this is
-        out_reads[name][3] = int(mstop)   # this too
+        out_reads[name][0] = int(start)   # start of the region of interest (0-based indexing)
+        out_reads[name][1] = int(stop)    # end of the region of interest (0-based inde
+        out_reads[name][2] = int(mstart)  # start index of the aligned read w.r.t reference (1-based indexing)
+        out_reads[name][3] = int(mstop)   # end index of the aligned read w.r.t reference (1-based indexing)
         out_reads[name][4] = this_m
 
     return out_reads
@@ -296,6 +298,49 @@ def win_to_run(alpha_w, seed):
     return rn_list
 
 
+def merge_corrected_reads(aligned_read):
+    
+    ID = aligned_read[0]
+    seq = aligned_read[1][4]
+    corrected_read = correction.get(ID)
+    merged_corrected_read = []
+
+    if corrected_read is not None:
+        # rlen: length of the orginal read
+        rlen = len(seq)
+        # rstart: start index of the original read with respect to reference
+        rstart = aligned_read[1][2]
+        # posterior: fraction of times a given read was assigned to current 
+        #            cluster among those iterations that were recorded
+        posterior = quality.get(ID)
+
+        # kcr: extract start index of the aligned reads in all windows
+        # vcr: extract sequence of the aligned reads in all windows
+        kcr = np.array(corrected_read.keys(), dtype=int)
+        vcr = np.array(corrected_read.values())
+        vcr_len = [v.size for v in vcr]
+
+        for rpos in range(rlen):
+            tp = rstart + rpos - kcr
+            mask = np.logical_and(
+                    np.logical_and(np.greater_equal(tp, 0), np.less(tp, vcr_len)),
+                    np.greater(posterior.values(), min_quality)
+                    )
+            if np.sum(mask > 0):
+                # data structure needs this
+                idx = np.argwhere(mask)
+                this = [vcr[k][tp[k]] for k in idx[0]] # this is unlikely to be optimal
+                if len(this) > 1:
+                    corrected_base = base_break(this)
+                else:
+                    corrected_base = this[0]
+            else:
+                corrected_base = 'X'
+            merged_corrected_read.append(corrected_base)
+
+    return(ID, merged_corrected_read)
+
+
 def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
          max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
     '''
@@ -353,14 +398,6 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
 
     declog.info('%s reads are being considered' % len(aligned_reads))
 
-    for k in aligned_reads.keys():
-        to_correct[k] = [None, None, None, None, []]
-        to_correct[k][0] = aligned_reads[k][0]
-        to_correct[k][1] = aligned_reads[k][1]
-        to_correct[k][2] = aligned_reads[k][2]
-        to_correct[k][3] = aligned_reads[k][3]
-        to_correct[k][4] = []  # aligned_reads[k][4][:]
-
     ############################################
     # Now the windows and the error correction #
     ############################################
@@ -371,6 +408,8 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     max_proc = max(cpu_count() - 1, 1)
     pool = Pool(processes=max_proc)
     pool.map(run_dpm, runlist)
+    pool.close()
+    pool.join()
 
     # prepare directories
     if keep_all_files:
@@ -388,8 +427,8 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
         del(a)  # in future alpha might be different on each window
         parts = winFile.split('.')[0].split('-')
         chrom = '-'.join(parts[1:-2])
-        beg = parts[-2]
-        end = parts[-1]
+        beg = int(parts[-2])
+        end = int(parts[-1])
         declog.info('reading windows for start position %s' % beg)
         # correct reads populates correction and quality, globally defined
         correct_reads(chrom, beg, end)
@@ -489,56 +528,29 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     ## correction[read_id][wstart] = sequence ##
     ## quality[read_id][wstart] = posterior   ##
     # ##########################################
-    reason = [0, 0, 0]
-    declog.info('now correct, %d reads will be analysed' % len(to_correct))
-    creads = 0
-    for r in to_correct:
-        if r not in correction.keys():
-            continue
-        creads += 1
-        if creads % 500 == 0:
-            declog.info('considered %d corrected reads' % creads)
-            print aligned_reads[r][4]
-        rlen = len(aligned_reads[r][4])  # length of original read
-        rst = aligned_reads[r][2]  # read start in the reference
+    declog.info('Merging windows of corrected reads')
+    # Multi-threaded version
+    params = aligned_reads.items()
+    pool = Pool(processes=max_proc)
+    to_correct = pool.map(merge_corrected_reads, params)
+    pool.close()
+    pool.join()
 
-        corrstore = []
-        for rpos in range(rlen):
-            this = []
-            for cst in correction[r]:
-                tp = rpos + rst - int(cst)
-                if tp < 0:
-                    reason[0] += 1
-                if tp >= len(correction[r][cst]):
-                    reason[1] += 1
-                if  (tp >= 0 and tp < len(correction[r][cst]) and
-                     quality[r][cst] > min_quality):
-                    reason[2] += 1
-                    tc = correction[r][cst][tp]
-                    this.append(tc)
-                    corrstore.append(rpos)
-
-            if len(this) > 0:
-                cb = base_break(this)
-            else:
-                cb = 'X'
-            to_correct[r][4].append(cb)
-            del this
-    declog.info('considered all corrected reads')
+    declog.info('All corrected reads have been merged')
 
     ccx = {}
     cin_stem = '.'.join(os.path.split(in_bam)[1].split('.')[:-1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
     declog.debug('writing to file %s.cor.fas' % cin_stem)
-    for r in to_correct:
-        cor_read = ''.join(to_correct[r][4])
+    for ID, seq_list in to_correct:
+        cor_read = ''.join(seq_list)
         init_x = len(cor_read.lstrip('-')) - len(cor_read.lstrip('-X'))
         fin_x = len(cor_read.rstrip('-')) - len(cor_read.rstrip('-X'))
-        cx = to_correct[r][4].count('X') - init_x - fin_x
+        cx = seq_list.count('X') - init_x - fin_x
         ccx[cx] = ccx.get(cx, 0) + 1
         if cx <= min_x_thresh and cor_read.lstrip('-X') != '':
-            fch.write('>%s %d\n' % (r, to_correct[r][2] +
-                                    init_x - to_correct[r][0]))
+            fch.write('>%s %d\n' % (ID, aligned_reads[ID][2] + init_x
+                                    - aligned_reads[ID][0]))
             cc = 0
             for c in cor_read.lstrip('-X'):
                 if c != 'X':

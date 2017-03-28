@@ -168,7 +168,7 @@ hnode* add_hap(hnode** p, hnode* pred, unsigned int i, unsigned int J, unsigned 
 typedef struct cns {
   /** *********************************************************
       Components list structure:
-      c -> indexes the component
+      ci -> index of the component
       size -> component size (number of unique reads)
       weight -> weighted component size (accounting for reads represented by 
                 each unique read)
