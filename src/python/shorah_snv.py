@@ -304,14 +304,15 @@ def printRaw(snpD2, incr):
     out1.close()
 
 
-def sb_filter(in_bam, sigma, amplimode=""):
+def sb_filter(in_bam, sigma, amplimode="", max_coverage=100000):
 
     """run strand bias filter calling the external program 'fil'
     """
     import subprocess
     dn = sys.path[0]
     my_prog = os.path.join(dn, 'fil')
-    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode
+    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + ' -x ' \
+             + max_coverage
     snvlog.debug('running %s%s' % (my_prog, my_arg))
     retcode = subprocess.call(my_prog + my_arg, shell=True)
     return retcode
@@ -339,7 +340,7 @@ def BH(p_vals, n):
     return q_vals_l
 
 
-def main(reference='', bam_file='', sigma=0.01, increment=1):
+def main(reference='', bam_file='', sigma=0.01, increment=1, max_coverage=100000):
     '''main code
     '''
     import csv
@@ -376,9 +377,10 @@ def main(reference='', bam_file='', sigma=0.01, increment=1):
 
     #run strand bias filter, output in SNVs_%sigma.txt
     if increment == 1:
-        retcode_m = sb_filter(bam_file, sigma, amplimode=" -a")
+        retcode_m = sb_filter(bam_file, sigma, amplimode=" -a",
+                              max_coverage=max_coverage)
     else:
-        retcode_m = sb_filter(bam_file, sigma)
+        retcode_m = sb_filter(bam_file, sigma, max_coverage=max_coverage)
     if retcode_m is not 0:
         snvlog.error('sb_filter exited with error %d' % retcode_m)
         sys.exit()

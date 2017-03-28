@@ -16,7 +16,7 @@ adapted from samtools/calDep.c
 using namespace std;
 
 typedef struct {
-    int pos, pos1, SNP, forwM, revM, forwT, revT;
+    int pos, pos1, SNP, forwM, revM, forwT, revT, maxdepth;
     double sig, pval;
     char nuc;
     samfile_t *in;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
     int c = 0;
     bam_index_t *idx;
 	int amplicon = 0;
-    while((c=getopt(argc, argv, "b:v:a"))!=EOF){
+    while((c=getopt(argc, argv, "b:v:x:a"))!=EOF){
         switch(c){
 			case 'b':
             	tmp.in = samopen(optarg, "rb", 0);
@@ -144,6 +144,9 @@ int main(int argc, char *argv[])
 			case 'v':
             	tmp.sig = atof(optarg);
 				break;
+            case 'x':
+                tmp.maxdepth = atoi(optarg);
+                break;
 			case 'a':
 				amplicon = 1;
         }
@@ -156,11 +159,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "BAM indexing file is not available.\n");
         return 2;
     }
-    int maxdepth;
-    maxdepth = 100000;
     bam_plbuf_t *buf;
     buf = bam_plbuf_init(pileup_func, &tmp);
-    bam_plp_set_maxcnt(buf->iter, maxdepth);
+    bam_plp_set_maxcnt(buf->iter, tmp.maxdepth);
     FILE *fl = fopen("SNV.txt","rt");
     if (fl==NULL){
         fprintf(stderr, "Failed to open SNV file.\n");

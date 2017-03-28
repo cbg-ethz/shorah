@@ -23,4 +23,10 @@ optparser.add_option("-i", "--increment", default=opts[3], type="int",
 
 (options, args) = optparser.parse_args()
 
+optparser.add_option("-x", "--maxcov", default=opts[4], type="int",
+                     dest="max_coverage", help="Maximum coverage allowed \
+                     <%default>")
+
+(options, args) = optparser.parse_args()
+
 shorah_snv.main(*args, **vars(options))
