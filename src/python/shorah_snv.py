@@ -312,7 +312,7 @@ def sb_filter(in_bam, sigma, amplimode="", max_coverage=100000):
     dn = sys.path[0]
     my_prog = os.path.join(dn, 'fil')
     my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + ' -x ' \
-             + max_coverage
+             + str(max_coverage)
     snvlog.debug('running %s%s' % (my_prog, my_arg))
     retcode = subprocess.call(my_prog + my_arg, shell=True)
     return retcode
