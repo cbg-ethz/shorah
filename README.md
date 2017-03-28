@@ -46,7 +46,7 @@ shorah requires the following pieces of software:
 
 5. **GNU scientific library**, for random number generation
 
-In addition, if you want to boostrap the git version of shorah instead of using the provided tarballs,
+In addition, if you want to bootstrap the git version of shorah instead of using the provided tarballs,
 you will need the GNU Autotools:
 
 1. **Autoconf** 2.69
@@ -58,7 +58,7 @@ you will need the GNU Autotools:
 ### Installation
 We strongly recommend you use one of the versioned tarballs from the releases page. ShoRAH uses Autoconf
 and Automake, and these tarballs include all necessary scripts and files required for installation, whereas
-the git tree only contains a none of these pre-generated files.
+the git tree only contains the bare minimum of files required for bootstrapping.
 
 Further, we strongly recommend you use a virtualenv for python installation that shares the same directory
 root as where you'd like to install shorah to. Not using a virtualenv means that the python dependencies will
@@ -84,14 +84,14 @@ The configure script finds the dependencies using pkg-config. Once it completes,
 
 	make -j4
 
-where the number specifies the number of compilation threads to use. Finally, after compilation, install using:
+where `4` specifies the number of compilation threads to use. Finally, after compilation, install using:
 
 	make install
 
-All the programs should now be located in `/usr/local/shorah/bin`
+All the programs should now be located in `/usr/local/shorah/bin`.
 
 ### Boostrapping from git
-If you opted to clone the git repository instead of downloading a prepared tarball, you will need to boostrap
+If you opted to clone the git repository instead of downloading a prepared tarball, you will need to bootstrap
 the configure script:
 
 	autoreconf -vif
