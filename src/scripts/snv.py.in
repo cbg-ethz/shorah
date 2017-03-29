@@ -21,8 +21,6 @@ optparser.add_option("-i", "--increment", default=opts[3], type="int",
                      dest="increment", help="value of increment to use \
                      when calling SNVs (1 used by amplian.py) <%default>")
 
-(options, args) = optparser.parse_args()
-
 optparser.add_option("-x", "--maxcov", default=opts[4], type="int",
                      dest="max_coverage", help="Maximum coverage allowed \
                      <%default>")
