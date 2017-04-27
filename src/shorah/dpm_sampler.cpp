@@ -1995,6 +1995,7 @@ double setfinalhaplotype(unsigned int i)  {
 void write_haplotype_frequencies(char* filename, unsigned int hcount) {
   FILE* fp;
   unsigned int i, j, hap, running_sum=0;
+  float rnh_ratio=0.0;
   hnode_single** all_haplo;
   int* p;
   
@@ -2067,9 +2068,14 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount) {
     }
   }
   fclose(fp);
-  if (1.0*fabs(running_sum - (n*HISTORY))/(n*HISTORY) > 0.001){
+  // if (1.0*fabs(running_sum - (n*HISTORY))/(n*HISTORY) > 0.001){
+  //   printf("WATCH OUT, running_sum=%d and not %d\n", running_sum, n*HISTORY);
+  //   }
+  rnh_ratio = float(running_sum)/(n*HISTORY);
+  if (fabs(rnh_ratio - 1) > 0.001){
     printf("WATCH OUT, running_sum=%d and not %d\n", running_sum, n*HISTORY);
     }
+
   for(i=0; i<n*HISTORY; i++) {
     free(all_haplo[i]->h);
   }
