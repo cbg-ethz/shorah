@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/env @PYTHON@
 
 # Copyright 2007-2012
 # Niko Beerenwinkel,

@@ -76,7 +76,7 @@ the python dependencies:
 	/usr/local/shorah/bin/pip install Biopython
 
 Now call the `configure` script from the shorah tarball, taking care to specify the **absolute** path of the
-python interpreter, as this gets inserted into the shebang line of all python scripts:
+python interpreter (or the relative one if it is in your `PATH`), as this gets inserted into the shebang line of all python scripts:
 
 	./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python2.7
 
