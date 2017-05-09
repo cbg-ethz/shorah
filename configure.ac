@@ -81,8 +81,7 @@ AX_PTHREAD
 dnl ==================================
 dnl Set CXXFLAGS, CPPFLAGS and LDFLAGS
 dnl ==================================
-AS_IF([test "x${enable_flags_setting}" = "xyes" && test "x${enable_debug}" = "xno"],
-	[
+AS_IF([test "x${enable_flags_setting}" = "xyes" && test "x${enable_debug}" = "xno"], [
 	AC_LANG([C])
 	AX_APPEND_COMPILE_FLAGS([${cflags_test}], [CFLAGS])
 	CFLAGS=$( echo ${CFLAGS} | $SED -e 's/^ *//' -e 's/ *$//' )
@@ -96,8 +95,31 @@ AS_IF([test "x${enable_flags_setting}" = "xyes" && test "x${enable_debug}" = "xn
 
 	AX_APPEND_LINK_FLAGS([${ldflags_test}], [LDFLAGS])
 	LDFLAGS=$( echo ${LDFLAGS} | $SED -e 's/^ *//' -e 's/ *$//' )
-	]
-)
+])
+
+AC_ARG_ENABLE([popcnt],
+	AS_HELP_STRING([--disable-popcnt], [Disable using POPCNT for Hamming distances]))
+
+dnl Check for popcount intrinsics
+AS_IF([test "x$enable_popcnt" != "xno"], [
+	AC_LANG([C++])
+	AX_APPEND_COMPILE_FLAGS([-mpopcnt], [CXXFLAGS])
+
+	AC_MSG_CHECKING([whether configure can enable POPCNT for Hamming distances])
+	AC_LINK_IFELSE([
+		AC_LANG_SOURCE([[
+			#include <nmmintrin.h>
+			int main() { return _mm_popcnt_u64(0); }
+		]])
+	], [
+		dnl POPCNT works
+		AC_DEFINE([HAVE_POPCNT], [1], [Define if popcnt intrinsics are available])
+		AC_MSG_RESULT([yes])
+	], [
+		dnl POPCNT is broken
+		AC_MSG_RESULT([no])
+	])
+])
 
 
 
