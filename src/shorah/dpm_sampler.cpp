@@ -298,7 +298,7 @@ int main(int argc, char** argv)
     temp = new int[J / 10 + 1];
 
     for (k = 0; k <= iter; k++) {
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("-----------------------------------------------\n");
         printf("-----------> sampling the %ith time <-----------\n", k);
         printf("-----------------------------------------------\n");
@@ -396,7 +396,7 @@ int main(int argc, char** argv)
         if (theta <= 0.0) theta = 0.0001;
 // sample_ref();    // sampling the reference every step gives strange behaviour...
 
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "dt=" << dt << "\ttheta=" << theta << "\tgamma=" << gam << std::endl;
 #endif
         //    out_file("iteration\t%i\t%i\t%i\t%f\t%f\n", k+1, count_classes(mxt), tot_untouch,
@@ -767,7 +767,7 @@ void build_assignment(std::ofstream& out_file)
     // there is at least the first cluster...
     cn = mxt;
 
-#ifdef DEBUG
+#ifndef NDEBUG
     printf("cluster %d has size %d\n", cn->ci, cn->size);
 #endif
 
@@ -804,12 +804,12 @@ void build_assignment(std::ofstream& out_file)
         cn->next->rd0 = (unsigned short int*)malloc(q * sizeof(unsigned short int));
         cn->next->rd1 = (unsigned short int*)malloc(q * sizeof(unsigned short int));
 
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("cluster %d has size %d\n", cn->next->ci, cn->next->size);
 #endif
 
         if (cn->next->size == 0) {
-#ifdef DEBUG
+#ifndef NDEBUG
             printf("removing some node... p=%p\n", cn->next);
 #endif
             remove_comp(&cn->next);
@@ -1016,7 +1016,7 @@ void sample_hap(cnode* cn)
     int max_cbase;
     unsigned int base_id;
 
-#ifdef DEBUG
+#ifndef NDEBUG
     printf("Haplotype %i is\n", cn->ci);
 #endif
 
@@ -1117,12 +1117,12 @@ void sample_hap(cnode* cn)
         gsl_ran_discrete_free(g);
     }
     */
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("%i ", cn->h[j]);
 #endif
     }
 
-#ifdef DEBUG
+#ifndef NDEBUG
     printf("\n");
 #endif
 
@@ -1283,7 +1283,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     unsigned int tw;
     std::pair<int, int> p;
 //  int local_ci;
-#ifdef DEBUG
+#ifndef NDEBUG
     unsigned int j;
 #endif
     double b1, b2;  //, pow1, pow2;
@@ -1298,7 +1298,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     //  int read_came_from_current;
     int* temp;
     temp = new int[J / 10 + 1];
-#ifdef DEBUG
+#ifndef NDEBUG
     for (removed = 0; removed < q; removed++)
         printf("c_ptr[%d]=%p\n", removed, c_ptr[removed]);
     removed = 0;
@@ -1325,7 +1325,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
         remove_comp(&mxt);
         removed = 1;
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("----------- REMOVED SIZE 1 NODE ----------\n");
 #endif
     }
@@ -1345,7 +1345,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
         remove_comp(&(c_ptr[i]->next));
         removed = 1;
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("----------- REMOVED SIZE 1 NODE ----------\n");
 #endif
     }
@@ -1494,7 +1494,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
         }  // else P[i] = 0, from above
     }
 
-#ifdef DEBUG
+#ifndef NDEBUG
     for (j = 0; j <= st; j++)
         printf("with P[%i] = %e to class %p\n", j, P[j], cl_ptr[j]);
 #endif
@@ -1503,7 +1503,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     this_class = gsl_ran_discrete(rg, g);
     gsl_ran_discrete_free(g);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     printf("extracted class is = %lu\n", this_class);
 #endif
 
@@ -1517,7 +1517,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     if (removed == 0) {
 
         if (from_class == to_class) {
-#ifdef DEBUG
+#ifndef NDEBUG
             printf("from %p to itself\n", from_class);
 #endif
 
@@ -1531,7 +1531,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
         }
 
         else if (to_class != NULL) {
-#ifdef DEBUG
+#ifndef NDEBUG
             printf("moving the read from %p to %p\n", from_class, to_class);
 #endif
 
@@ -1553,7 +1553,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
         }
 
         else if (to_class == NULL) {
-#ifdef DEBUG
+#ifndef NDEBUG
             printf("moving %i to a new class from %p\n", i, from_class);
 #endif
 
@@ -1610,7 +1610,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     }
 
     else if (removed == 1) {
-#ifdef DEBUG
+#ifndef NDEBUG
         printf("moving having removed\n");
 #endif
         if (to_class != NULL) {
@@ -2129,7 +2129,7 @@ void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J)
 
         if (p == NULL) out_file << "# no reads in this component\n";
 
-#ifdef DEBUG
+#ifndef NDEBUG
         if (p != NULL) out_file << "# reads in the list:\t";
 #endif
 

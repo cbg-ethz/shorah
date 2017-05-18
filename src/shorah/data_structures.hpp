@@ -274,7 +274,7 @@ void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J){
     if(p == NULL)
       out_file << "# no reads in this component\n";
 
-#ifdef DEBUG
+#ifndef NDEBUG
     if(p != NULL)
       out_file << "# reads in the list:\t";
 #endif

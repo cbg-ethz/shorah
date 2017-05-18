@@ -49,7 +49,6 @@ typedef struct comp_class
 
 bool comp_func(com_pair* pi, com_pair* pj) { return (pi->freq > pj->freq); }
 
-//#define DEBUG
 //#define SEEPROB
 
 int CORRECTPARAM = 1;       // which definition of pr(r | h) do we use
@@ -160,7 +159,7 @@ void getHaplotypes(std::istream& in, std::vector<std::string>& genotypesFinal)
             if ((*g)[pos] == '.') {
                 tmpCount++;
                 (*g)[pos] = cons[pos];
-#ifdef DEBUG
+#ifndef NDEBUG
                 std::cout << "correcting . to " << cons[pos] << " in sequence " << *g << std::endl;
 #endif
             }
@@ -180,7 +179,7 @@ void getHaplotypes(std::istream& in, std::vector<std::string>& genotypesFinal)
         uniq[*g]++;
     }
     for (std::map<std::string, int>::iterator x = uniq.begin(); x != uniq.end(); ++x) {
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cout << "Haplotype was repeated " << x->second << " times\n";
 #endif
         genotypesFinal.push_back(x->first);
@@ -229,7 +228,7 @@ std::vector<int> countReads(std::vector<Read>& origReads, std::vector<Read>& rea
             }
         }
     }
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cout << "Started with " << origReads.size() << " reads.\n";
     std::cout << reads.size() << " are unique\n";
     std::cout << "Counts:\n";
@@ -248,7 +247,7 @@ void Estep(std::vector<double> const& p, std::vector<std::vector<double> >& U,
     int i, j;
     double ProbY;
 
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cout << "Estep input: " << std::endl;
     for (i = 0; i < N; ++i) {
         std::cout << p[i] << " ";
@@ -298,7 +297,7 @@ void Mstep(std::vector<double>& p, std::vector<std::vector<double> > const& U)
         p[j] = v[j] / m;
     }
 
-#ifdef DEBUG
+#ifndef NDEBUG
     for (j = 0; j < N; ++j) {
         std::cout << p[j] << " ";
     }
@@ -351,7 +350,7 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
         p[j] = p[j] / sum;
     }
 
-#ifdef DEBUG
+#ifndef NDEBUG
     for (j = 0; j < N; ++j) {
         std::cout << p[j] << " ";
     }
