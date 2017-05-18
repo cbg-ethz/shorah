@@ -23,7 +23,6 @@
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <nmmintrin.h>
 #include <unistd.h>
 #include <algorithm>
 #include <cfloat>
@@ -40,6 +39,10 @@
 #include <new>
 #include <sstream>
 #include <string>
+
+#ifdef HAVE_POPCNT
+#include <nmmintrin.h>
+#endif
 
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
