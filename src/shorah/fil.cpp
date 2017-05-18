@@ -6,14 +6,13 @@ adapted from samtools/calDep.c
  ******************************/
 #include <getopt.h>
 #include <gsl/gsl_sf.h>
-#include <stdio.h>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
 #include "faidx.h"
 #include "sam.h"
-using namespace std;
 
 typedef struct
 {
@@ -160,9 +159,9 @@ int main(int argc, char* argv[])
     char str_buf[200];
     char reg[200];
     char filename[50];
-    ofstream snpsOut;
+    std::ofstream snpsOut;
     sprintf(filename, "SNVs_%f.txt", tmp.sig);
-    snpsOut.open(filename, ios::out);
+    snpsOut.open(filename, std::ios::out);
 
     if (amplicon) {
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1

@@ -23,15 +23,15 @@
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <float.h>
-#include <math.h>
 #include <nmmintrin.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <algorithm>
+#include <cfloat>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -47,7 +47,6 @@
 #include <gsl/gsl_sf_log.h>
 #include <gsl/gsl_sf_pow_int.h>
 
-using namespace std;
 #include "data_structures.hpp"
 #include "dpm_sampler.hpp"
 
@@ -72,22 +71,22 @@ int main(int argc, char** argv)
     double_threshold_max = gsl_sf_log(DBL_MAX);
     parsecommandline(argc, argv);
 
-    string instr = filein;
+    std::string instr = filein;
 
     /// rename sampling file and debug file
     int insize = instr.find('.');
-    string statstr = instr.substr(0, insize).append(".dbg");
-    string outstr = instr.substr(0, insize).append(".smp");
-    string alphastr = instr.substr(0, insize).append(".alpha");
-    string iterstr = instr.substr(0, insize).append(".iter");
+    std::string statstr = instr.substr(0, insize).append(".dbg");
+    std::string outstr = instr.substr(0, insize).append(".smp");
+    std::string alphastr = instr.substr(0, insize).append(".alpha");
+    std::string iterstr = instr.substr(0, insize).append(".iter");
 
-    ofstream out_file(outstr.c_str());
-    ofstream stat_file(statstr.c_str());
+    std::ofstream out_file(outstr.c_str());
+    std::ofstream stat_file(statstr.c_str());
 
-    stat_file << "# dna_code:\t" << i2dna_code << endl;
+    stat_file << "# dna_code:\t" << i2dna_code << std::endl;
 
     //  randseed = 1257501510;
-    stat_file << "# randseed = " << randseed << endl;
+    stat_file << "# randseed = " << randseed << std::endl;
 
     // random number generator via gsl
     gsl_rng_env_setup();
@@ -132,9 +131,9 @@ int main(int argc, char** argv)
         //  ftable[j][i] = ftable[j][i]/tot_pos;
         //}
     }
-    stat_file << "# Number of reads, n = " << n << endl;
-    stat_file << "# Read length, J = " << J << endl;
-    stat_file << "# J/10 + 1 = " << J / 10 + 1 << endl << endl;
+    stat_file << "# Number of reads, n = " << n << std::endl;
+    stat_file << "# Read length, J = " << J << std::endl;
+    stat_file << "# J/10 + 1 = " << J / 10 + 1 << std::endl << std::endl;
 
     // creads = (int**)calloc(n, sizeof(int*));
 
@@ -152,14 +151,14 @@ int main(int argc, char** argv)
         readtable[i]->weight = 1;  // mapped = no
     }
 
-    // multimap<string,int>::iterator it;
-    // string stemp = ("");
+    // std::multimap<std::string,int>::iterator it;
+    // std::string stemp = ("");
     // int mapcount, mflag;
     /*
   for(j=0; j<J/10 + 1; j++)
     stemp += static_cast<ostringstream*>( &(ostringstream() << readtable[0]->creads[j]) )->str();
 
-  readmap.insert ( pair<string,int>(stemp, 1) );
+  readmap.insert ( std::pair<std::string,int>(stemp, 1) );
   readtable[0]->mindex = 0;
 
 
@@ -178,21 +177,21 @@ int main(int argc, char** argv)
       }
     }
     if(mflag == 0){
-      readmap.insert ( pair<string,int>(stemp, 1) );
+      readmap.insert ( std::pair<std::string,int>(stemp, 1) );
       readtable[i]->mindex = mapcount;
       }
   }
   */
 
     // Tuple for storing hamming distance
-    pair<int, int> hd;
+    std::pair<int, int> hd;
 
     for (i = 0; i < n; i++) {
         if (readtable[i]->weight > 0) {  // only if read i has not been mapped to a previous read
             readtable[i]->mindex = i;    // then it is unique
             for (j = i + 1; j < n; j++) {
                 if (readtable[i]->weight >= LIMIT) {
-                    stat_file << "# LIMIT reached!" << endl;
+                    stat_file << "# LIMIT reached!" << std::endl;
                     break;
                 }
 
@@ -217,8 +216,9 @@ int main(int argc, char** argv)
 
   for(i=0; i<n; i++){
     hd = seq_distance_rr(readtable[i]->creads, readtable[readtable[i]->mindex], J);
-    cout<<" Read "<<i<<" is mapped to "<<readtable[i]->mindex<<" with distance = "<<hd[0]<<" and has
-  weight = "<<readtable[i]->weight<<endl;
+    std::std::cout<<" Read "<<i<<" is mapped to "<<readtable[i]->mindex<<" with distance =
+  "<<hd[0]<<" and has
+  weight = "<<readtable[i]->weight<<std::endl;
   }
   */
     // q = readmap.size();
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
         if (readtable[i]->weight > 0) q++;
     }
 
-    stat_file << "# q = " << q << endl;
+    stat_file << "# q = " << q << std::endl;
 
     readtable2 = (crnode**)calloc(q, sizeof(crnode*));
 
@@ -276,15 +276,15 @@ int main(int argc, char** argv)
     delete[] itrack;
     build_assignment(stat_file);
 
-    stat_file << "# Assignment built" << endl;
+    stat_file << "# Assignment built" << std::endl;
 
     stat_file << "# +++++++++++++++++++ BEFORE THE SAMPLING +++++++++++++++++++\n";
     //  print_stats(out_file, mxt, J);
-    out_file << setw(6) << "#iter";
-    out_file << setw(8) << "class";
-    out_file << setw(8) << "untouch";
-    out_file << setw(9) << "theta";
-    out_file << setw(9) << "gamma\n";
+    out_file << std::setw(6) << "#iter";
+    out_file << std::setw(8) << "class";
+    out_file << std::setw(8) << "untouch";
+    out_file << std::setw(9) << "theta";
+    out_file << std::setw(9) << "gamma\n";
 
     /*********************
     sampling procedure
@@ -316,7 +316,7 @@ int main(int argc, char** argv)
             if (iter != iter2 and iter2 > k + 100) {
                 if (iter2 < iter) {
                     HISTORY = iter2 - k - 1;
-                    cerr << "HISTORY just changed to " << HISTORY << endl;
+                    std::cerr << "HISTORY just changed to " << HISTORY << std::endl;
                 }
                 iter = iter2;
             }
@@ -394,25 +394,26 @@ int main(int argc, char** argv)
 // sample_ref();    // sampling the reference every step gives strange behaviour...
 
 #ifdef DEBUG
-        cerr << "dt=" << dt << "\ttheta=" << theta << "\tgamma=" << gam << endl;
+        std::cerr << "dt=" << dt << "\ttheta=" << theta << "\tgamma=" << gam << std::endl;
 #endif
         //    out_file("iteration\t%i\t%i\t%i\t%f\t%f\n", k+1, count_classes(mxt), tot_untouch,
         //    theta, gam);
-        out_file << setw(6) << k + 1;               // << "\t";
-        out_file << setw(8) << count_classes(mxt);  // << "\t";
-        out_file << setw(8) << tot_untouch;         // << "\t";
-        out_file << setw(10) << setprecision(6) << theta << setw(10) << gam << endl;
+        out_file << std::setw(6) << k + 1;               // << "\t";
+        out_file << std::setw(8) << count_classes(mxt);  // << "\t";
+        out_file << std::setw(8) << tot_untouch;         // << "\t";
+        out_file << std::setw(10) << std::setprecision(6) << theta << std::setw(10) << gam
+                 << std::endl;
     }
 
     if (remove(iterstr.c_str()) != 0)
-        stat_file << "# iter file was not created" << endl;
+        stat_file << "# iter file was not created" << std::endl;
     else
-        stat_file << "# iter file successfully deleted" << endl;
+        stat_file << "# iter file successfully deleted" << std::endl;
 
     if (remove(alphastr.c_str()) != 0)
-        stat_file << "# alpha file was not created" << endl;
+        stat_file << "# alpha file was not created" << std::endl;
     else
-        stat_file << "# alpha file successfully deleted" << endl;
+        stat_file << "# alpha file successfully deleted" << std::endl;
 
     (void)time(&t2);
 
@@ -420,7 +421,7 @@ int main(int argc, char** argv)
       sampling ends
   *********************/
 
-    stat_file << "# Survived sampling" << endl;
+    stat_file << "# Survived sampling" << std::endl;
     stat_file << "# sampling took " << difftime(t2, t1) << " seconds\n";
 
     //  write_assignment(k, new_proposed, mxt);
@@ -431,11 +432,11 @@ int main(int argc, char** argv)
     for (j = 0; j < J; j++)
         stat_file << i2dna_code[h[j]];
     stat_file << "\n\n\n";
-    stat_file << "\n#gamma = " << gam << endl;
-    stat_file << "\n#theta = " << theta << endl;
+    stat_file << "\n#gamma = " << gam << std::endl;
+    stat_file << "\n#theta = " << theta << std::endl;
     stat_file << "\n#final number of components = " << K1 << "\n";
     stat_file << "\n#made " << new_proposed << " new clusters\n";
-    stat_file << "\n#number of haplotypes in history = " << haplotypecount << endl;
+    stat_file << "\n#number of haplotypes in history = " << haplotypecount << std::endl;
 
     /******************
     write corrected
@@ -470,7 +471,7 @@ int main(int argc, char** argv)
 
     cleanup();
     (void)time(&t1);
-    stat_file << "# after sampling took " << difftime(t1, t2) << " seconds" << endl;
+    stat_file << "# after sampling took " << difftime(t1, t2) << " seconds" << std::endl;
     /*
   tn = mxt;
   cnode* tn2;
@@ -478,32 +479,33 @@ int main(int argc, char** argv)
 
   while(tn != NULL){
     tr = tn->rlist;
-    cout<<tn->ci<<endl;
+    std::cout<<tn->ci<<std::endl;
     while(tr != NULL){
       for(it=0; it < readtable2[tr->ri]->weight; it++)
-    cout<<readtable2[tr->ri]->mindices[it]<<"   ";
-      cout<<"   "<<tr->ri<<"  weight = "<<readtable2[tr->ri]->weight<<"   "<<tn->rd0[tr->ri]<<"  ";
+    std::cout<<readtable2[tr->ri]->mindices[it]<<"   ";
+      std::cout<<"   "<<tr->ri<<"  weight = "<<readtable2[tr->ri]->weight<<"   "<<tn->rd0[tr->ri]<<"
+  ";
       // if(tn->rd0[tr->ri] >= 0){
       tn2 = mxt;
       while(tn2 != NULL){
-    cout<<"distance to "<<tn2->ci<<" = "<<tn2->rd0[tr->ri]<<"   ";
+    std::cout<<"distance to "<<tn2->ci<<" = "<<tn2->rd0[tr->ri]<<"   ";
     tn2 = tn2->next;
       }
     // }
-      cout<<endl;
+      std::cout<<std::endl;
       difference += tn->rd0[tr->ri];
       similarity += tn->rd1[tr->ri];
       alt_diff += tn->rd0[tr->ri] * readtable2[tr->ri]->weight;
       alt_sim += tn->rd1[tr->ri] * readtable2[tr->ri]->weight;
       tr = tr->next;
     }
-    cout<<" total weight = "<<weight(tn)<<endl;
+    std::cout<<" total weight = "<<weight(tn)<<std::endl;
     tn = tn->next;
   }
 
-  cout<<"difference = "<<difference<<"\tsimilarity = "<<similarity<<endl;
-  cout<<"alt_diff = "<<alt_diff<<"\talt_sim = "<<alt_sim<<endl;
-  cout<<"\ttotbases = "<<totbases<<"\tq * J = "<<q * J<<endl;
+  std::cout<<"difference = "<<difference<<"\tsimilarity = "<<similarity<<std::endl;
+  std::cout<<"alt_diff = "<<alt_diff<<"\talt_sim = "<<alt_sim<<std::endl;
+  std::cout<<"\ttotbases = "<<totbases<<"\tq * J = "<<q * J<<std::endl;
   */
     delete[] temp;
     return 0;
@@ -539,7 +541,7 @@ void read_data(char* filename, std::ofstream& out_file)
     }
 
     if (n == 0) {
-        cout << "Error: No data found!\n";
+        std::cout << "Error: No data found!\n";
         exit(EXIT_FAILURE);
     }
 
@@ -730,7 +732,7 @@ void build_assignment(std::ofstream& out_file)
 
     // make the class list of K (or q?) initial components
 
-    out_file << "# Initial number of clusters, K = " << K << endl;
+    out_file << "# Initial number of clusters, K = " << K << std::endl;
 
     // create a linked list storing clusters/components/classes.
     // nodes are of type cnode's.
@@ -1068,7 +1070,7 @@ void sample_hap(cnode* cn)
                     if (log_pbase[i] < double_threshold_min) {
                         pbase[i] = 0.0;
                     } else {
-                        // cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<endl;
+                        // std::cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<std::endl;
                         pbase[i] = gsl_sf_exp(log_pbase[i]);
                     }
                 }
@@ -1127,7 +1129,7 @@ void sample_hap(cnode* cn)
 void check_size(const cnode* cst, unsigned int n)
 {
     unsigned int this_n = 0;
-    ofstream err_file("error_size.log");
+    std::ofstream err_file("error_size.log");
     while (cst != NULL) {
         this_n += cst->size;
         cst = cst->next;
@@ -1189,7 +1191,7 @@ std::pair<int, int> seq_distance_new(int* A, crnode* B, int seq_length)
    *             A[i] == B[i] == 'N', it counts as match. SECOND ENTRY OF
    *             RETURNED PAIR corresponds to the similarity.
    */
-    pair<int, int> dist;
+    std::pair<int, int> dist;
 
     for (int i = 0; i < seq_length / 10 + 1; ++i) {
         int X = *(A + i) ^ B->creads[i];
@@ -1220,7 +1222,7 @@ std::pair<int, int> seq_distance_rr(int* A, crnode* B, int seq_length)
    * Tends to be on the conservative side, as ambiguous matches (i.e., N-to-any,
    * but not N-to-N) are considered as mismatches.
    */
-    pair<int, int> dist;
+    std::pair<int, int> dist;
 
     for (int i = 0; i < seq_length / 10 + 1; ++i) {
         int X = *(A + i) ^ B->creads[i];
@@ -1256,7 +1258,7 @@ std::pair<int, int> seq_distance(unsigned short int* a, unsigned short int* b, i
    *             PAIR corresponds to the similarity.
    */
     int ns = 0;
-    pair<int, int> dist;
+    std::pair<int, int> dist;
 
     for (int i = 0; i < seq_length; ++i, ++a, ++b) {
         if (*a != B && *b != B) {
@@ -1276,7 +1278,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
   ******************************************/
     unsigned int dist, nodist, removed = 0, sz, ll;
     unsigned int tw;
-    pair<int, int> p;
+    std::pair<int, int> p;
 //  int local_ci;
 #ifdef DEBUG
     unsigned int j;
@@ -1301,7 +1303,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     printf("-----------> sampling class for %ith read <----------\n", i);
     printf("---------------------------------------------------\n");
     //  printf("------------ c_ptr = %p with size = %d\n", c_ptr[i], c_ptr[i]->size);
-    cout << "----------- mxt here is " << mxt << "---------------------" << endl;
+    std::cout << "----------- mxt here is " << mxt << "---------------------" << std::endl;
 //  printf("------------- NOW STATS----------\n");
 //  print_stats(out_file, mxt, J);
 #endif
@@ -1365,11 +1367,11 @@ ssret* sample_class(unsigned int i, unsigned int step)
     b2 = (1. - theta) / ((double)B - 1.);
 
     if (theta == 0.0) {
-        cerr << "# There is something wrong wih THETA! ( == 0.0 )" << endl;
+        std::cerr << "# There is something wrong wih THETA! ( == 0.0 )" << std::endl;
         exit(EXIT_FAILURE);
     }
     if (gam == 0.0) {
-        cerr << "# There is something wrong with GAMMA! ( == 0.0 )" << endl;
+        std::cerr << "# There is something wrong with GAMMA! ( == 0.0 )" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -1392,7 +1394,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
             if (sz == 0) {
                 // This component should have been removed previously, because only
                 // consists of read i
-                cerr << "# Size of component " << cn->ci << " is zero" << endl;
+                std::cerr << "# Size of component " << cn->ci << " is zero" << std::endl;
                 exit(EXIT_FAILURE);
             }
             cl_ptr[st] = cn;
@@ -1406,7 +1408,8 @@ ssret* sample_class(unsigned int i, unsigned int step)
             if (tw == 0) {
                 // This component should have been removed previously, because only
                 // consists of read i
-                cerr << " # Weighted size of component " << cn->ci << "cannot be zero" << endl;
+                std::cerr << " # Weighted size of component " << cn->ci << "cannot be zero"
+                          << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -1428,7 +1431,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
                 }
             }
         } else {
-            cerr << "------********* CN->SIZE = 0 **********----------\n";
+            std::cerr << "------********* CN->SIZE = 0 **********----------\n";
             P[st] = 0.0;  // all prob, which shouldn't change, set to 0
         }
 
@@ -1461,7 +1464,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     }
     cl_ptr[st] = NULL;
 
-    max_log_P = *max_element(log_P, log_P + st);  //! renormalization
+    max_log_P = *std::max_element(log_P, log_P + st);  //! renormalization
     //  min_log_P = *min_element(log_P, log_P+st); //! renormalization
 
     if (max_log_P >= 0)
@@ -1726,7 +1729,7 @@ void record_conf(cnode* tn, unsigned int step)
     char* ca;
     ca = (char*)calloc(J, sizeof(char*));
     i2dna_string(ca, tn->h, J);
-    string h = (string)ca;
+    std::string h = (std::string)ca;
     free(ca);
     freq_map::iterator freq_iter;
     ++support[h];  //! support is updated
@@ -1881,33 +1884,34 @@ struct invcomp
     bool operator()(int i1, int i2) const { return i1 > i2; }
 };
 
-void write_posterior_files(string instr)
+void write_posterior_files(std::string instr)
 {
     /** All the posterior information is written here
    */
-    //  cout << "HISTORY = " << HISTORY << endl;
+    //  std::cout << "HISTORY = " << HISTORY << std::endl;
     int insize = instr.rfind('.');
-    string corstr = instr.substr(0, insize).append("-cor.fas");
-    string supstr = instr.substr(0, insize).append("-support.fas");
-    string freqstr = instr.substr(0, insize).append("-freq.csv");
-    string str2;
+    std::string corstr = instr.substr(0, insize).append("-cor.fas");
+    std::string supstr = instr.substr(0, insize).append("-support.fas");
+    std::string freqstr = instr.substr(0, insize).append("-freq.csv");
+    std::string str2;
     int i = 0, rcount = 0, wcount = 0;
     float mean_freq, supp_fract;
     //  float supp_thresh = 0.5;
 
-    ofstream cor_file(corstr.c_str());
-    ofstream supp_file(supstr.c_str());
-    ofstream freq_file(freqstr.c_str());
+    std::ofstream cor_file(corstr.c_str());
+    std::ofstream supp_file(supstr.c_str());
+    std::ofstream freq_file(freqstr.c_str());
 
     sup_map::iterator si;
-    multimap<int, string, invcomp> rev_sup;  //! use a multimap to sort by value the support map
-    multimap<int, string, invcomp>::iterator ri;
+    std::multimap<int, std::string, invcomp>
+        rev_sup;  //! use a multimap to sort by value the support map
+    std::multimap<int, std::string, invcomp>::iterator ri;
 
     for (si = support.begin(); si != support.end(); ++si)
-        rev_sup.insert(pair<int, string>(si->second, si->first));
+        rev_sup.insert(std::pair<int, std::string>(si->second, si->first));
 
     // header of freq_file
-    freq_file << setfill('0');
+    freq_file << std::setfill('0');
     freq_file << "#haplotype\tsupport";
     for (unsigned int k = 0; k < HISTORY; k++)
         freq_file << "\treads";
@@ -1926,7 +1930,7 @@ void write_posterior_files(string instr)
                       << "posterior=" << supp_fract << " ave_reads=" << mean_freq << "\n";
             supp_file << ri->second << "\n";
 
-            freq_file << ">hap_" << setw(5) << i << "\t" << ri->first;
+            freq_file << ">hap_" << std::setw(5) << i << "\t" << ri->first;
             for (unsigned int k = 0; k < HISTORY; k++)
                 freq_file << "\t" << freq[ri->second][k];
             freq_file << "\n";
@@ -1937,7 +1941,7 @@ void write_posterior_files(string instr)
     for (unsigned int readi = 0; readi < q; readi++) {
         rev_sup.clear();  // reuse the multimap
         for (si = read2hap[readi].begin(); si != read2hap[readi].end(); ++si)
-            rev_sup.insert(pair<int, string>(si->second, si->first));
+            rev_sup.insert(std::pair<int, std::string>(si->second, si->first));
 
         ri = rev_sup.begin();
         for (wcount = 0; wcount < readtable2[readi]->weight; wcount++) {
@@ -1955,7 +1959,7 @@ double setfinalhaplotype(unsigned int i)
 {
     unsigned int j, k;
     int hap;  // last haplotype
-    pair<int, int> p;
+    std::pair<int, int> p;
     double quality;
 
     // sort lexicographically the haplotypes

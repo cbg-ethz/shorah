@@ -38,20 +38,18 @@
 #include <map>
 #include <vector>
 
-using namespace std;
-
 struct Read
 {
     unsigned int pos;
     unsigned int len;
     unsigned int end;
-    string seq;
+    std::string seq;
 };
 
 void help(void)
 {
-    cout << "Usage: contain -f basename\n";
-    cout << "Expects basename.read, outputs basename.rest\n";
+    std::cout << "Usage: contain -f basename\n";
+    std::cout << "Expects basename.read, outputs basename.rest\n";
     exit(1);
 }
 
@@ -64,24 +62,24 @@ void getReads(std::istream& infile, std::vector<Read>& ans)
      */
 
     Read r;
-    string t;
-    string tmp;
-    string throwaway;
+    std::string t;
+    std::string tmp;
+    std::string throwaway;
 
     // line of file is "pos seq"
-    while (!getline(infile, tmp, ' ').eof()) {
+    while (!std::getline(infile, tmp, ' ').eof()) {
         if (tmp[0] == '#') {
-            getline(infile, throwaway);
-            cerr << "Comment : " << tmp << " " << throwaway << endl;
+            std::getline(infile, throwaway);
+            std::cerr << "Comment : " << tmp << " " << throwaway << std::endl;
             continue;
         }
         r.pos = atoi(tmp.c_str());
         if ((r.pos < 0)) {
-            cerr << "Error: " << r.pos << " is an invalid start position\n";
+            std::cerr << "Error: " << r.pos << " is an invalid start position\n";
             exit(1);
         }
 
-        getline(infile, r.seq);
+        std::getline(infile, r.seq);
         r.len = r.seq.length();
         r.end = r.pos + r.len - 1;
 
@@ -98,7 +96,7 @@ int contain(std::vector<Read>& reads, int i, int j)
     int tmp, overlap;
 
     if ((reads[i].pos > reads[j].end) || (reads[j].pos > reads[i].end)) {
-        // cout << "no overlap\n";
+        // std::cout << "no overlap\n";
         return -1;
     }
 
@@ -110,11 +108,13 @@ int contain(std::vector<Read>& reads, int i, int j)
         i = tmp;
     }
     overlap = reads[i].pos + reads[i].len - reads[j].pos;
-    // cout << "read " << i << " at pos " << reads[i].pos << " length " << reads[i].len << "\n";
-    // cout << "read " << j << " at pos " << reads[j].pos << " length " << reads[j].len << "\n";
-    // cout << "overlap == " << overlap << "\n";
+    // std::cout << "read " << i << " at pos " << reads[i].pos << " length " << reads[i].len <<
+    // "\n";
+    // std::cout << "read " << j << " at pos " << reads[j].pos << " length " << reads[j].len <<
+    // "\n";
+    // std::cout << "overlap == " << overlap << "\n";
     if (overlap < reads[j].len) {
-        //	cout << "not enough overlap\n";
+        //	std::cout << "not enough overlap\n";
         return -1;
     }
     if (overlap > reads[j].len) {
@@ -122,10 +122,10 @@ int contain(std::vector<Read>& reads, int i, int j)
     }
     if (reads[i].seq.substr(reads[j].pos - reads[i].pos, overlap) ==
         reads[j].seq.substr(0, overlap)) {
-        //	cout << "Agree\n";
+        //	std::cout << "Agree\n";
         return j;
     } else {
-        //	cout << "Disagree\n";
+        //	std::cout << "Disagree\n";
         return -1;
     }
 }
@@ -133,10 +133,10 @@ int contain(std::vector<Read>& reads, int i, int j)
 int main(int argc, char** argv)
 {
     int c;
-    vector<Read> reads;
-    string basename;
-    string filename;
-    string outfilename;
+    std::vector<Read> reads;
+    std::string basename;
+    std::string filename;
+    std::string outfilename;
     int i, j;
 
     /* parse options
@@ -166,16 +166,16 @@ int main(int argc, char** argv)
     filename = basename + ".read";
     outfilename = basename + ".rest";
 
-    ifstream infile(filename.c_str());
-    ofstream outfile(outfilename.c_str());
-    map<int, int> delReads;
+    std::ifstream infile(filename.c_str());
+    std::ofstream outfile(outfilename.c_str());
+    std::map<int, int> delReads;
 
     // pull all reads into file
     getReads(infile, reads);
     int idx;
     int finalReads = 0;
     int numDeleted = 0;
-    cout << "readfile read" << endl;
+    std::cout << "readfile read" << std::endl;
     // do double loop over all reads.
     // contain returns the index to delete: either i, j, or -1
     // should be able to speed this up by skipping i or j if
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
         if (delReads[i]) {
             continue;
         }
-        if (i % 10 == 0) cout << "finished " << i << " reads, " << numDeleted << " deleted\n";
+        if (i % 10 == 0) std::cout << "finished " << i << " reads, " << numDeleted << " deleted\n";
 
         for (j = i + 1; j < reads.size(); ++j) {
             if (delReads[j]) continue;
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
             }
             /*
             if (idx != -1) {
-                cout << "del " << idx << " (from " << i << " " << j  << ")\n";
+                std::cout << "del " << idx << " (from " << i << " " << j  << ")\n";
             }
             */
         }
@@ -216,6 +216,6 @@ int main(int argc, char** argv)
             outfile << reads[i].pos << " " << reads[i].seq << "\n";
         }
     }
-    cout << "Started with " << reads.size() << " reads.\n";
-    cout << "Ended with " << finalReads << " reads.\n";
+    std::cout << "Started with " << reads.size() << " reads.\n";
+    std::cout << "Ended with " << finalReads << " reads.\n";
 }

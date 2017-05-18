@@ -31,15 +31,13 @@ adapted from samtools/calDep.c
  ******************************/
 
 #include <getopt.h>
-#include <stdio.h>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
 #include "faidx.h"
 #include "sam.h"
-
-using namespace std;
 
 // data for fetch_func and pileup_func
 typedef struct
@@ -155,7 +153,7 @@ int main(int argc, char* argv[])
     int ref = 0;         // index for retrieving reference chromosome
     char filename[100];  // filename for window files
 
-    ofstream covOut;  // stores window coverages
+    std::ofstream covOut;  // stores window coverages
 
     tmpstruct_t tmp;  // data for callback functions
 
@@ -210,8 +208,8 @@ int main(int argc, char* argv[])
     n = tmp.in->header->n_targets;                // number of chromosomes
     ln = tmp.in->header->target_len;              // chromosome lengths
     tmp.buf = bam_plbuf_init(pileup_func, &tmp);  // initiate pileup buffer
-    covOut.open("coverage.txt", ios::out);        // open file to store window coverage
-    tmp.reads.open("reads.fas", ios::out);
+    covOut.open("coverage.txt", std::ios::out);   // open file to store window coverage
+    tmp.reads.open("reads.fas", std::ios::out);
     if (argc == optind + 2) {          // region not specified
         for (int i = 0; i < n; i++) {  // take each chromosome in turn
             int lnth = (int)ln[i];     // chromosome length
@@ -237,7 +235,7 @@ int main(int argc, char* argv[])
                 tmp.rLen = rLen;
                 sprintf(filename, "w-%s-%d-%d.reads.fas",  // read window filename
                         tmp.in->header->target_name[i], tmp.beg + 1, tmp.end + 1);
-                tmp.outFile.open(filename, ios::out);
+                tmp.outFile.open(filename, std::ios::out);
                 bam_fetch(tmp.in->x.bam, idx, i, tmp.beg, tmp.end, &tmp,
                           fetch_func1);         // fetch and write reads
                 if (tmp.cov != 0) {             // ignore empty windows
@@ -288,7 +286,7 @@ int main(int argc, char* argv[])
             tmp.rLen = rLen;
             sprintf(filename, "w-%s-%d-%d.reads.fas",  // read window filename
                     tmp.in->header->target_name[ref], tmp.beg + 1, tmp.end + 1);
-            tmp.outFile.open(filename, ios::out);
+            tmp.outFile.open(filename, std::ios::out);
             bam_fetch(tmp.in->x.bam, idx, ref, tmp.beg, tmp.end, &tmp,
                       fetch_func1);  // fetch and write reads
             if (tmp.cov != 0) {      // ignore empty windows
