@@ -25,8 +25,9 @@
 /* variables and functions defined here
    for data structures see data_structures.hpp */
 
-using std::map;
-using std::string;
+#include <map>
+#include <string>
+#include <utility>
 
 const unsigned int B = 5;  // characters in the alphabet
 const int one_int = 153391689;
@@ -72,9 +73,9 @@ double g_noise = 0.0001;
 double* P;
 double* log_P;
 
-typedef pair<string, int> sipair;
+typedef std::pair<std::string, int> sipair;
 // bool comp_values (sipair e1, sipair e2);
-typedef map<string, int> sup_map;
+typedef std::map<std::string, int> sup_map;
 sup_map support; /*! How many times the haplotype/read is found in history*/
 
 typedef std::map<std::string, int*> freq_map;
@@ -175,6 +176,6 @@ double setfinalhaplotype(unsigned int i);
 
 void write_haplotype_frequencies(char* filename, unsigned int hcount);
 
-void write_posterior_files(string instr);
+void write_posterior_files(std::string instr);
 
 void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J);

@@ -29,8 +29,7 @@
     linked list definitions
     and functions
 */
-// using std::map;
-// using std::string;
+
 static char i2dna_code[] = "ACGT-N";
 
 unsigned int haplotypecount = 0;

@@ -33,13 +33,11 @@
 #include <map>
 #include <vector>
 
-using namespace std;
-
 struct Read
 {
     unsigned int pos;
     unsigned int len;
-    string seq;
+    std::string seq;
 };
 
 // needed to sort, by Osvaldo
@@ -65,7 +63,7 @@ int unmatchingReads = 0;
 
 static inline int readMatchesSomeHaplotype(Read& r, std::vector<std::string>& haplotypes)
 {
-    for (vector<string>::iterator g = haplotypes.begin(); g != haplotypes.end(); ++g)
+    for (std::vector<std::string>::iterator g = haplotypes.begin(); g != haplotypes.end(); ++g)
         if (r.seq == (*g).substr(r.pos, r.len)) return 1;
     return 0;
 }
@@ -78,26 +76,26 @@ void getReads(std::istream& infile, std::vector<Read>& ans, std::vector<std::str
      */
 
     Read r;
-    string t;
-    string tmp;
-    string throwaway;
+    std::string t;
+    std::string tmp;
+    std::string throwaway;
 
     // line of file is "pos seq"
-    while (!getline(infile, tmp, ' ').eof()) {
+    while (!std::getline(infile, tmp, ' ').eof()) {
         if (tmp[0] == '#') {
-            getline(infile, throwaway);
-            cerr << "Comment : " << tmp << " " << throwaway << endl;
+            std::getline(infile, throwaway);
+            std::cerr << "Comment : " << tmp << " " << throwaway << std::endl;
             continue;
         }
         r.pos = atoi(tmp.c_str());
         if ((r.pos < 0)) {
-            cerr << "Error: " << r.pos << " is an invalid start position\n";
+            std::cerr << "Error: " << r.pos << " is an invalid start position\n";
             exit(1);
         }
 
-        getline(infile, r.seq);
+        std::getline(infile, r.seq);
         r.len = r.seq.length();
-        // cout << r.pos << " " << r.seq << endl;
+        // std::cout << r.pos << " " << r.seq << std::endl;
 
         if (readMatchesSomeHaplotype(r, haplotypes)) {
             ans.push_back(r);
@@ -110,22 +108,22 @@ void getReads(std::istream& infile, std::vector<Read>& ans, std::vector<std::str
 void getHaplotypes(std::istream& in, std::vector<std::string>& genotypesFinal)
 {
     /* read in the list of candidate haplotypes */
-    string tmp;
+    std::string tmp;
     genotypesFinal.clear();
-    vector<string> genotypes;
+    std::vector<std::string> genotypes;
     // int i = 0;
 
     // line of file is "pos seq"
-    while (!getline(in, tmp).eof()) {
+    while (!std::getline(in, tmp).eof()) {
         if (tmp[0] == '#') {
-            cerr << "Comment : " << tmp << endl;
+            std::cerr << "Comment : " << tmp << std::endl;
             continue;
         }
         genotypes.push_back(tmp);
-        // cout << i++ << " =" << tmp << ".\n";
+        // std::cout << i++ << " =" << tmp << ".\n";
     }
     if (genotypes.size() == 0) {
-        cout << "Error, no haplotypes\n";
+        std::cout << "Error, no haplotypes\n";
         exit(1);
     }
     // now genotypes looks like
@@ -135,16 +133,16 @@ void getHaplotypes(std::istream& in, std::vector<std::string>& genotypesFinal)
     // So we build a consensus haplotype and fill in the .'s with the consensus
     int seqLen = genotypes[0].size();
     char consChar = ' ';
-    string cons;
+    std::string cons;
     for (int pos = 0; pos < seqLen; ++pos) {
-        map<char, int> col;
-        for (vector<string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
+        std::map<char, int> col;
+        for (std::vector<std::string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
             col[(*g)[pos]]++;
         }
         int max = -1;
         // don't want to fill in with a '.'
         col['.'] = -100;
-        for (map<char, int>::iterator base = col.begin(); base != col.end(); ++base) {
+        for (std::map<char, int>::iterator base = col.begin(); base != col.end(); ++base) {
             if (base->second > max) {
                 consChar = base->first;
                 max = base->second;
@@ -152,43 +150,44 @@ void getHaplotypes(std::istream& in, std::vector<std::string>& genotypesFinal)
         }
         cons = cons + consChar;
     }
-    cout << "consensus haplotype\n" << cons << endl;
+    std::cout << "consensus haplotype\n" << cons << std::endl;
 
-    vector<int> correctionCounts(genotypes.size(), 0);
+    std::vector<int> correctionCounts(genotypes.size(), 0);
     int tmpCount;
-    for (vector<string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
+    for (std::vector<std::string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
         tmpCount = 0;
         for (int pos = 0; pos < seqLen; ++pos) {
             if ((*g)[pos] == '.') {
                 tmpCount++;
                 (*g)[pos] = cons[pos];
 #ifdef DEBUG
-                cout << "correcting . to " << cons[pos] << " in sequence " << *g << endl;
+                std::cout << "correcting . to " << cons[pos] << " in sequence " << *g << std::endl;
 #endif
             }
         }
         correctionCounts.push_back(tmpCount);
     }
 
-    // for(vector<int>::iterator a = correctionCounts.begin(); a != correctionCounts.end(); ++a) {
-    //	cout << *a << " ";
+    // for(std::vector<int>::iterator a = correctionCounts.begin(); a != correctionCounts.end();
+    // ++a) {
+    //	std::cout << *a << " ";
     //}
-    // cout << endl;
+    // std::cout << std::endl;
 
     // but the genotypes might not be unique right now
-    map<string, int> uniq;
-    for (vector<string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
+    std::map<std::string, int> uniq;
+    for (std::vector<std::string>::iterator g = genotypes.begin(); g != genotypes.end(); ++g) {
         uniq[*g]++;
     }
-    for (map<string, int>::iterator x = uniq.begin(); x != uniq.end(); ++x) {
+    for (std::map<std::string, int>::iterator x = uniq.begin(); x != uniq.end(); ++x) {
 #ifdef DEBUG
-        cout << "Haplotype was repeated " << x->second << " times\n";
+        std::cout << "Haplotype was repeated " << x->second << " times\n";
 #endif
         genotypesFinal.push_back(x->first);
     }
 }
 
-inline int match(string geno, Read r) { return (r.seq == geno.substr(r.pos, r.len)); }
+inline int match(std::string geno, Read r) { return (r.seq == geno.substr(r.pos, r.len)); }
 
 inline int readsEqual(Read& r, Read& s)
 {
@@ -208,9 +207,9 @@ std::vector<int> countReads(std::vector<Read>& origReads, std::vector<Read>& rea
     // reads = keys(hash)
     //
     int tmp;
-    for (vector<Read>::iterator r = origReads.begin(); r != origReads.end(); ++r) {
+    for (std::vector<Read>::iterator r = origReads.begin(); r != origReads.end(); ++r) {
         tmp = 1;
-        for (vector<Read>::iterator s = origReads.begin(); s != r; ++s) {
+        for (std::vector<Read>::iterator s = origReads.begin(); s != r; ++s) {
             if (readsEqual(*r, *s)) {
                 tmp = 0;
             }
@@ -220,24 +219,24 @@ std::vector<int> countReads(std::vector<Read>& origReads, std::vector<Read>& rea
         }
     }
 
-    vector<int> u(reads.size(), 0);
+    std::vector<int> u(reads.size(), 0);
 
-    // for(vector<Read>::iterator r = reads.begin(); r != reads.end(); ++r) {
+    // for(std::vector<Read>::iterator r = reads.begin(); r != reads.end(); ++r) {
     for (unsigned int i = 0; i < reads.size(); ++i) {
-        for (vector<Read>::iterator s = origReads.begin(); s != origReads.end(); ++s) {
+        for (std::vector<Read>::iterator s = origReads.begin(); s != origReads.end(); ++s) {
             if (readsEqual(reads.at(i), *s)) {
                 u[i]++;
             }
         }
     }
 #ifdef DEBUG
-    cout << "Started with " << origReads.size() << " reads.\n";
-    cout << reads.size() << " are unique\n";
-    cout << "Counts:\n";
+    std::cout << "Started with " << origReads.size() << " reads.\n";
+    std::cout << reads.size() << " are unique\n";
+    std::cout << "Counts:\n";
     for (unsigned int i = 0; i < u.size(); ++i) {
-        cout << u[i] << " ";
+        std::cout << u[i] << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 #endif
     return u;
 }
@@ -250,44 +249,46 @@ void Estep(std::vector<double> const& p, std::vector<std::vector<double> >& U,
     double ProbY;
 
 #ifdef DEBUG
-    cout << "Estep input: " << endl;
+    std::cout << "Estep input: " << std::endl;
     for (i = 0; i < N; ++i) {
-        cout << p[i] << " ";
+        std::cout << p[i] << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 #endif
 
     for (i = 0; i < M; ++i) {
         ProbY = 0;
         for (j = 0; j < N; ++j) {
             ProbY += Z[i][j] * p[j];
-            //		cout << "ProbY = " << ProbY << endl;
+            //		std::cout << "ProbY = " << ProbY << std::endl;
         }
         for (j = 0; j < N; ++j) {
-            //		cout << "U[i][j] = " << u[i] << " " << Z[i][j] << " " << p[j] << " " << ProbY <<
-            // endl;
+            //		std::cout << "U[i][j] = " << u[i] << " " << Z[i][j] << " " << p[j] << " " <<
+            // ProbY
+            //<<
+            // std::endl;
             U[i][j] = u[i] * ((Z[i][j] * p[j]) / ProbY);
         }
     }
-    //	cout << "Estep output: " << endl;
+    //	std::cout << "Estep output: " << std::endl;
     //	for (i = 0; i < M; ++i) {
     //		for (j = 0; j < N; ++j) {
-    //			cout << U[i][j] << " ";
+    //			std::cout << U[i][j] << " ";
     //		}
-    //		cout << endl;
+    //		std::cout << std::endl;
     //	}
 }
 
 void Mstep(std::vector<double>& p, std::vector<std::vector<double> > const& U)
 {
-    vector<double> v(N, 0);
+    std::vector<double> v(N, 0);
     double m = 0;
     int i, j;
 
     for (j = 0; j < N; ++j) {
-        // cout << "." <<  v[j] << ".\n";
+        // std::cout << "." <<  v[j] << ".\n";
         for (i = 0; i < M; ++i) {
-            //	cout << U[i][j] << " \n";
+            //	std::cout << U[i][j] << " \n";
             v[j] += U[i][j];
         }
         m += v[j];
@@ -299,9 +300,9 @@ void Mstep(std::vector<double>& p, std::vector<std::vector<double> > const& U)
 
 #ifdef DEBUG
     for (j = 0; j < N; ++j) {
-        cout << p[j] << " ";
+        std::cout << p[j] << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 #endif
 }
 
@@ -326,7 +327,7 @@ double logLike(std::vector<double>& p, std::vector<std::vector<double> > const& 
 
 void round(std::vector<double>& p)
 {
-    for (vector<double>::iterator i = p.begin(); i != p.end(); ++i) {
+    for (std::vector<double>::iterator i = p.begin(); i != p.end(); ++i) {
         if ((*i) < KILLP) *i = 0;
     }
 }
@@ -336,8 +337,8 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
 {
     double sum = 0;
     double newEll = 0;
-    vector<double> p(N, 0);
-    vector<vector<double> > U(M, vector<double>(N, 0));
+    std::vector<double> p(N, 0);
+    std::vector<std::vector<double> > U(M, std::vector<double>(N, 0));
     double ell = 0;
     int iter = 0;
     int j;
@@ -352,12 +353,12 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
 
 #ifdef DEBUG
     for (j = 0; j < N; ++j) {
-        cout << p[j] << " ";
+        std::cout << p[j] << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 #endif
 
-    while (((iter <= 2) || (abs(ell - newEll) > ACCURACY)) && (iter < ITERMAX)) {
+    while (((iter <= 2) || (std::abs(ell - newEll) > ACCURACY)) && (iter < ITERMAX)) {
         if (iter > 0) {
             round(newP);
             p = newP;
@@ -376,10 +377,10 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
 
             for (j = 0; j < N; ++j) {
                 if (p[j] > 0.05) {
-                    cout << j << ":" << p[j] << " ";
+                    std::cout << j << ":" << p[j] << " ";
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
 #else
             printf("%4d\t%f\n", iter, newEll);
 #endif
@@ -393,20 +394,20 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
 }
 void help(void)
 {
-    cout << "Usage: freqEst -f basename [-p precision -i maxiter -r runs -h -k kill -?]\n";
-    cout << "Expects basename.read and basename.geno\n";
-    cout << "Outputs to basename.popl\n";
+    std::cout << "Usage: freqEst -f basename [-p precision -i maxiter -r runs -h -k kill -?]\n";
+    std::cout << "Expects basename.read and basename.geno\n";
+    std::cout << "Outputs to basename.popl\n";
     exit(1);
 }
 
 int main(int argc, char** argv)
 {
     int c;
-    vector<string> haplotypes;
-    vector<Read> origReads, reads;
-    string basename;
-    string filename;
-    string genotypeFilename, outfilename;
+    std::vector<std::string> haplotypes;
+    std::vector<Read> origReads, reads;
+    std::string basename;
+    std::string filename;
+    std::string genotypeFilename, outfilename;
     int i, j;
 
     /* parse options
@@ -454,13 +455,13 @@ int main(int argc, char** argv)
 
     srand(SEED);
 
-    ifstream infile(filename.c_str());
-    ifstream ginfile(genotypeFilename.c_str());
+    std::ifstream infile(filename.c_str());
+    std::ifstream ginfile(genotypeFilename.c_str());
     if (ginfile.fail() || infile.fail()) {
-        cout << "ERROR -- can't read " << basename << ".geno or .read\n";
+        std::cout << "ERROR -- can't read " << basename << ".geno or .read\n";
         exit(1);
     }
-    ofstream outfile(outfilename.c_str());
+    std::ofstream outfile(outfilename.c_str());
     // outfile.open (outfilename.c_str());
 
     getHaplotypes(ginfile, haplotypes);
@@ -468,20 +469,20 @@ int main(int argc, char** argv)
     getReads(infile, origReads, haplotypes);
 
     // uniq reads
-    vector<int> u;
+    std::vector<int> u;
     u = countReads(origReads, reads);
 
     M = reads.size();
     N = haplotypes.size();
 
-    cout << N << " haplotypes\n" << M << " reads\n";
-    cout << "Threw out " << unmatchingReads << " unexplained reads\n";
+    std::cout << N << " haplotypes\n" << M << " reads\n";
+    std::cout << "Threw out " << unmatchingReads << " unexplained reads\n";
 
     // count how many reads a haplotype is compat with
-    vector<int> K(N, 0);
+    std::vector<int> K(N, 0);
 
     // the M x N matrix of 0/1 incidences
-    vector<vector<int> > A(M, vector<int>(N, 0));
+    std::vector<std::vector<int> > A(M, std::vector<int>(N, 0));
 
     for (i = 0; i < M; ++i) {
         for (j = 0; j < N; ++j) {
@@ -493,7 +494,7 @@ int main(int argc, char** argv)
     }
 
     // my @Z;  # Z[i][j] == Prob(Y = y_i | X = x_j)
-    vector<vector<double> > Z(M, vector<double>(N, 0));
+    std::vector<std::vector<double> > Z(M, std::vector<double>(N, 0));
     for (i = 0; i < M; ++i) {
         for (j = 0; j < N; ++j) {
             if (A[i][j] == 1) {
@@ -502,18 +503,18 @@ int main(int argc, char** argv)
                 } else {
                     Z[i][j] = 1.0 / K[j];
                 }
-                //				cout << "Z[i][j] = "<< Z[i][j] << endl;
+                //				std::cout << "Z[i][j] = "<< Z[i][j] << std::endl;
             }
         }
     }
 
-    vector<double> prob(N, 0);
-    vector<double> bestProb(N, 0);
+    std::vector<double> prob(N, 0);
+    std::vector<double> bestProb(N, 0);
     double logL;
     double bestL = -1e100;
 
     for (int run = 0; run < RUNS; ++run) {
-        cout << "run " << run << endl;
+        std::cout << "run " << run << std::endl;
         logL = EM(prob, Z, u);
         if (logL > bestL) {
             bestProb = prob;
@@ -532,14 +533,15 @@ int main(int argc, char** argv)
         freq_hap[i]->freq = bestProb[i];
     }
 
-    sort(freq_hap, freq_hap + N, comp_func);
+    std::sort(freq_hap, freq_hap + N, comp_func);
 
     for (int i = 0; i < N; ++i) {
         if (freq_hap[i]->freq > 0) {
-            // outfile << ">HAP" << i << "_" << bestProb[i] <<  "\n" << haplotypes[i] << endl;
-            outfile << ">HAP" << i << "_" << freq_hap[i]->freq << "\n" << *freq_hap[i]->hap << endl;
-            cout << i << "\t" << freq_hap[i]->freq << "\t" << *freq_hap[i]->hap << endl;
-            // cout << i << " " << freq_hap[i]->freq << endl;
+            // outfile << ">HAP" << i << "_" << bestProb[i] <<  "\n" << haplotypes[i] << std::endl;
+            outfile << ">HAP" << i << "_" << freq_hap[i]->freq << "\n"
+                    << *freq_hap[i]->hap << std::endl;
+            std::cout << i << "\t" << freq_hap[i]->freq << "\t" << *freq_hap[i]->hap << std::endl;
+            // std::cout << i << " " << freq_hap[i]->freq << std::endl;
         }
     }
     // The output is now sorted
