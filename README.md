@@ -128,3 +128,10 @@ The whole global reconstruction consists of the following steps:
 
 These can be run one after the other, or one can invoke `shorah.py`, that runs
 the whole process from bam file to frequency estimation and SNV calling.
+
+## Coding style
+All changes to the C++ code in `src/shorah` should always be formatted according to the included `.clang-format` style by doing
+
+	clang-format -style=file -i src/shorah/*.[ch]pp
+
+in the root of the repository.
