@@ -212,8 +212,7 @@ def correct_reads(chr_c, wstart, wend):
             handle = gzip.open(cor_file)
         else:
             cor_file = 'w-%s-%s-%s.reads-cor.fas' % (chr_c, wstart, wend)
-            handle = open(cor_file, 'rb' if sys.version_info <
-                          (3, 0) else 'rt')
+            handle = open(cor_file, 'r')
 
         for seq_record in SeqIO.parse(handle, 'fasta'):
             assert '\0' not in str(seq_record.seq), 'binary file!!!'
