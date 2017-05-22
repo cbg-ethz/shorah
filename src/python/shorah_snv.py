@@ -108,9 +108,10 @@ def parseWindow(line, ref1):
 
     try:
         if filename.endswith('.gz'):
-            window = gzip.open(filename)
+            window = gzip.open(
+                filename, 'rb' if sys.version_info < (3, 0) else 'rt')
         else:
-            window = open(filename)
+            window = open(filename, 'r')
     except IOError:
         snvlog.error('File not found')
         return snp
@@ -403,7 +404,7 @@ def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
     p_vals_m.sort()
     q_vals = BH(p_vals_m, len(p_vals_m))
     csv_file = '.'.join(snpFile.split('.')[:-1]) + '_final.csv'
-    with open(csv_file, 'wb') as cf:
+    with open(csv_file, 'w') as cf:
         writer = csv.writer(cf)
         if increment == 1:
             header_row = ['Chromosome', 'Pos', 'Ref', 'Var', 'Freq', 'Post',
