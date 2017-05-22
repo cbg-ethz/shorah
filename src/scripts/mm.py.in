@@ -9,7 +9,8 @@ import shorah_mm
 ################
 
 args = shorah_mm.parse_com_line()
-shorah_mm.main(args.filename[0], args.MAXGENO, args.MAXITER, args.MINOVERLAP, args.ONEPATH, args.OUTPUTGRAPH)
+shorah_mm.main(args.filename[0], args.MAXGENO, args.MAXITER,
+               args.MINOVERLAP, args.ONEPATH, args.OUTPUTGRAPH)
 #    import hotshot
 #    prof = hotshot.Profile("hotshot_edi_stats")
 #    prof.runcall(main)

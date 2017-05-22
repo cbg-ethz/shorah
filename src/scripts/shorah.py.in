@@ -73,7 +73,7 @@ if __name__ == "__main__":
     import shorah_mm
 
     # parse command line
-    parser = argparse.ArgumentParser(description="ShoRAH: Short Read Assembly into Haplotypes", 
+    parser = argparse.ArgumentParser(description="ShoRAH: Short Read Assembly into Haplotypes",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # First define all option groups
@@ -81,15 +81,16 @@ if __name__ == "__main__":
     group2 = parser.add_argument_group('Run options',
                                        "Parameters that can (maybe should) be changed \
                                        according to the needs")
-    group3 = parser.add_argument_group('More options', 'Do you really want to change this?')
+    group3 = parser.add_argument_group(
+        'More options', 'Do you really want to change this?')
 
-    group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str, 
+    group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str,
                         dest="b", help="sorted bam format alignment file")
 
-    group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str, 
+    group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str,
                         dest="f", help="reference genome in fasta format")
 
-    group2.add_argument("-a", "--alpha", metavar='FLOAT', required=False, type=float, 
+    group2.add_argument("-a", "--alpha", metavar='FLOAT', required=False, type=float,
                         dest="a", default=0.1, help="alpha in dpm sampling")
 
     group2.add_argument("-w", "--windowsize", metavar='INT', required=False, type=int,
@@ -99,7 +100,7 @@ if __name__ == "__main__":
                         dest="r", default='', help="region in format 'chr:start-stop', e.g.\
                                                    'chrm:1000-3000'")
 
-    group2.add_argument("-S", "--seed", metavar='INT', required=False, type=int, 
+    group2.add_argument("-S", "--seed", metavar='INT', required=False, type=int,
                         dest="S", default=None, help="set seed for reproducible results")
 
     group3.add_argument("-s", "--winshifts", metavar='INT', required=False, type=int,
@@ -115,7 +116,7 @@ if __name__ == "__main__":
                         dest="k", help="keep intermediate files")
 
     args = parser.parse_args()
-    
+
     # set logging level
     sholog.setLevel(logging.DEBUG)
     # This handler writes everything to a file.
@@ -133,9 +134,9 @@ if __name__ == "__main__":
     # 1. run main from shorah_dec; it will also launch snv.py
     if not os.path.exists('%s.cor.fas' % in_stem):
         sholog.debug('running dec.py')
-        shorah_dec.main(in_bam=args.b, in_fasta=args.f, win_length=args.w, 
-                win_shifts=args.s, max_coverage=args.x, region=args.r,
-                alpha=args.a, keep_files=args.k, seed=args.S) 
+        shorah_dec.main(in_bam=args.b, in_fasta=args.f, win_length=args.w,
+                        win_shifts=args.s, max_coverage=args.x, region=args.r,
+                        alpha=args.a, keep_files=args.k, seed=args.S)
 
     # 2. copy file and run fas2read to convert from fasta
     shutil.move('%s.cor.fas' % in_stem, '%s_cor.fas' % in_stem)

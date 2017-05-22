@@ -47,7 +47,7 @@ declog = logging.getLogger(__name__)
 # parameters not controlled by command line options
 fasta_length = 80   # controls line length in fasta files
 win_min_ext = 0.85  # if read covers at least win_min_ext fraction of
-                    # the window, fill it with Ns
+# the window, fill it with Ns
 hist_fraction = 0.20  # fraction that goes into the history
 min_quality = 0.9  # quality under which discard the correction
 min_x_thresh = 10  # threshold of X in the correction
@@ -57,10 +57,10 @@ init_K = 20  # initial number of clusters in diri_sampler
 # a common user should not edit below this line #
 #################################################
 
-# Dictionary storing by read ID (key) all subsequences which are part of 
+# Dictionary storing by read ID (key) all subsequences which are part of
 # different windows
 correction = {}
-# Dictionary storing by read ID (key) the posterior for each of window 
+# Dictionary storing by read ID (key) the posterior for each of window
 quality = {}
 
 count = {}
@@ -107,10 +107,14 @@ def parse_aligned_reads(reads_file):
         if this_m == '':
             declog.warning('parsing empty read: %s' % h)
         out_reads[name] = [None, None, None, None, []]
-        out_reads[name][0] = int(start)   # start of the region of interest (0-based indexing)
-        out_reads[name][1] = int(stop)    # end of the region of interest (0-based inde
-        out_reads[name][2] = int(mstart)  # start index of the aligned read w.r.t reference (1-based indexing)
-        out_reads[name][3] = int(mstop)   # end index of the aligned read w.r.t reference (1-based indexing)
+        # start of the region of interest (0-based indexing)
+        out_reads[name][0] = int(start)
+        # end of the region of interest (0-based inde
+        out_reads[name][1] = int(stop)
+        # start index of the aligned read w.r.t reference (1-based indexing)
+        out_reads[name][2] = int(mstart)
+        # end index of the aligned read w.r.t reference (1-based indexing)
+        out_reads[name][3] = int(mstop)
         out_reads[name][4] = this_m
 
     return out_reads
@@ -170,7 +174,7 @@ def run_dpm(run_setting):
 
     try:
         os.remove('./corrected.tmp')
-        #os.remove('./assignment.tmp')
+        # os.remove('./assignment.tmp')
     except OSError:
         pass
     declog.debug(my_prog + my_arg)
@@ -208,13 +212,14 @@ def correct_reads(chr_c, wstart, wend):
             handle = gzip.open(cor_file)
         else:
             cor_file = 'w-%s-%s-%s.reads-cor.fas' % (chr_c, wstart, wend)
-            handle = open(cor_file, 'rb')
+            handle = open(cor_file, 'rb' if sys.version_info <
+                          (3, 0) else 'rt')
 
         for seq_record in SeqIO.parse(handle, 'fasta'):
-            assert '\0' not in seq_record.seq.tostring(), 'binary file!!!'
+            assert '\0' not in str(seq_record.seq), 'binary file!!!'
             read_id = seq_record.id
             try:
-                correction[read_id][wstart] = list(seq_record.seq.tostring())
+                correction[read_id][wstart] = list(str(seq_record.seq))
                 quality[read_id][wstart] = \
                     float(seq_record.description.split('|')[1].split('=')[1])
                 assert quality[read_id][wstart] <= 1.0, \
@@ -222,7 +227,7 @@ def correct_reads(chr_c, wstart, wend):
             except KeyError:
                 correction[read_id] = {}
                 quality[read_id] = {}
-                correction[read_id][wstart] = list(seq_record.seq.tostring())
+                correction[read_id][wstart] = list(str(seq_record.seq))
                 quality[read_id][wstart] = \
                     float(seq_record.description.split('|')[1].split('=')[1])
                 assert quality[read_id][wstart] <= 1.0, \
@@ -304,7 +309,7 @@ def win_to_run(alpha_w, seed):
 
 
 def merge_corrected_reads(aligned_read):
-    
+
     ID = aligned_read[0]
     seq = aligned_read[1][4]
     corrected_read = correction.get(ID)
@@ -315,7 +320,7 @@ def merge_corrected_reads(aligned_read):
         rlen = len(seq)
         # rstart: start index of the original read with respect to reference
         rstart = aligned_read[1][2]
-        # posterior: fraction of times a given read was assigned to current 
+        # posterior: fraction of times a given read was assigned to current
         #            cluster among those iterations that were recorded
         posterior = quality.get(ID)
 
@@ -328,13 +333,14 @@ def merge_corrected_reads(aligned_read):
         for rpos in range(rlen):
             tp = rstart + rpos - kcr
             mask = np.logical_and(
-                    np.logical_and(np.greater_equal(tp, 0), np.less(tp, vcr_len)),
-                    np.greater(list(posterior.values()), min_quality)
-                    )
+                np.logical_and(np.greater_equal(tp, 0), np.less(tp, vcr_len)),
+                np.greater(list(posterior.values()), min_quality)
+            )
             if np.sum(mask > 0):
                 # data structure needs this
                 idx = np.argwhere(mask)
-                this = [vcr[k][tp[k]] for k in idx[0]] # this is unlikely to be optimal
+                this = [vcr[k][tp[k]]
+                        for k in idx[0]]  # this is unlikely to be optimal
                 if len(this) > 1:
                     corrected_base = base_break(this)
                 else:
@@ -388,7 +394,7 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     max_c = max_coverage // win_length
     keep_all_files = keep_files
 
-    #run b2w
+    # run b2w
     retcode = windows((in_bam, in_fasta, win_length, incr,
                        win_min_ext * win_length, max_c, region))
     if retcode is not 0:
@@ -580,7 +586,7 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     ph.close()
 
     declog.info('running snv.py')
-    shorah_snv.main(reference=in_fasta, bam_file=in_bam, 
+    shorah_snv.main(reference=in_fasta, bam_file=in_bam,
                     increment=win_length // win_shifts, max_coverage=max_coverage)
 
     # tidy snvs
