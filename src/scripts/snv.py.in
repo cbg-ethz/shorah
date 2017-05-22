@@ -4,31 +4,33 @@ import shorah_snv
 import argparse
 
 # parse command line
-parser = argparse.ArgumentParser(description="Single nucleotide variant calling", 
+parser = argparse.ArgumentParser(description="Single nucleotide variant calling",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-opts = shorah_snv.main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
+# set the defaults (see http://bit.ly/2hCTQl)
+opts = shorah_snv.main.__defaults__
 
 requiredNamed = parser.add_argument_group('required named arguments')
 
 requiredNamed.add_argument("-r", "--ref", metavar='REF', type=str, required=True,
                            dest="reference", help="reference file")
 
-requiredNamed.add_argument("-b", "--bam", metavar='BAM', type=str, required=True, 
+requiredNamed.add_argument("-b", "--bam", metavar='BAM', type=str, required=True,
                            dest="bam_file", help="sorted bam format alignment file")
 
-parser.add_argument("-s", "--sigma", metavar='FLOAT', default=opts[0], type=float, 
+parser.add_argument("-s", "--sigma", metavar='FLOAT', default=opts[0], type=float,
                     required=False, dest="sigma", help="value of sigma to use when calling\
                                                         SNVs")
 
 parser.add_argument("-i", "--increment", metavar='INT', default=opts[1], type=int,
-                    required=False, dest="increment", 
+                    required=False, dest="increment",
                     help="value of increment to use when calling \
                           SNVs (1 used by amplian.py)")
 
 parser.add_argument("-x", "--maxcov", metavar='INT', default=opts[2], type=int,
-                     dest="max_coverage", help="Maximum coverage allowed")
+                    dest="max_coverage", help="Maximum coverage allowed")
 
 args = parser.parse_args()
 
-shorah_snv.main(args.reference, args.bam_file, args.sigma, args.increment, args.max_coverage)
+shorah_snv.main(args.reference, args.bam_file, args.sigma,
+                args.increment, args.max_coverage)

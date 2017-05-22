@@ -156,7 +156,7 @@ def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
     X = list(range(ent_start, ent_stop))
 
     fig, ax1 = plt.subplots()
-    #ax1.plot(X, pos_ent, '-', color='#E69F00', alpha=0.8)
+    # ax1.plot(X, pos_ent, '-', color='#E69F00', alpha=0.8)
     ax1.vlines(X, 0, pos_ent[ent_start:ent_stop], color='#E69F00', alpha=0.8)
     ax1.set_xlabel('position on reference')
     # Make the y-axis label and tick labels match the line color.
@@ -176,6 +176,7 @@ def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
 
     plt.title('chosen entropy window is %d-%d' % (high_start, high_stop))
     plt.savefig('entropy.pdf')
+
 
 def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     '''Parse reads to have their length distribution and compute the
@@ -358,18 +359,19 @@ def main(in_bam, in_fasta, min_overlap=0.95, max_coverage=50000,
     # run snv.py to parse single nucleotide variants
     shorah_snv.main(reference=in_fasta, bam_file=in_bam, sigma=s, increment=1)
 
+
 if __name__ == "__main__":
 
     import argparse
     # parse command line
-    parser = argparse.ArgumentParser(description="Local haplotype reconstruction - amplicon mode", 
+    parser = argparse.ArgumentParser(description="Local haplotype reconstruction - amplicon mode",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    opts = main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
+    opts = main.__defaults__  # set the defaults (see http://bit.ly/2hCTQl)
 
     # First define all option groups
     group1 = parser.add_argument_group("Input files", "Required input")
 
-    group2 = parser.add_argument_group("Type of run", 
+    group2 = parser.add_argument_group("Type of run",
                                        "You can specify a region, or look for the highest diversity\
                                         region")
     group3 = parser.add_argument_group("Run options", "Fine tuning")
@@ -379,25 +381,25 @@ if __name__ == "__main__":
     group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str,
                         dest="in_bam", help="file with aligned reads in .bam format")
 
-    group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str, 
+    group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str,
                         dest="in_fasta", help="reference genome in fasta format")
 
     group2.add_argument("-r", "--region", metavar='chrm:start-stop', default=opts[4], type=str,
                         dest="region", help="region in format 'chrm:start-stop' e.g.\
                         'ch3:1000-1300'")
 
-    group2.add_argument("-d", "--diversity", action="store_true", default=opts[5], 
+    group2.add_argument("-d", "--diversity", action="store_true", default=opts[5],
                         dest="diversity", help="if set, automatically detects the highest entropy\
                         region and runs there")
 
-    group3.add_argument("-m", "--min_overlap", metavar='FLOAT', default=opts[0], type=float, 
+    group3.add_argument("-m", "--min_overlap", metavar='FLOAT', default=opts[0], type=float,
                         dest="min_overlap", help="fraction of read overlap to be included")
 
     group3.add_argument("-a", "--alpha", metavar='FLOAT', default=opts[2], type=float,
                         dest="alpha", help="alpha in dpm sampling")
 
     group4.add_argument("-x", "--maxcov", metavar='INT', default=opts[1], type=int,
-                        dest="max_coverage", help="approximate max coverage allowed") 
+                        dest="max_coverage", help="approximate max coverage allowed")
 
     group4.add_argument("-s", "--sigma", metavar='FLOAT', default=opts[3], type=float,
                         dest="s", help="sigma value to use when calling SNVs")
@@ -425,6 +427,6 @@ if __name__ == "__main__":
         sys.exit('Please run with -h for all options')
     if args.diversity and args.region != '':
         sys.exit('Either detect the highest entropy region, or specify one')
-        
-    main(args.in_bam, args.in_fasta, args.min_overlap, args.max_coverage, args.alpha, 
+
+    main(args.in_bam, args.in_fasta, args.min_overlap, args.max_coverage, args.alpha,
          args.s, args.region, args.diversity)

@@ -195,7 +195,7 @@ def getSNV(ref, segCov, incr):
                     cov = segCov[chrom + str(beg)]
                     if cov == [1, 1, 1]:
                         snpD[k] = [chrom, p, rf, var, ['-', '-', av],
-                                  ['-', '-', post]]
+                                   ['-', '-', post]]
                     elif cov == [1, 0, 0]:
                         snpD[k] = [chrom, p, rf, var, ['*', '*', av],
                                    ['*', '*', post]]
@@ -206,27 +206,27 @@ def getSNV(ref, segCov, incr):
                     cov = segCov[chrom + str(beg + incr)]
                     if cov == [1, 1, 1]:
                         snpD[k] = [chrom, p, rf, var, ['-', av, '-'],
-                                  ['-', post, '-']]
+                                   ['-', post, '-']]
                     elif cov == [1, 1, 0]:
                         snpD[k] = [chrom, p, rf, var, ['*', av, '-'],
-                                  ['*', post, '-']]
+                                   ['*', post, '-']]
                     elif cov == [0, 1, 1]:
                         snpD[k] = [chrom, p, rf, var, ['-', av, '*'],
-                                  ['-', post, '*']]
+                                   ['-', post, '*']]
                     elif cov == [0, 1, 0]:
                         snpD[k] = [chrom, p, rf, var, ['*', av, '*'],
-                                  ['*', post, '*']]
+                                   ['*', post, '*']]
                 else:
                     cov = segCov[chrom + str(beg + incr * 2)]
                     if cov == [1, 1, 1]:
                         snpD[k] = [chrom, p, rf, var, [av, '-', '-'],
-                                  [post, '-', '-']]
+                                   [post, '-', '-']]
                     elif cov == [0, 1, 1]:
                         snpD[k] = [chrom, p, rf, var, [av, '-', '*'],
-                                  [post, '-', '*']]
+                                   [post, '-', '*']]
                     elif cov == [0, 0, 1]:
                         snpD[k] = [chrom, p, rf, var, [av, '*', '*'],
-                                  [post, '*', '*']]
+                                   [post, '*', '*']]
 
         if single_window:
             break
@@ -308,7 +308,6 @@ def printRaw(snpD2, incr):
 
 
 def sb_filter(in_bam, sigma, amplimode="", max_coverage=100000):
-
     """run strand bias filter calling the external program 'fil'
     """
     import subprocess
@@ -363,7 +362,7 @@ def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
 
     snvlog.info(str(inspect.getargspec(main)))
     ref_m = dict([[s.id, str(s.seq).upper()]
-                 for s in SeqIO.parse(reference, 'fasta')])
+                  for s in SeqIO.parse(reference, 'fasta')])
 
     # number of windows per segment
     segCov_m = segments(increment)
@@ -378,7 +377,7 @@ def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
         snvlog.debug('snv/SNV.txt found, moving to ./')
         shutil.move('snv/SNV.txt', './')
 
-    #run strand bias filter, output in SNVs_%sigma.txt
+    # run strand bias filter, output in SNVs_%sigma.txt
     if increment == 1:
         retcode_m = sb_filter(bam_file, sigma, amplimode=" -a",
                               max_coverage=max_coverage)

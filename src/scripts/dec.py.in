@@ -9,30 +9,31 @@ import os
 # parse command line
 parser = argparse.ArgumentParser(description="Local haplotype recontruction: Dirichlet process mixture",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-opts = shorah_dec.main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
+# set the defaults (see http://bit.ly/2hCTQl)
+opts = shorah_dec.main.__defaults__
 
 group1 = parser.add_argument_group('Input files', 'Required input')
-group2 = parser.add_argument_group('Run options', 
+group2 = parser.add_argument_group('Run options',
                                    'Parameters that can (maybe should) be changed \
                                    according to the needs')
-group3 = parser.add_argument_group('More options', 
+group3 = parser.add_argument_group('More options',
                                    'Do you really want to change this?')
 
 
 group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str,
                     dest="in_bam", help="file with aligned reads in .bam format")
 
-group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str, 
+group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str,
                     dest="in_fasta", help="reference genome in fasta format")
 
-group2.add_argument("-w", "--windowsize", metavar='INT', required=False, type=int, 
+group2.add_argument("-w", "--windowsize", metavar='INT', required=False, type=int,
                     default=opts[0], dest="win_length", help="window size")
 
-group2.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str, 
+group2.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str,
                     default=opts[2], dest="region", help="region in format 'chrm:start-stop', \
                                                           e.g. 'ch3:1000-3000'")
 
-group2.add_argument("-a", "--alpha", metavar='FLOAT', required=False, type=float, 
+group2.add_argument("-a", "--alpha", metavar='FLOAT', required=False, type=float,
                     default=opts[4], dest="alpha", help="alpha in dpm sampling")
 
 group2.add_argument("-S", "--seed", metavar='INT', required=False, type=int,
@@ -45,7 +46,7 @@ group3.add_argument("-x", "--maxcov", metavar='INT', required=False, type=int,
                     default=opts[3], dest="max_coverage", help="approximate max coverage allowed")
 
 group3.add_argument("-k", "--keep_files", required=False, action='store_true',
-                    default=opts[5], dest="keep_files", help="keep all intermediate files")               
+                    default=opts[5], dest="keep_files", help="keep all intermediate files")
 
 args = parser.parse_args()
 
@@ -75,4 +76,4 @@ except KeyError:
     sys.exit()
 
 shorah_dec.main(args.in_bam, args.in_fasta, args.win_length, args.win_shifts,
-        args.region, args.max_coverage, args.alpha, args.keep_files, args.seed)
+                args.region, args.max_coverage, args.alpha, args.keep_files, args.seed)
