@@ -1,61 +1,53 @@
 #!/usr/bin/env @PYTHON@
 
+from __future__ import print_function
+from future.utils import iteritems
 import shorah_dec
-import optparse
+import argparse
 import os
 
 # parse command line
-optparser = optparse.OptionParser()
+parser = argparse.ArgumentParser(description="Local haplotype recontruction: Dirichlet process mixture",
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 opts = shorah_dec.main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
-group1 = optparse.OptionGroup(optparser, "Input files", "Required input")
-group2 = optparse.OptionGroup(optparser, "Run options",
-                              "Parameters that can (maybe should) be \
-                              changed according to the needs")
-group3 = optparse.OptionGroup(optparser, "More options",
-                              "Do you really want to change this?")
 
-group1.add_option("-b", "--bam",
-                  help="file with aligned reads in .bam format",
-                  default=opts[0], type="string", dest="in_bam")
+group1 = parser.add_argument_group('Input files', 'Required input')
+group2 = parser.add_argument_group('Run options', 
+                                   'Parameters that can (maybe should) be changed \
+                                   according to the needs')
+group3 = parser.add_argument_group('More options', 
+                                   'Do you really want to change this?')
 
-group1.add_option("-f", "--fasta",
-                  help="reference genome in fasta format",
-                  default=opts[1], type="string", dest="in_fasta")
 
-group2.add_option("-w", "--windowsize", help="window size <%default>",
-                  default=opts[2], type="int", dest="win_length")
+group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str,
+                    dest="in_bam", help="file with aligned reads in .bam format")
 
-group3.add_option("-s", "--winshifts",
-                  help="number of window shifts <%default>",
-                  default=opts[3], type="int", dest="win_shifts")
+group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str, 
+                    dest="in_fasta", help="reference genome in fasta format")
 
-group2.add_option("-r", "--region",
-                  help="region in format 'chrom:start-stop', \
-                  eg 'ch3:1000-3000'",
-                  default=opts[4], type="string", dest="region")
+group2.add_argument("-w", "--windowsize", metavar='INT', required=False, type=int, 
+                    default=opts[0], dest="win_length", help="window size")
 
-group3.add_option("-x", "--maxcov",
-                  help="approximate max coverage allowed <%default>",
-                  default=opts[5], type="int", dest="max_coverage")
+group2.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str, 
+                    default=opts[2], dest="region", help="region in format 'chrm:start-stop', \
+                                                          e.g. 'ch3:1000-3000'")
 
-group2.add_option("-a", "--alpha",
-                  help="alpha in dpm sampling <%default>",
-                  default=opts[6], type="float", dest="alpha")
+group2.add_argument("-a", "--alpha", metavar='FLOAT', required=False, type=float, 
+                    default=opts[4], dest="alpha", help="alpha in dpm sampling")
 
-group3.add_option("-k", "--keep_files",
-                  help="keep all intermediate files <%default>",
-                  action="store_true", dest="keep_files",
-                  default=opts[7])
+group2.add_argument("-S", "--seed", metavar='INT', required=False, type=int,
+                    default=opts[6], dest="seed", help="set seed for reproducible results")
 
-group2.add_option("-S", "--seed",
-                  help="Set seed for reproducibility",
-                  default=opts[8], type=int, dest="seed")
+group3.add_argument("-s", "--winshifts", metavar='INT', required=False, type=int,
+                    default=opts[1], dest="win_shifts", help="number of window shifts")
 
-optparser.add_option_group(group1)
-optparser.add_option_group(group2)
-optparser.add_option_group(group3)
+group3.add_argument("-x", "--maxcov", metavar='INT', required=False, type=int,
+                    default=opts[3], dest="max_coverage", help="approximate max coverage allowed")
 
-(options, args) = optparser.parse_args()
+group3.add_argument("-k", "--keep_files", required=False, action='store_true',
+                    default=opts[5], dest="keep_files", help="keep all intermediate files")               
+
+args = parser.parse_args()
 
 supported_formats = {
     'bam': 'aligned reads',
@@ -63,22 +55,24 @@ supported_formats = {
 }
 # check the input file is in supported format
 try:
-    tmp_filename = os.path.split(options.in_bam)[1]
+    tmp_filename = os.path.split(args.in_bam)[1]
     [in_stem, in_format] = [tmp_filename.split('.')[0],
                             tmp_filename.split('.')[-1]]
     t = supported_formats[in_format]
 except IndexError:
     shorah_dec.declog.error('The input file must be filestem.format')
-    print 'The input file must be filestem.format'
-    print 'Supported formats are'
-    for sf in supported_formats.iteritems():
-        print sf[0], ':', sf[1]
+    print('The input file must be filestem.format')
+    print('Supported formats are')
+    for sf in iteritems(supported_formats):
+        print(sf[0], ':', sf[1])
     sys.exit()
 except KeyError:
     shorah_dec.declog.error('format unknown')
-    print in_format, 'format unknown'
-    print 'Supported formats are'
-    for sf in supported_formats.iteritems():
-        print sf[0], ':', sf[1]
+    print(in_format, 'format unknown')
+    print('Supported formats are')
+    for sf in iteritems(supported_formats):
+        print(sf[0], ':', sf[1])
     sys.exit()
-shorah_dec.main(*args, **vars(options))
+
+shorah_dec.main(args.in_bam, args.in_fasta, args.win_length, args.win_shifts,
+        args.region, args.max_coverage, args.alpha, args.keep_files, args.seed)

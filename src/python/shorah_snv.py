@@ -31,6 +31,9 @@
     ------------
 '''
 
+from __future__ import division
+from future.utils import iteritems
+from builtins import range
 import sys
 import os
 import gzip
@@ -143,7 +146,7 @@ def parseWindow(line, ref1):
 
     snvlog.info('max number of snvs per sequence found: %d' % max_snv)
     # normalize
-    for k, v in snp.items():
+    for k, v in iteritems(snp):
         v[5] /= v[4]
         v[4] /= reads
 
@@ -171,7 +174,7 @@ def getSNV(ref, segCov, incr):
             incr = end - beg
             single_window = True
             snvlog.info('working on single window as invoked by amplian')
-        key = snp.keys()
+        key = list(snp.keys())
         key.sort()
         for k in key:
             # reference name, position, reference_base, mutated base,
@@ -265,7 +268,7 @@ def printRaw(snpD2, incr):
                     'Pst1', 'Pst2', 'Pst3']
     out.write('\t'.join(header_row_p) + '\n')
     out1.write('\t'.join(header_row_p) + '\n')
-    key = sorted(snpD2.keys())
+    key = sorted(list(snpD2.keys()))
     for k in key:
         out.write(snpD2[k][0] + '\t' + str(snpD2[k][1]) + '\t' + snpD2[k][2] +
                   '\t' + snpD2[k][3])
@@ -340,7 +343,7 @@ def BH(p_vals, n):
     return q_vals_l
 
 
-def main(reference='', bam_file='', sigma=0.01, increment=1, max_coverage=100000):
+def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
     '''main code
     '''
     import csv

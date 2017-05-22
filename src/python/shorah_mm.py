@@ -4,6 +4,7 @@
 # Moritz Gerstung,
 # Lukas Geyrhofer,
 # Osvaldo Zagordi,
+# Susana Posada Cespedes,
 # ETH Zurich
 
 # This file is part of ShoRAH.
@@ -64,6 +65,11 @@ TODO
  ONEPATH should have an option to output up to MAXPATHS paths
 '''
 
+from __future__ import print_function
+from future.utils import iteritems
+from builtins import dict
+from builtins import range
+from builtins import map
 import random
 import shorah_matching
 
@@ -76,43 +82,47 @@ OUTPUTGRAPH_DEFAULT = False
 
 def parse_com_line():
 
-    '''Only tries optparse (deprecated in 2.7, in future add argparse)'''
+    import argparse 
 
-    import optparse
-
-    usage = "usage: %prog filename [options]"
+    parser = argparse.ArgumentParser(description="Global reconstruction: minimal set of haplotypes that\
+                                     explains all reads in the dataset", 
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     opts = main.func_defaults
-    optparser = optparse.OptionParser(usage=usage)
 
-    optparser.add_option("-m", "--maxhaplo", action="store", type="int",
-                         dest="MAXGENO", default=opts[0],
-                         help="keep searching until we find at least \
-                                MAXGENO haplotypes")
+    parser.add_argument("filename", nargs=1, 
+                        help="Input file containing starting position and sequences\
+                             for each of the reads")
 
-    optparser.add_option("-i", "--maxiter", action="store", type="int",
-                         dest="MAXITER", default=opts[1],
-                         help="but only look up to MAXITER rounds")
+    parser.add_argument("-m", "--maxhaplo", action="store", metavar='INT', type=int,
+                        required=False, dest="MAXGENO", default=opts[0],
+                        help="keep searching until we find at least MAXGENO \
+                              haplotypes")
 
-    optparser.add_option("-l", "--length", action="store", type="int",
-                         dest="MINOVERLAP", default=opts[2],
-                         help="minimum overlap to include in graph")
+    parser.add_argument("-i", "--maxiter", action="store", metavar='INT', type=int,
+                        required=False, dest="MAXITER", default=opts[1],
+                        help="but only look up to MAXITER rounds")
+
+    parser.add_argument("-l", "--length", action="store", metavar='INT', type=int,
+                        required=False, dest="MINOVERLAP", default=opts[2],
+                        help="minimum overlap to include in graph")
 
     # logical options
-    optparser.add_option("-o", "--one", action="store_true", dest="ONEPATH",
-                         help="search one path only")
+    parser.add_argument("-o", "--one", action="store_true", required=False, 
+                        dest="ONEPATH", default=ONEPATH_DEFAULT,
+                        help="search one path only")
 
-    optparser.add_option("-a", "--all", action="store_false", dest="ONEPATH",
-                         help="extend search to many paths")
+    parser.add_argument("-a", "--all", action="store_true", required=False, 
+                        dest="MULTIPATH", help="extend search to many paths")
 
-    optparser.add_option("-g", "--graph", action="store_true",
-                         dest="OUTPUTGRAPH", help="output a graph?")
+    parser.add_argument("-g", "--graph", action="store_true", required=False,
+                        dest="OUTPUTGRAPH", default=OUTPUTGRAPH_DEFAULT,
+                         help="output a graph?")
 
-    optparser.set_defaults(ONEPATH=ONEPATH_DEFAULT,
-                           OUTPUTGRAPH=OUTPUTGRAPH_DEFAULT)
+    args = parser.parse_args()
+    if args.MULTIPATH:
+        args.ONEPATH = False
 
-    (opts_pc, args_pc) = optparser.parse_args()
-    assert len(args_pc) == 1, "one and only one file must be specified"
-    return opts_pc, args_pc
+    return args
 
 
 def permuteList(l, perm):
@@ -123,7 +133,7 @@ def permuteList(l, perm):
 def permuteGraph(graph, perm):
     '''apply a permutation to a graph'''
     return dict([(perm[g], permuteList(child, perm))
-                 for (g, child) in graph.iteritems()])
+                 for (g, child) in iteritems(graph)])
 
 
 def permute(graph, reads, descList):
@@ -132,13 +142,13 @@ def permute(graph, reads, descList):
         '''
     #build permutation in S_n
     n = len(graph) - 2
-    perm = range(n)
+    perm = list(range(n))
     random.shuffle(perm)
     #and then make sure to fix the source and sink
     perm.append(source)
     perm.append(sink)
     if verbose:
-        print 'permuting with', perm
+        print('permuting with', perm)
     newGraph = permuteGraph(graph, perm)
     #newReads = [reads[i] for i in perm[:-2]]
     # DOESN'T WORK - NEED INVERSE OF PERM
@@ -147,7 +157,7 @@ def permute(graph, reads, descList):
     for i in range(n):
         newReads[perm[i]] = reads[i]
     #permute labels in descList
-    tmpdescList = map(lambda l: permuteList(l, perm), map(list, descList))
+    tmpdescList = list(map(lambda l: permuteList(l, perm), map(list, descList)))
     #also permute places ### VIA INVERSE
     newdescList = [[] for i in tmpdescList]
     for i in range(n + 2):
@@ -180,9 +190,9 @@ def printFasta(seqs, lineLen=80):
 
     while start < totalLen:
         length = min(lineLen, totalLen - start)
-        print
+        print()
         for i in seqs:
-            print i[start:start + length]
+            print(i[start:start + length])
         start += length
     return 0
 
@@ -207,8 +217,8 @@ def addSourceSink(graph, descList, reads, seqLen):
     #find everything which is not a child
 
     allChildren = set([])
-    map(allChildren.update, [graph[i] for i in graph])
-    initialReads = set(range(len(graph))).difference(allChildren)
+    list(map(allChildren.update, [graph[i] for i in graph]))
+    initialReads = set(list(range(len(graph)))).difference(allChildren)
     graph.setdefault(source, list(initialReads))
 
     #find everything without children and create edge to sink
@@ -217,28 +227,28 @@ def addSourceSink(graph, descList, reads, seqLen):
             graph[r].append(sink)
     graph.setdefault(sink, [])
 
-    #print graph
+    #print(graph)
     if OUTPUTGRAPH:
-        print 'BEGIN'
+        print('BEGIN')
         for r in graph:
-            #print 'node name', r
-            #print 'node start', reads[r][0]
-            #print 'children', graph[r]
+            #print('node name', r)
+            #print('node start', reads[r][0])
+            #print('children', graph[r])
             if r == sink:
-                print 1000, ':', r, ':', []
+                print(1000, ':', r, ':', [])
             if r == source:
-                print -1, ':', r, ':', graph[r]
+                print(-1, ':', r, ':', graph[r])
             if (r != sink and r != source):
-                print reads[r][0], ':', r, ':', graph[r]
-        print 'END'
-        print graph
+                print(reads[r][0], ':', r, ':', graph[r])
+        print('END')
+        print(graph)
     #fix up descList
     #everything as sink as desc
     for i in descList:
         i.add(sink)
     #push source and then sink on descList
     #source has everthing as desc
-    sourceDesc = set(range(len(descList)))
+    sourceDesc = set(list(range(len(descList))))
     sourceDesc.add(sink)
     sinkDesc = set([])
     descList.append(sourceDesc)
@@ -267,7 +277,7 @@ def makeGraph(reads):
     # set edges between reads
     for r in range(len(reads)):
         if r % 100 == 0:
-            print r
+            print(r)
         for s in range(len(reads)):
             if reads[r][0] < reads[s][0]:
                 if readsMatch(reads[r], reads[s]):
@@ -284,13 +294,13 @@ def findDescendants(graph):
 
     def getDesc(node):
         '''missing'''
-        #print 'getDesc called on', node
+        #print('getDesc called on', node)
         #node is an int,
         #descList is a list of lists of ints
         #set descList[node] by:
         # union of all descList[x] for x in graph[node]
         if len(descList[node]) > 0:
-            #print node, descList[node]
+            #print(node, descList[node])
             return descList[node]
         else:
             #descList[node] = descList[node].union(set(graph[node]))
@@ -308,14 +318,14 @@ def findDescendants(graph):
     # but most of the calls are trivial
     for i in range(len(graph)):
         getDesc(i)
-        #print 'desc of', i, 'are', getDesc(i)
+        #print('desc of', i, 'are', getDesc(i))
     return descList
 
 
 def removeCycles(graph, descList):
     '''missing'''
     for i in graph.keys():
-        ##print 'checking the',len(graph[i]),'children of node',i
+        ##print('checking the',len(graph[i]),'children of node',i)
         #python is a pain if we modify graph[i] while looping over it
         #so need a temporary variable
         tmp = []
@@ -323,13 +333,13 @@ def removeCycles(graph, descList):
         for j in tmp:
             for k in tmp:
                 if j != k:
-                    #print 'checking',j,k
+                    #print('checking',j,k)
                     if j in descList[k]:
-                        #print 'removing node',j
-                        #print 'graph[i] =',graph[i]
+                        #print('removing node',j)
+                        #print('graph[i] =',graph[i])
                         graph[i].remove(j)
                         break
-        ###print 'reduced to',len(graph[i]), 'children'
+        ###print('reduced to',len(graph[i]), 'children')
     return graph
 
 
@@ -337,7 +347,7 @@ def matchToChain(match, n):
     '''takes a matching and creates the
     corresponding chain in the poset
     Who knows how it works...'''
-    startpoints = set(range(n)).difference(match.values())
+    startpoints = set(list(range(n))).difference(list(match.values()))
     allChains = []
     for i in startpoints:
         curChain = []
@@ -395,7 +405,7 @@ def find_all_paths(GRAPH, start, end, path=[]):
 
 def allPaths(x, y):
     '''find all paths from x to y in the graph'''
-    ##print 'allPaths',x,y
+    ##print('allPaths', x, y)
     paths = [[x]]
     if y not in descList[x]:
         return None
@@ -425,9 +435,9 @@ def allPaths(x, y):
                     #don't include y
                     #tmppath.append(child)
                     finishedpaths.append(tmppath)
-        #print 'newpaths = ',newpaths
+        #print('newpaths = ', newpaths)
         paths = newpaths
-    #print 'returns', len(finishedpaths),'paths'
+    #print('returns', len(finishedpaths), 'paths')
     return finishedpaths
 
 
@@ -470,7 +480,7 @@ def pathToGeno(path):
         geno = geno + '.'
         # countEnd += 1
 
-#    print 'path of length',len(path), 'has', countBegin, '. and', countEnd
+#    print('path of length',len(path), 'has', countBegin, '. and', countEnd)
 #    if countBegin > .5 * len(geno):
 #        geno = None
 #    if countEnd > .5 * len(geno):
@@ -536,7 +546,7 @@ def extendChain(chain):
     else:
         ans = allPaths(source, chain[0])
     for i in range(len(chain)):
-        #print 'currently have', len(ans),'chains'
+        #print('currently have', len(ans),'chains')
         if i != len(chain) - 1:
             nxt = chain[i + 1]
         else:
@@ -550,7 +560,7 @@ def extendChain(chain):
         else:
             for j in ans:
                 j.append(chain[i])
-    ##print 'output:',ans
+    ##print('output:', ans)
     return ans
 
 
@@ -559,56 +569,57 @@ def minimalCover(graph, reads, descList):
         problem.  then solves the matching to get chains in
         the graph, which are extended to paths in all ways """
 
-    #print 'making bipartite graph'
+    #print('making bipartite graph')
     #make bipartiteGraph
     biGraph = {}
     for i in range(len(graph)):
         biGraph.setdefault(i, list(descList[i]))
 
-    print '...finding matching'
+    print('...finding matching')
     #find matching
     a = shorah_matching.bipartiteMatch(biGraph)
     # a[0] is the matching, a[1] and a[2] the parts of
     # the maximal independent sets in the two parts of biGraph
-    print '...Reversing matching'
+    print('...Reversing matching')
     #reverse the matching
-    match = dict([(v, k) for (k, v) in a[0].iteritems()])
+    match = dict([(v, k) for (k, v) in iteritems(a[0])])
     #free some memory, perhaps
     del a
-    #print 'matching =', match
+    #print('matching =', match)
 
     #transform to chains in poset
     chainList = matchToChain(match, len(graph))
     if OUTPUTGRAPH:
-        print 'chains=', chainList
+        print('chains=', chainList)
     maximalAntiChain = len(chainList)
-    print '...largest antichain of size', maximalAntiChain
+    print('...largest antichain of size', maximalAntiChain)
     if verbose:
         for zz in range(len(chainList)):
-            print zz, '==', chainList[zz]
+            print(zz, '==', chainList[zz])
 
     #now that we're done with the matching, add the source and sink into graph
     #this is needed for the extendChain and pathToGeno functions
     # now done before the matching
     #addSourceSink(graph, descList, reads, seqLen)
 
-    print '...transforming chains to paths'
+    print('...transforming chains to paths')
     ##transform chains to paths in all possible ways
     if ONEPATH:
-        paths = map(extendChainToOne, chainList)
+        paths = list(map(extendChainToOne, chainList))
     else:
-        paths = map(extendChain, chainList)
+        paths = list(map(extendChain, chainList))
 
-    print len(chainList), 'chains give', sum(map(len, paths)), \
-        'paths (', map(len, paths), ')'
+    print(len(chainList), 'chains give', sum(map(len, paths)), \
+            'paths (', list(map(len, paths)), ')')
     if verbose:
-        print 'paths=', paths
+        print('paths=', paths)
 
-    print '...translating paths->genotypes'
+    print('...translating paths->genotypes')
     genos = []
     for i in range(len(paths)):
         genos.extend(map(pathToGeno, paths[i]))
     del(reads)
+    
     return genos, maximalAntiChain
 
 
@@ -623,17 +634,17 @@ def countPaths(graph, source, sink):
         ''' count paths from node to sink '''
         if numPaths[node] < 0:
             numPaths[node] = sum(map(getPaths, graph[node]))
-        #print 'node', node, 'has', numPaths[node], 'paths to sink'
+        #print('node', node, 'has', numPaths[node], 'paths to sink')
         return numPaths[node]
     getPaths(source)
-    #print 'paths =', numPaths
+    #print('paths =', numPaths)
     return numPaths[source]
 
 
 ###########main code#########
 
 def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
-         onepath=ONEPATH_DEFAULT, minoverlap=MINOVERLAP_DEFAULT,
+         minoverlap=MINOVERLAP_DEFAULT, onepath=ONEPATH_DEFAULT,
          outputgraph_local=OUTPUTGRAPH_DEFAULT):
     '''This can be called from shorah.py directly
     '''
@@ -661,17 +672,18 @@ def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
     global OUTPUTGRAPH
     OUTPUTGRAPH = outputgraph_local
 
-    print 'inputfile =', readfile
-    print 'outputfile=', outFileName
-    print 'Creating up to', MAXGENO, 'haplotypes'
-    print 'Permuting up to', MAXITER, 'times'
-    print 'ONEPATH = ', ONEPATH
-    print 'minimum overlap in graph:', MINOVERLAP
+    print('inputfile =', readfile)
+    print('outputfile=', outFileName)
+    print('Creating up to', MAXGENO, 'haplotypes')
+
+    print('Permuting up to', MAXITER, 'times')
+    print('ONEPATH = ', ONEPATH)
+    print('minimum overlap in graph:', MINOVERLAP)
 
     # get reads
     reads, seqLen = readFasta(readfile)
     if seqLen == 0:
-        print 'No reads in file (or couldn\'t open file)'
+        print('No reads in file (or couldn\'t open file)')
         return 0
     source = len(reads)
     sink = len(reads) + 1
@@ -679,37 +691,37 @@ def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
         verbose = 1
     else:
         verbose = 0
-    print len(reads), 'reads, sequence length =', seqLen
+    print(len(reads), 'reads, sequence length =', seqLen)
     if verbose:
         for r in reads:
-            print reads.index(r), r
+            print(reads.index(r), r)
 
     # Build read graph
     graph = makeGraph(reads)
     if verbose:
-        print 'graph = ', graph
-    print 'finished graph'
+        print('graph = ', graph)
+    print('finished graph')
 
     # take transitive closure of graph
     descList = findDescendants(graph)
     if verbose:
-        print 'desc =', map(list, descList)
-    print '...done with transitive closure'
+        print('desc =', list(map(list, descList)))
+    print('...done with transitive closure')
 
-    print '...removing cycles'
+    print('...removing cycles')
     graph = removeCycles(graph, descList)
     if verbose:
-        print 'graph \ cycles = ', graph
+        print('graph \ cycles = ', graph)
 
     # add on a source and sink to the graph
     addSourceSink(graph, descList, reads, seqLen)
     if verbose:
-        print 'graph with SS', graph
-        print 'new Desclist', map(list, descList)
+        print('graph with SS', graph)
+        print('new Desclist', list(map(list, descList)))
     # count paths in the graph
 
     totalPaths = countPaths(graph, source, sink)
-    print 'There are', totalPaths, 'paths in the graph'
+    print('There are', totalPaths, 'paths in the graph')
 
     #global maximalAntiChain
 
@@ -718,16 +730,16 @@ def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
 
     iteration = 0
     if totalPaths < MAXGENO:
-        print 'This is less than MAXGENO =', MAXGENO
-        print 'So matching is not run'
+        print('This is less than MAXGENO =', MAXGENO)
+        print('So matching is not run')
         paths = extendChain([source, sink])
-        genos = map(pathToGeno, paths)
+        genos = list(map(pathToGeno, paths))
         allGenos.update(genos)
         DONE = True
         genos, maximalAntiChain = minimalCover(graph, reads, descList)
     else:
-        print 'starting matching'
-        print
+        print('starting matching')
+        print()
         while not DONE and (len(allGenos) < MAXGENO) and (iteration < MAXITER):
             # Done with preproccessing. Now permute
             # graph, reads, and descList and get a new set of genotypes
@@ -735,15 +747,15 @@ def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
             # and return all genotypes obtained by extending
             # these chains
             if iteration > 1:
-                print '...permuting'
+                print('...permuting')
                 graph, reads, descList = permute(graph, reads, descList)
             genos, maximalAntiChain = minimalCover(graph, reads, descList)
             sizeBefore = len(allGenos)
             allGenos.update(genos)
             sizeAfter = len(allGenos)
-            print 'found', len(allGenos), 'genotypes out of', MAXGENO
-            print 'gained', sizeAfter - sizeBefore, 'in round', iteration
-            print
+            print('found', len(allGenos), 'genotypes out of', MAXGENO)
+            print('gained', sizeAfter - sizeBefore, 'in round', iteration)
+            print()
             #printFasta(genos,1000)
             iteration += 1
 
@@ -759,11 +771,11 @@ def main(readfile, maxhaplo=MAXGENO_DEFAULT, maxiter=MAXITER_DEFAULT,
         printFasta(list(allGenos), 1000)
 
     #summary
-    print 'graph has', totalPaths, 'total paths'
-    print 'minimal path cover is of size', maximalAntiChain
-    print 'ran matching algorithm', iteration, 'times'
-    print 'output', len(allGenos), 'haplotypes'
+    print('graph has', totalPaths, 'total paths')
+    print('minimal path cover is of size', maximalAntiChain)
+    print('ran matching algorithm', iteration, 'times')
+    print('output', len(allGenos), 'haplotypes')
 
-    print '% TOTALPATHS =', totalPaths
-    print '% ANTICHAIN =', maximalAntiChain
-    print '% HAPLO =', len(allGenos)
+    print('% TOTALPATHS =', totalPaths)
+    print('% ANTICHAIN =', maximalAntiChain)
+    print('% HAPLO =', len(allGenos))
