@@ -25,6 +25,11 @@
     file of corrected reads
 '''
 
+from __future__ import print_function
+from __future__ import division
+from builtins import dict
+from future.utils import listitems
+from builtins import range
 import sys
 import os
 import pipes
@@ -316,15 +321,15 @@ def merge_corrected_reads(aligned_read):
 
         # kcr: extract start index of the aligned reads in all windows
         # vcr: extract sequence of the aligned reads in all windows
-        kcr = np.array(corrected_read.keys(), dtype=int)
-        vcr = np.array(corrected_read.values())
+        kcr = np.array(list(corrected_read.keys()), dtype=int)
+        vcr = np.array(list(corrected_read.values()))
         vcr_len = [v.size for v in vcr]
 
         for rpos in range(rlen):
             tp = rstart + rpos - kcr
             mask = np.logical_and(
                     np.logical_and(np.greater_equal(tp, 0), np.less(tp, vcr_len)),
-                    np.greater(posterior.values(), min_quality)
+                    np.greater(list(posterior.values()), min_quality)
                     )
             if np.sum(mask > 0):
                 # data structure needs this
@@ -341,7 +346,7 @@ def merge_corrected_reads(aligned_read):
     return(ID, merged_corrected_read)
 
 
-def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
+def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
          max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
     '''
     Performs the error correction analysis, running diri_sampler
@@ -368,7 +373,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     # check options
     if win_length % win_shifts != 0:
         sys.exit('Window size must be divisible by win_shifts')
-    if win_min_ext < 1 / float(win_shifts):
+    if win_min_ext < 1 / win_shifts:
         declog.warning('Some bases might not be covered by any window')
     if max_coverage / win_length < 1:
         sys.exit('Please increase max_coverage')
@@ -379,8 +384,8 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     if seed is None:
         seed = np.random.randint(100, size=1)
 
-    incr = win_length / win_shifts
-    max_c = max_coverage / win_length
+    incr = win_length // win_shifts
+    max_c = max_coverage // win_length
     keep_all_files = keep_files
 
     #run b2w
@@ -390,7 +395,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
         sys.exit('b2w run not successful')
 
     aligned_reads = parse_aligned_reads('reads.fas')
-    r = aligned_reads.keys()[0]
+    r = list(aligned_reads.keys())[0]
     gen_length = aligned_reads[r][1] - aligned_reads[r][0]
 
     if win_length > gen_length:
@@ -530,7 +535,7 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
     # ##########################################
     declog.info('Merging windows of corrected reads')
     # Multi-threaded version
-    params = aligned_reads.items()
+    params = listitems(aligned_reads)
     pool = Pool(processes=max_proc)
     to_correct = pool.map(merge_corrected_reads, params)
     pool.close()
@@ -562,21 +567,21 @@ def main(in_bam='', in_fasta='', win_length=201, win_shifts=3, region='',
 
             if cc % fasta_length != 0:
                 fch.write('\n')
-    print ccx
+    print(ccx)
     fch.close()
 
     # write proposed_per_step to file
     ph = open('proposed.dat', 'w')
     ph.write('#base\tproposed_per_step\n')
-    for kp in sorted(proposed.iterkeys()):
+    for kp in sorted(proposed):
         if proposed[kp] != 'not found':
             ph.write('%s\t%f\n' %
-                     (kp, float(proposed[kp][0]) / proposed[kp][1]))
+                     (kp, proposed[kp][0] / proposed[kp][1]))
     ph.close()
 
     declog.info('running snv.py')
-    shorah_snv.main(reference=in_fasta, bam_file=in_bam,
-             increment=win_length / win_shifts, max_coverage=max_coverage)
+    shorah_snv.main(reference=in_fasta, bam_file=in_bam, 
+                    increment=win_length // win_shifts, max_coverage=max_coverage)
 
     # tidy snvs
     try:

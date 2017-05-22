@@ -27,6 +27,11 @@
    single run of diri_sampler. Then, it performs SNV discovery by
    calling the program snv.py.
    '''
+from __future__ import print_function
+from __future__ import division
+from future.utils import iteritems
+from builtins import range
+from builtins import map
 import os
 import os.path
 import sys
@@ -95,8 +100,8 @@ def run_diagnostics(window_file, reads):
         lines = smp_reader.readlines()
         # fields = lines[0].split()
         for line in lines[1:]:
-            it, cl, unt = map(int, line.split()[:3])
-            the, gam = map(float, line.split()[3:])
+            it, cl, unt = list(map(int, line.split()[:3]))
+            the, gam = list(map(float, line.split()[3:]))
             clusters.append(cl)
             untouched.append(unt)
             theta.append(the)
@@ -105,7 +110,7 @@ def run_diagnostics(window_file, reads):
 
     amplog.info('sample has %d reads' % reads)
     untouched_hst = untouched[-2000:]
-    unt_mean = float(sum(untouched_hst)) / len(untouched_hst)
+    unt_mean = sum(untouched_hst) / len(untouched_hst)
     unt_ratio = 100 * unt_mean / q
     unt_msg = '%3.1f %% of untouched objects <should be around 90-95%%>' % \
         unt_ratio
@@ -148,7 +153,7 @@ def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
     high_start, high_stop = win_coords
 
     ent_start, ent_stop = pos_coords
-    X = range(ent_start, ent_stop)
+    X = list(range(ent_start, ent_stop))
 
     fig, ax1 = plt.subplots()
     #ax1.plot(X, pos_ent, '-', color='#E69F00', alpha=0.8)
@@ -213,9 +218,9 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
         # still not perfect control over mpileup format
         if abs(depth - len(column)) > 10:
             warnings.warn('mpileup column not fully parsed')
-            # print refbase, depth, len(column)
-            # print readbase
-            # print column.replace(',', '').replace('.', '')
+            # print(refbase, depth, len(column))
+            # print(readbase)
+            # print(column.replace(',', '').replace('.', ''))
             # sys.exit()
         column = column.replace(',', refbase).replace('.', refbase)
         entropy[pos] = shannon_entropy(column)
@@ -233,7 +238,7 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
 
     # mean entropy
     ent_mean = [None] * (len(ref_seq) + 1)
-    delta = int(trimmed_mean / 2)  # used to center the moving window
+    delta = trimmed_mean // 2  # used to center the moving window
     for i in range(start, stop - trimmed_mean):
         ent_mean[i + delta] = sum(entropy[i:i + trimmed_mean]) / trimmed_mean
 
@@ -290,7 +295,7 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     return high_ent_start, high_ent_stop
 
 
-def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
+def main(in_bam, in_fasta, min_overlap=0.95, max_coverage=50000,
          alpha=0.5, s=0.01, region='', diversity=False):
     '''
     Performs the amplicon analysis, running diri_sampler
@@ -351,67 +356,53 @@ def main(in_bam='', in_fasta='', min_overlap=0.95, max_coverage=50000,
     run_diagnostics(win_file, n_reads)
 
     # run snv.py to parse single nucleotide variants
-    shorah_snv.main(reference=options.in_fasta, bam_file=options.in_bam,
-             sigma=s, increment=1)
+    shorah_snv.main(reference=in_fasta, bam_file=in_bam, sigma=s, increment=1)
 
 if __name__ == "__main__":
 
-    import optparse
+    import argparse
     # parse command line
-    optparser = optparse.OptionParser()
+    parser = argparse.ArgumentParser(description="Local haplotype reconstruction - amplicon mode", 
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     opts = main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
 
     # First define all option groups
-    group1 = optparse.OptionGroup(optparser, "Input files", "Required input")
+    group1 = parser.add_argument_group("Input files", "Required input")
 
-    group2 = optparse.OptionGroup(optparser, "Type of run",
-                                  "You can specify a region, or look for the\
-                                  highest diversity region")
-    group3 = optparse.OptionGroup(optparser, "Run options", "Fine tuning")
-    group4 = optparse.OptionGroup(optparser, "More options",
-                                  "Do you really want to change this?")
+    group2 = parser.add_argument_group("Type of run", 
+                                       "You can specify a region, or look for the highest diversity\
+                                        region")
+    group3 = parser.add_argument_group("Run options", "Fine tuning")
+    group4 = parser.add_argument_group("More options",
+                                       "Do you really want to change this?")
 
-    group1.add_option("-b", "--bam",
-                      help="file with aligned reads in .bam format",
-                      default=opts[0], type="string", dest="in_bam")
+    group1.add_argument("-b", "--bam", metavar='BAM', required=True, type=str,
+                        dest="in_bam", help="file with aligned reads in .bam format")
 
-    group1.add_option("-f", "--fasta",
-                      help="reference genome in fasta format",
-                      default=opts[1], type="string", dest="in_fasta")
+    group1.add_argument("-f", "--fasta", metavar='REF', required=True, type=str, 
+                        dest="in_fasta", help="reference genome in fasta format")
 
-    group3.add_option("-m", "--min_overlap",
-                      help="fraction of read overlap to be included",
-                      default=opts[2], type="float", dest="min_overlap")
+    group2.add_argument("-r", "--region", metavar='chrm:start-stop', default=opts[4], type=str,
+                        dest="region", help="region in format 'chrm:start-stop' e.g.\
+                        'ch3:1000-1300'")
 
-    group4.add_option("-x", "--maxcov",
-                      help="approximate max coverage allowed <%default>",
-                      default=opts[3], type="int", dest="max_coverage")
+    group2.add_argument("-d", "--diversity", action="store_true", default=opts[5], 
+                        dest="diversity", help="if set, automatically detects the highest entropy\
+                        region and runs there")
 
-    group3.add_option("-a", "--alpha",
-                      help="alpha in dpm sampling <%default>",
-                      default=opts[4], type="float", dest="alpha")
+    group3.add_argument("-m", "--min_overlap", metavar='FLOAT', default=opts[0], type=float, 
+                        dest="min_overlap", help="fraction of read overlap to be included")
 
-    group4.add_option("-s", "--sigma", default=opts[5], type="float",
-                      dest="s",
-                      help="sigma value to use when calling SNVs\
-                      <%default>")
+    group3.add_argument("-a", "--alpha", metavar='FLOAT', default=opts[2], type=float,
+                        dest="alpha", help="alpha in dpm sampling")
 
-    group2.add_option("-r", "--region", default=opts[6], type="string",
-                      dest="region",
-                      help="region in format 'chr:start-stop'\
-                            eg 'ch3:1000-1300'")
+    group4.add_argument("-x", "--maxcov", metavar='INT', default=opts[1], type=int,
+                        dest="max_coverage", help="approximate max coverage allowed") 
 
-    group2.add_option("-d", "--diversity", action="store_true",
-                      dest="diversity", default=opts[7],
-                      help="if set, automatically detects the highest\
-                            entropy region and runs there <%default>")
+    group4.add_argument("-s", "--sigma", metavar='FLOAT', default=opts[3], type=float,
+                        dest="s", help="sigma value to use when calling SNVs")
 
-    optparser.add_option_group(group1)
-    optparser.add_option_group(group2)
-    optparser.add_option_group(group3)
-    optparser.add_option_group(group4)
-
-    (options, args) = optparser.parse_args()
+    args = parser.parse_args()
 
     supported_formats = {
         'bam': 'aligned reads',
@@ -419,19 +410,21 @@ if __name__ == "__main__":
     }
     # check the input file is in supported format
     try:
-        tmp_filename = os.path.split(options.in_bam)[1]
+        tmp_filename = os.path.split(args.in_bam)[1]
         [in_stem, in_format] = [tmp_filename.split('.')[0],
                                 tmp_filename.split('.')[-1]]
         t = supported_formats[in_format]
     except IndexError:
-        print 'The input file must be filestem.format'
-        print 'Supported formats are'
-        for sf in supported_formats.iteritems():
-            print sf[0], ':', sf[1]
+        print('The input file must be filestem.format')
+        print('Supported formats are')
+        for sf in iteritems(supported_formats):
+            print(sf[0], ':', sf[1])
         sys.exit()
     except KeyError:
-        print 'usage: amplian.py -b bam_file -f fasta_reference'
+        print('usage: amplian.py -b bam_file -f fasta_reference')
         sys.exit('Please run with -h for all options')
-    if options.diversity and options.region != '':
+    if args.diversity and args.region != '':
         sys.exit('Either detect the highest entropy region, or specify one')
-    main(*args, **vars(options))
+        
+    main(args.in_bam, args.in_fasta, args.min_overlap, args.max_coverage, args.alpha, 
+         args.s, args.region, args.diversity)

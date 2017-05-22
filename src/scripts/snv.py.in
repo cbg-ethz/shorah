@@ -1,30 +1,34 @@
 #!/usr/bin/env @PYTHON@
 
 import shorah_snv
-import optparse
+import argparse
 
 # parse command line
-optparser = optparse.OptionParser()
+parser = argparse.ArgumentParser(description="Single nucleotide variant calling", 
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
 opts = shorah_snv.main.func_defaults  # set the defaults (see http://bit.ly/2hCTQl)
 
-optparser.add_option("-r", "--ref", default=opts[0], type="string",
-                     dest="reference", help="reference file")
+requiredNamed = parser.add_argument_group('required named arguments')
 
-optparser.add_option("-b", "--bam", default=opts[1], type="string",
-                     dest="bam_file", help="sorted bam format alignment file")
+requiredNamed.add_argument("-r", "--ref", metavar='REF', type=str, required=True,
+                           dest="reference", help="reference file")
 
-optparser.add_option("-s", "--sigma", default=opts[2], type="float",
-                     dest="sigma", help="value of sigma to use when calling\
-                     SNVs <%default>")
+requiredNamed.add_argument("-b", "--bam", metavar='BAM', type=str, required=True, 
+                           dest="bam_file", help="sorted bam format alignment file")
 
-optparser.add_option("-i", "--increment", default=opts[3], type="int",
-                     dest="increment", help="value of increment to use \
-                     when calling SNVs (1 used by amplian.py) <%default>")
+parser.add_argument("-s", "--sigma", metavar='FLOAT', default=opts[0], type=float, 
+                    required=False, dest="sigma", help="value of sigma to use when calling\
+                                                        SNVs")
 
-optparser.add_option("-x", "--maxcov", default=opts[4], type="int",
-                     dest="max_coverage", help="Maximum coverage allowed \
-                     <%default>")
+parser.add_argument("-i", "--increment", metavar='INT', default=opts[1], type=int,
+                    required=False, dest="increment", 
+                    help="value of increment to use when calling \
+                          SNVs (1 used by amplian.py)")
 
-(options, args) = optparser.parse_args()
+parser.add_argument("-x", "--maxcov", metavar='INT', default=opts[2], type=int,
+                     dest="max_coverage", help="Maximum coverage allowed")
 
-shorah_snv.main(*args, **vars(options))
+args = parser.parse_args()
+
+shorah_snv.main(args.reference, args.bam_file, args.sigma, args.increment, args.max_coverage)
