@@ -66,10 +66,10 @@ TODO
 '''
 
 from __future__ import print_function
-from future.utils import iteritems
 from builtins import dict
-from builtins import range
 from builtins import map
+from builtins import range
+from future.utils import iteritems
 import random
 import shorah_matching
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env @PYTHON@
 
-import shorah_snv
 import argparse
+import shorah_snv
 
 # parse command line
 parser = argparse.ArgumentParser(description="Single nucleotide variant calling",

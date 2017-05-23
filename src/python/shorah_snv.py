@@ -32,13 +32,13 @@
 '''
 
 from __future__ import division
-from future.utils import iteritems
 from builtins import range
-import sys
-import os
-import gzip
-import shutil
+from future.utils import iteritems
 import glob
+import gzip
+import os
+import shutil
+import sys
 import warnings
 
 import logging
@@ -85,8 +85,8 @@ def parseWindow(line, ref1):
         value: reference name, position, reference_base, mutated base,
                average number of reads, posterior times average n of reads
     """
-    from re import search
     from Bio import SeqIO
+    from re import search
 
     ind = {'A': '.0', 'T': '.1', 'G': '.2', 'C': '.3',
            'a': '.0', 't': '.1', 'g': '.2', 'c': '.3', '-': '.4'}
@@ -346,8 +346,8 @@ def BH(p_vals, n):
 def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
     '''main code
     '''
-    import csv
     from Bio import SeqIO
+    import csv
     import inspect
 
     # set logging level

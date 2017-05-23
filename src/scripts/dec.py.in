@@ -2,9 +2,9 @@
 
 from __future__ import print_function
 from future.utils import iteritems
-import shorah_dec
 import argparse
 import os
+import shorah_dec
 
 # parse command line
 parser = argparse.ArgumentParser(description="Local haplotype recontruction: Dirichlet process mixture",
