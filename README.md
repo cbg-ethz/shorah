@@ -34,9 +34,12 @@ If you use shorah, please cite the application note paper _Zagordi et al._ on
 ### Dependencies
 shorah requires the following pieces of software:
 
-1. **Python 2**, which is generally available on most Unix-like system. The required dependencies are:
+1. **Python 2 or Python 3**, backward compatibility is provided as some current Linux distributions and OS X systems are still using 2.x as default. The required dependencies are:
 
-   a) **Biopython**, which can be downloaded using pip or anaconda
+   a) **Biopython**, 
+   b) **NumPy**, and
+   c) **future**
+   These packages can be downloaded using pip or anaconda
 
 2. **Perl**, for some scripts
 
@@ -68,17 +71,17 @@ installation more brittle.
 Say for instance, you would like to install shorah to `/usr/local/shorah`. The first step consists of installing
 the required python dependencies. Create a virtualenv:
 
-	/opt/local/bin/virtualenv-2.7 /usr/local/shorah
+	/opt/local/bin/virtualenv-3.6 /usr/local/shorah
 
-where `/opt/local/bin/virtualenv-2.7` is the virtualenv command for python 2.7 on MacPorts. Now install
+where `/opt/local/bin/virtualenv-3.6` is the virtualenv command for python 3.6 on MacPorts. Now install
 the python dependencies:
 
-	/usr/local/shorah/bin/pip install Biopython
+	/usr/local/shorah/bin/pip install Biopython numpy future
 
 Now call the `configure` script from the shorah tarball, taking care to specify the **absolute** path of the
 python interpreter (or the relative one if it is in your `PATH`), as this gets inserted into the shebang line of all python scripts:
 
-	./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python2.7
+	./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python3.6
 
 The configure script finds the dependencies using pkg-config. Once it completes, run:
 
@@ -135,3 +138,5 @@ All changes to the C++ code in `src/shorah` should always be formatted according
 	clang-format -style=file -i src/shorah/*.[ch]pp
 
 in the root of the repository.
+
+All changes to the python code in `src/python` and `src/scripts` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8). 
