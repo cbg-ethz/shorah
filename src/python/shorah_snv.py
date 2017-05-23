@@ -172,7 +172,7 @@ def getSNV(ref, segCov, incr):
         beg = int(f.split('\t')[2])
         end = int(f.split('\t')[3])
         if incr == 1:
-            incr = end - beg
+            incr = end - beg + 1
             single_window = True
             snvlog.info('working on single window as invoked by amplian')
         key = list(snp.keys())
