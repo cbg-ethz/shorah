@@ -25,15 +25,15 @@
     file of corrected reads
 '''
 
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from builtins import dict
-from future.utils import listitems
 from builtins import range
-import sys
+from future.utils import listitems
+import numpy as np
 import os
 import pipes
-import numpy as np
+import sys
 
 import logging
 import logging.handlers
@@ -147,8 +147,8 @@ def run_dpm(run_setting):
     """run the dirichlet process clustering
     """
 
-    import subprocess
     import shutil
+    import subprocess
 
     filein, j, a, seed = run_setting
 
@@ -358,9 +358,10 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     and analyzing the result
     '''
     from multiprocessing import Pool, cpu_count
-    import shutil
     import glob
+    import shutil
     import time
+
     import shorah_snv
 
     # set logging level

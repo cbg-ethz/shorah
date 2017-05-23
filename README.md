@@ -38,7 +38,7 @@ shorah requires the following pieces of software:
 
    a) **Biopython**, 
    b) **NumPy**, and
-   c) **future**
+   c) **future**. 
    These packages can be downloaded using pip or anaconda
 
 2. **Perl**, for some scripts

@@ -27,11 +27,11 @@
    single run of diri_sampler. Then, it performs SNV discovery by
    calling the program snv.py.
    '''
-from __future__ import print_function
 from __future__ import division
-from future.utils import iteritems
-from builtins import range
+from __future__ import print_function
 from builtins import map
+from builtins import range
+from future.utils import iteritems
 import os
 import os.path
 import sys
