@@ -1,7 +1,6 @@
 #!/usr/bin/env @PYTHON@
 
 from __future__ import print_function
-from future.utils import iteritems
 import argparse
 import os
 import shorah_dec
@@ -64,14 +63,14 @@ except IndexError:
     shorah_dec.declog.error('The input file must be filestem.format')
     print('The input file must be filestem.format')
     print('Supported formats are')
-    for sf in iteritems(supported_formats):
+    for sf in supported_formats.items():
         print(sf[0], ':', sf[1])
     sys.exit()
 except KeyError:
     shorah_dec.declog.error('format unknown')
     print(in_format, 'format unknown')
     print('Supported formats are')
-    for sf in iteritems(supported_formats):
+    for sf in supported_formats.items():
         print(sf[0], ':', sf[1])
     sys.exit()
 

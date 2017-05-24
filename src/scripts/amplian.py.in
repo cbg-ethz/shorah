@@ -29,9 +29,6 @@
    '''
 from __future__ import division
 from __future__ import print_function
-from builtins import map
-from builtins import range
-from future.utils import iteritems
 import os
 import os.path
 import sys
@@ -419,7 +416,7 @@ if __name__ == "__main__":
     except IndexError:
         print('The input file must be filestem.format')
         print('Supported formats are')
-        for sf in iteritems(supported_formats):
+        for sf in supported_formats.items():
             print(sf[0], ':', sf[1])
         sys.exit()
     except KeyError:
