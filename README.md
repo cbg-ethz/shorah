@@ -36,9 +36,8 @@ shorah requires the following pieces of software:
 
 1. **Python 2 or Python 3**, backward compatibility is provided as some current Linux distributions and OS X systems are still using 2.x as default. The required dependencies are:
 
-   a) **Biopython**, 
-   b) **NumPy**, and
-   c) **future**. 
+   a) **Biopython**, and 
+   b) **NumPy**.
    These packages can be downloaded using pip or anaconda
 
 2. **Perl**, for some scripts
@@ -76,7 +75,7 @@ the required python dependencies. Create a virtualenv:
 where `/opt/local/bin/virtualenv-3.6` is the virtualenv command for python 3.6 on MacPorts. Now install
 the python dependencies:
 
-	/usr/local/shorah/bin/pip install Biopython numpy future
+	/usr/local/shorah/bin/pip install Biopython numpy
 
 Now call the `configure` script from the shorah tarball, taking care to specify the **absolute** path of the
 python interpreter (or the relative one if it is in your `PATH`), as this gets inserted into the shebang line of all python scripts:

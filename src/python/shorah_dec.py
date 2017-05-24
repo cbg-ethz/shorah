@@ -27,9 +27,6 @@
 
 from __future__ import division
 from __future__ import print_function
-from builtins import dict
-from builtins import range
-from future.utils import listitems
 import numpy as np
 import os
 import pipes
@@ -541,7 +538,7 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     # ##########################################
     declog.info('Merging windows of corrected reads')
     # Multi-threaded version
-    params = listitems(aligned_reads)
+    params = list(aligned_reads.items())
     pool = Pool(processes=max_proc)
     to_correct = pool.map(merge_corrected_reads, params)
     pool.close()

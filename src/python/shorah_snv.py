@@ -32,8 +32,6 @@
 '''
 
 from __future__ import division
-from builtins import range
-from future.utils import iteritems
 import glob
 import gzip
 import os
@@ -147,7 +145,7 @@ def parseWindow(line, ref1):
 
     snvlog.info('max number of snvs per sequence found: %d' % max_snv)
     # normalize
-    for k, v in iteritems(snp):
+    for k, v in snp.items():
         v[5] /= v[4]
         v[4] /= reads
 

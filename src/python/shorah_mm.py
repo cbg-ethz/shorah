@@ -66,10 +66,6 @@ TODO
 '''
 
 from __future__ import print_function
-from builtins import dict
-from builtins import map
-from builtins import range
-from future.utils import iteritems
 import random
 import shorah_matching
 
@@ -133,7 +129,7 @@ def permuteList(l, perm):
 def permuteGraph(graph, perm):
     '''apply a permutation to a graph'''
     return dict([(perm[g], permuteList(child, perm))
-                 for (g, child) in iteritems(graph)])
+                 for (g, child) in graph.items()])
 
 
 def permute(graph, reads, descList):
@@ -583,7 +579,7 @@ def minimalCover(graph, reads, descList):
     # the maximal independent sets in the two parts of biGraph
     print('...Reversing matching')
     # reverse the matching
-    match = dict([(v, k) for (k, v) in iteritems(a[0])])
+    match = dict([(v, k) for (k, v) in a[0].items()])
     # free some memory, perhaps
     del a
     #print('matching =', match)
