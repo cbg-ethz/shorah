@@ -22,7 +22,7 @@ dnl Initialise Autoconf
 AC_PREREQ([2.69])
 AC_INIT(
 	[ShoRAH],
-	[1.0.0],
+	[1.1.0],
 	[osvaldo.zagordi@gmail.com])
 AC_CONFIG_SRCDIR([src/shorah/freqEst.cpp])
 AC_CONFIG_MACRO_DIR([m4])
