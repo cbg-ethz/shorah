@@ -206,13 +206,13 @@ def correct_reads(chr_c, wstart, wend):
                           (chr_c, wstart, wend)):
             cor_file = 'corrected/w-%s-%s-%s.reads-cor.fas.gz' % \
                 (chr_c, wstart, wend)
-            handle = gzip.open(cor_file)
+            handle = gzip.open(
+                cor_file, 'rb' if sys.version_info < (3, 0) else 'rt')
         else:
             cor_file = 'w-%s-%s-%s.reads-cor.fas' % (chr_c, wstart, wend)
             handle = open(cor_file, 'r')
 
         for seq_record in SeqIO.parse(handle, 'fasta'):
-            assert '\0' not in str(seq_record.seq), 'binary file!!!'
             read_id = seq_record.id
             try:
                 correction[read_id][wstart] = list(str(seq_record.seq))
@@ -243,11 +243,13 @@ def get_prop(filename):
     if os.path.exists(filename):
         h = open(filename)
     elif os.path.exists(filename + '.gz'):
-        h = gzip.open(filename + '.gz')
+        h = gzip.open(filename + '.gz',
+                      'rb' if sys.version_info < (3, 0) else 'rt')
     elif os.path.exists('debug/' + filename):
         h = open('debug/' + filename)
     elif os.path.exists('debug/' + filename + '.gz'):
-        h = gzip.open('debug/' + filename + '.gz')
+        h = gzip.open('debug/' + filename + '.gz',
+                      'rb' if sys.version_info < (3, 0) else 'rt')
     else:
         return 'not found'
 
