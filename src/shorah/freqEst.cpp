@@ -391,12 +391,12 @@ double EM(std::vector<double>& newP, std::vector<std::vector<double> > const& Z,
     }
     return newEll;
 }
-void help(void)
+void help(const int exit_code = EXIT_FAILURE)
 {
     std::cout << "Usage: freqEst -f basename [-p precision -i maxiter -r runs -h -k kill -?]\n";
     std::cout << "Expects basename.read and basename.geno\n";
     std::cout << "Outputs to basename.popl\n";
-    exit(1);
+    exit(exit_code);
 }
 
 int main(int argc, char** argv)
@@ -439,7 +439,7 @@ int main(int argc, char** argv)
                 help();
                 break;
             case 'h':
-                help();
+                help(EXIT_SUCCESS);
                 break;
             default:
                 help();
