@@ -2156,7 +2156,7 @@ int parsecommandline(int argc, char** argv)
 
     char c;
     while ((c = getopt(argc, argv, "i:j:a:t:o:m:K:k:R:c:Hh")) != -1) {
-
+        int exit_code = EXIT_FAILURE;
         switch (c) {
             case 'i':
                 filein = optarg;
@@ -2189,6 +2189,8 @@ int parsecommandline(int argc, char** argv)
             case 'R':
                 randseed = atoi(optarg);
                 break;
+            case 'h':
+                exit_code = EXIT_SUCCESS;
             default:
                 fprintf(stdout,
                         "%s [options]\n"
@@ -2205,7 +2207,7 @@ int parsecommandline(int argc, char** argv)
                         "-----------------------------------------------------\n"
                         "\t-h\t\t this help!\n",
                         argv[0]);
-                exit(-1);
+                exit(exit_code);
         }
     }
     if (HISTORY > iter) HISTORY = iter;

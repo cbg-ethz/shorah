@@ -46,11 +46,11 @@ struct Read
     std::string seq;
 };
 
-void help(void)
+void help(const int exit_code = EXIT_FAILURE)
 {
     std::cout << "Usage: contain -f basename\n";
     std::cout << "Expects basename.read, outputs basename.rest\n";
-    exit(1);
+    exit(exit_code);
 }
 
 void getReads(std::istream& infile, std::vector<Read>& ans)
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
                 help();
                 break;
             case 'h':
-                help();
+                help(EXIT_SUCCESS);
                 break;
             default:
                 help();

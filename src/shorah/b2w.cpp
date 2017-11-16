@@ -177,8 +177,11 @@ int main(int argc, char* argv[])
                 tmp.max = atof(optarg);
                 break;
             case 'h':
+                fprintf(stdout, "%s", help_string);
+                exit(EXIT_SUCCESS);
+            default:
                 fprintf(stderr, "%s", help_string);
-                return 1;
+                exit(EXIT_FAILURE);
         }
     }
     if (argc < 11 || argc > 12) {
@@ -306,5 +309,5 @@ int main(int argc, char* argv[])
     samclose(tmp.in);
     covOut.close();
     tmp.reads.close();
-    return 0;
+    exit(EXIT_SUCCESS);
 }
