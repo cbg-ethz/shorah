@@ -22,6 +22,15 @@ typedef struct
     samfile_t* in;
 } tmpstruct_t;
 
+// reinit members of tmpstruct_t
+static int re_init_tmp(tmpstruct_t* tmp)
+{
+    // re-init sane defaults for struct members that should be filled in by pileup callback fonction
+    tmp->forwM = tmp->revM = tmp->forwT = tmp->revT = 0;
+    tmp->pval = 1.;
+    return 0;
+}
+
 // callback for bam_fetch()
 static int fetch_func(const bam1_t* b, void* data)
 {
@@ -170,6 +179,8 @@ int main(int argc, char* argv[])
             if (sscanf(str_buf, "%s %d %c %c %s %s", chr, &pos, &ref, &var, fr1, p1) == 6) {
                 tmp.nuc = var;
                 sprintf(reg, "%s:%d-%d", chr, pos, pos);
+
+                re_init_tmp(&tmp);
                 bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
                 bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
                 bam_plbuf_push(0, buf);
@@ -185,6 +196,8 @@ int main(int argc, char* argv[])
                        fr3, p1, p2, p3) == 10) {
                 tmp.nuc = var;
                 sprintf(reg, "%s:%d-%d", chr, pos, pos);
+
+                re_init_tmp(&tmp);
                 bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
                 bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
                 bam_plbuf_push(0, buf);
