@@ -31,6 +31,7 @@ endforeach
 
 
 message('---------- And now the CPP part ----------')
+extra_cpp_args = ['-I../src/samtools']
 message('Is popcnt available?')
 code = '''#include <nmmintrin.h>
 int main() { return _mm_popcnt_u64(0); }
@@ -39,7 +40,7 @@ cpp = meson.get_compiler('cpp')
 success = cpp.links(code, args : '-mpopcnt', name : 'link check')
 if success
     message('popcnt intrinsics are available')
-    extra_cpp_args = ['-mpopcnt']
+    extra_cpp_args += ['-mpopcnt']
 else
     message('popcnt is broken')
 endif
@@ -67,10 +68,7 @@ bam_sources = files([
 'src/samtools/kstring.c',
 'src/samtools/razf.c',
 'src/samtools/sam.c',
-'src/samtools/sam_header.c'
-])
-
-bam_headers = files([
+'src/samtools/sam_header.c',
 'src/samtools/bam.h',
 'src/samtools/bam_endian.h',
 'src/samtools/bgzf.h',
@@ -87,15 +85,11 @@ bam_headers = files([
 'src/samtools/sam_header.h'
 ])
 
-install_headers(bam_headers)
-
-bam_include_directories = include_directories('.')
-# bam_library = static_library('libbam.a', bam_sources, dependencies: zlib_dep, include_directories: bam_include_directories)
-
+bam_library = static_library('libbam.a', bam_sources, dependencies: zlib_dep, c_args: ['-D_USE_KNETFILE'])
 
 message('---------- Compiling DPM sampler ----------')
 dpm_sources = files(['src/shorah/data_structures.hpp', 'src/shorah/dpm_sampler.hpp', 'src/shorah/dpm_sampler.cpp'])
 dpm_exe = executable('diri_sampler', dpm_sources, dependencies: gsl_dep, cpp_args: extra_cpp_args)
 
 message('---------- Compiling b2w ----------')
-b2w_exe = executable('b2w', 'src/shorah/b2w.cpp', cpp_args: ['-I/src/samtools'])  # , link_with: bam_library)
+b2w_exe = executable('b2w', 'src/shorah/b2w.cpp', cpp_args: extra_cpp_args, link_with: bam_library)
