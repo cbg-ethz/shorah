@@ -37,7 +37,7 @@ code = '''#include <nmmintrin.h>
 int main() { return _mm_popcnt_u64(0); }
 '''
 cpp = meson.get_compiler('cpp')
-success = cpp.links(code, args : '-mpopcnt', name : 'link check')
+success = cpp.links(code, args : '-mpopcnt', name : 'pocnt')
 if success
     message('popcnt intrinsics are available')
     extra_cpp_args += ['-mpopcnt']
@@ -85,7 +85,7 @@ bam_sources = files([
 'src/samtools/sam_header.h'
 ])
 
-bam_library = static_library('libbam.a', bam_sources, dependencies: zlib_dep, c_args: ['-D_USE_KNETFILE'])
+bam_library = static_library('libbam', bam_sources, dependencies: zlib_dep, c_args: ['-D_USE_KNETFILE'])
 
 message('---------- Compiling DPM sampler ----------')
 dpm_sources = files(['src/shorah/data_structures.hpp', 'src/shorah/dpm_sampler.hpp', 'src/shorah/dpm_sampler.cpp'])

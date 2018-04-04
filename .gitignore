@@ -51,3 +51,4 @@ py-compile
 *.swp
 *.lock
 profile
+builddir
