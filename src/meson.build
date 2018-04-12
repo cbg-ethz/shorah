@@ -1,0 +1,2 @@
+subdir('samtools')
+subdir('cpp')
