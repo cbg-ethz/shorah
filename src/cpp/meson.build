@@ -20,7 +20,7 @@ dpm_exe = executable(
     'data_structures.hpp',
     'dpm_sampler.hpp',
     'dpm_sampler.cpp']),
-  dependencies : gsl_dep,
+  dependencies : [ gsl_dep, thread_dep ],
   include_directories : bam_inc,
   cpp_args : extra_cpp_args,
   install : true)
@@ -28,6 +28,7 @@ dpm_exe = executable(
 b2w_exe = executable(
   'b2w', files([
     'b2w.cpp']),
+  dependencies : thread_dep,
   include_directories : bam_inc,
   cpp_args : extra_cpp_args,
   link_with : bam_library,
@@ -36,7 +37,7 @@ b2w_exe = executable(
 fil_exe = executable(
   'fil', files([
     'fil.cpp']),
-  dependencies : gsl_dep,
+  dependencies : [ gsl_dep, thread_dep ],
   include_directories : bam_inc,
   cpp_args : extra_cpp_args,
   link_with : bam_library,
