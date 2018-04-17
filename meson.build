@@ -18,26 +18,16 @@ as_micro_version = ver_arr[2]
 # python 3
 py3_mod = import('python3')
 py3 = py3_mod.find_python()
-
-py3_scripts_dir = py3_mod.sysconfig_path('scripts')
-
 py3_conf_data = configuration_data()
 py3_conf_data.set('PYTHON', py3.path())
 
 py_files = ['cli.py', 'shotgun.py', '__main__.py', 'shorah_snv.py', 'amplicon.py']
-# ['src/scripts/amplian.py.in', 'amplian.py'],
-# ['src/scripts/dec.py.in', 'dec.py'],
 
 foreach p : py_files
   py_script = configure_file(
     input : 'src/python/' + p + '.in',
     output : p,
     configuration : py3_conf_data)
-
-  install_data(
-    py_script,
-    install_dir : join_paths(get_option('prefix'), py3_scripts_dir),
-    install_mode : 'rwxr-xr-x')
 endforeach
 
 subdir('src')
