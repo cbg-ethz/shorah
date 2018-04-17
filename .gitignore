@@ -1,5 +1,5 @@
 # python files in src/shorah are configured from *.py.in with meson
-src/shorah/*
+src/shorah/*.py
 
 *.o
 *dSYM

@@ -19,7 +19,7 @@ def move_files():
     for py_file in glob.glob('%s/*py' % build_dir):
         shutil.copy(py_file, 'src/shorah/')
     for exe in ['b2w', 'diri_sampler', 'fil']:
-        ppp = shutil.copy('%s/src/cpp/%s' % (build_dir, exe), 'src/shorah/bin')
+        ppp = shutil.copy('%s/src/cpp/%s' % (build_dir, exe), 'src/shorah/bin/')
         print(ppp)
 
 class CustomDevelop(develop):
