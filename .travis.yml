@@ -1,4 +1,7 @@
-language: c cpp
+language: c cpp python
+
+python:
+  - 3.6
 
 # GSL and Autotools needed
 before_install:
