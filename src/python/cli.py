@@ -1,4 +1,4 @@
-#!/usr/bin/env @PYTHON@
+#!/usr/bin/env python3
 
 # Copyright 2007-2018
 # Niko Beerenwinkel,
@@ -46,7 +46,7 @@ from pkg_resources import (get_distribution, DistributionNotFound)
 try:
     __version__ = get_distribution('shorah').version
 except DistributionNotFound:
-    __version__ = 'unknown'
+    __version__ = '1.9.99'
 
 # manipulate path to import functions
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

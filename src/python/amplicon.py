@@ -1,6 +1,6 @@
-#!/usr/bin/env @PYTHON@
+#!/usr/bin/env python3
 
-# Copyright 2007-2012
+# Copyright 2007-2018
 # Niko Beerenwinkel,
 # Nicholas Eriksson,
 # Moritz Gerstung,

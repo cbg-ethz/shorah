@@ -1,48 +1,36 @@
 # install scripts in ${bindir}
 bin_SCRIPTS = \
-	src/scripts/amplian.py \
-	src/scripts/dec.py \
-	src/scripts/mm.py \
-	src/scripts/shorah.py \
-	src/scripts/snv.py \
-	fas2read.pl
+	shorah
 CLEANFILES = $(bin_SCRIPTS)
 EXTRA_DIST = \
-	src/scripts/amplian.py.in \
-	src/scripts/dec.py.in \
-	src/scripts/mm.py.in \
-	src/scripts/shorah.py.in \
-	src/scripts/snv.py.in \
-	src/scripts/fas2read.pl.in \
-	src/samtools/COPYING
+	meson.build \
+	setup.py \
+	src/meson.build \
+	src/cpp/meson.build \
+	src/samtools/COPYING \
+	src/samtools/meson.build
 
-fas2read.pl: src/scripts/fas2read.pl.in Makefile
-	$(SED) 's,[@]perldir[@],$(perldir),g' $< > $@
+shorah: $(top_srcdir)/src/python/__main__.py Makefile
+	$(SED) 's,#!/usr/bin/env python3,#!/usr/bin/env $(PYTHON),g' $(top_srcdir)/src/python/__main__.py > $@
 
 # actual C/C++ programs doing the real computation
-bin_PROGRAMS = diri_sampler contain freqEst b2w fil
+bin_PROGRAMS = diri_sampler b2w fil
 
 diri_sampler_SOURCES = \
-	src/shorah/data_structures.hpp \
-	src/shorah/dpm_sampler.hpp \
-	src/shorah/dpm_sampler.cpp
+	src/cpp/data_structures.hpp \
+	src/cpp/dpm_sampler.hpp \
+	src/cpp/dpm_sampler.cpp
 diri_sampler_CPPFLAGS = $(GSL_CFLAGS)
 diri_sampler_LDADD = $(GSL_LIBS)
 
-contain_SOURCES = \
-	src/shorah/contain.cpp
-
-freqEst_SOURCES = \
-	src/shorah/freqEst.cpp
-
 b2w_SOURCES = \
-	src/shorah/b2w.cpp
+	src/cpp/b2w.cpp
 b2w_CXXFLAGS = $(PTHREAD_CFLAGS)
 b2w_CPPFLAGS = -I$(top_srcdir)/src/samtools
 b2w_LDADD = libbam.a $(ZLIB_LIBS) $(PTHREAD_LIBS)
 
 fil_SOURCES = \
-	src/shorah/fil.cpp
+	src/cpp/fil.cpp
 fil_CXXFLAGS = $(PTHREAD_CFLAGS)
 fil_CPPFLAGS = $(GSL_CFLAGS) -I$(top_srcdir)/src/samtools
 fil_LDADD = libbam.a $(ZLIB_LIBS) $(GSL_LIBS) $(PTHREAD_LIBS)
@@ -85,19 +73,13 @@ libbam_a_SOURCES = \
 libbam_a_CPPFLAGS = $(ZLIB_CFLAGS) -D_USE_KNETFILE
 libbam_a_CFLAGS = $(PTHREAD_CFLAGS)
 
-# perl modules
-dist_perl_DATA = \
-	src/perl/DNA.pm \
-	src/perl/NikoUtil.pm \
-	src/perl/ReadUtil.pm \
-	src/perl/Util.pm
-
 # python modules
-python_PYTHON = \
-	src/python/shorah_dec.py \
-	src/python/shorah_matching.py \
-	src/python/shorah_mm.py \
-	src/python/shorah_snv.py
+dist_pkgpython_PYTHON = \
+	src/python/__main__.py \
+	src/python/amplicon.py \
+	src/python/cli.py \
+	src/python/shorah_snv.py \
+	src/python/shotgun.py
 
 # example files
 dist_pkgdata_DATA = \

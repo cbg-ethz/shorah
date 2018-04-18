@@ -1,18 +1,33 @@
-# python files in src/shorah are configured from *.py.in with meson
-src/shorah/*.py
-
 *.o
 *dSYM
+
+# Autotools cruft (NEVER check this into VCS)
+Makefile
+Makefile.in
+aclocal.m4
+.deps/
+.dirstamp
+autom4te.cache/
+compile
+config.guess
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+missing
+py-compile
+ar-lib
+shorah
 
 # generated tarball
 shorah*.tar.bz2
 
 # executables
 b2w
-contain
 diri_sampler
 fil
-freqEst
 
 # samtools lib
 libbam.a
@@ -21,7 +36,6 @@ libbam.a
 __pycache__/
 *.py[cod]
 *$py.class
-py-compile
 
 # OS X temporary files that should never be committed
 .DS_Store
@@ -33,3 +47,6 @@ profile
 build
 .eggs
 src/ShoRAH.egg-info/
+
+# shorah output
+shorah.log
