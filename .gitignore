@@ -4,6 +4,7 @@
 # Autotools cruft (NEVER check this into VCS)
 Makefile
 Makefile.in
+.version
 aclocal.m4
 .deps/
 .dirstamp

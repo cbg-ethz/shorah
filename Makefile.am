@@ -3,12 +3,14 @@ bin_SCRIPTS = \
 	shorah
 CLEANFILES = $(bin_SCRIPTS)
 EXTRA_DIST = \
+	$(top_srcdir)/.version \
 	meson.build \
 	setup.py \
 	src/meson.build \
 	src/cpp/meson.build \
 	src/samtools/COPYING \
 	src/samtools/meson.build
+BUILT_SOURCES = $(top_srcdir)/.version
 
 shorah: $(top_srcdir)/src/python/__main__.py Makefile
 	$(SED) 's,#!/usr/bin/env python3,#!/usr/bin/env $(PYTHON),g' $(top_srcdir)/src/python/__main__.py > $@
@@ -92,3 +94,9 @@ dist_ampliconpkgdata_DATA = \
 	examples/amplicon_test/ampli_sorted.bam \
 	examples/amplicon_test/amplicon_reads.fastq \
 	examples/amplicon_test/reference.fasta
+
+# version handling
+$(top_srcdir)/.version:
+	echo $(VERSION) > $@-t && mv $@-t $@
+dist-hook:
+	echo $(VERSION) > $(distdir)/.tarball-version
