@@ -22,7 +22,7 @@ dnl Initialise Autoconf
 AC_PREREQ([2.69])
 AC_INIT(
 	[shorah],
-	[1.9.99],
+	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
 	[osvaldo.zagordi@gmail.com])
 AC_CONFIG_SRCDIR([src/cpp/dpm_sampler.cpp])
 AC_CONFIG_MACRO_DIR([m4])
