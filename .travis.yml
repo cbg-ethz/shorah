@@ -1,7 +1,7 @@
 language: c cpp python
 
 python:
-  - 3.6
+  - "3.6"
 
 # GSL and Autotools needed
 before_install:
@@ -13,4 +13,4 @@ compiler:
   - gcc
 
 before_script: autoreconf -vif
-script: ./configure && make -j1 && make distcheck
+script: ./configure PYTHON=python3.6 && make -j1 distcheck
