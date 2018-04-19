@@ -1,41 +1,13 @@
 #!/usr/bin/env python
-import glob
+"""setup.py for shorah."""
 import sys
-import os
-import shutil
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
-from setuptools.command.develop import develop
-from setuptools.command.install import install
 
-def move_files():
-    """Identify the build directory and copy python files and executables into src/shorah."""
-    try:
-        main_file = glob.glob('*/__main__.py')[0]
-    except IndexError:
-        sys.exit('No __main__.py found. Build first.')
-    build_dir = os.path.dirname(main_file)
-    for py_file in glob.glob('%s/*py' % build_dir):
-        shutil.copy(py_file, 'src/shorah/')
-    for exe in ['b2w', 'diri_sampler', 'fil']:
-        ppp = shutil.copy('%s/src/cpp/%s' % (build_dir, exe), 'src/shorah/bin/')
-        print(ppp)
-
-class CustomDevelop(develop):
-    """Subclassing develop to install files in the correct location."""
-    def run(self):
-        move_files()
-        develop.run(self)
-
-
-class CustomInstall(install):
-    """Subclassing develop to install files in the correct location."""
-    def run(self):
-        move_files()
-        install.run(self)
 
 class PyTest(TestCommand):
+    """Subclass TestCommand to run python setup.py test."""
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
 
     def initialize_options(self):
@@ -60,15 +32,11 @@ setup(
     install_requires=['setuptools_scm'],
     tests_require=['pytest', 'flake8', 'pep257'],
     cmdclass={
-        'test': PyTest,
-        'install': CustomInstall,
-        'develop': CustomDevelop
+        'test': PyTest
         },
     name='ShoRAH',
     description='SHOrt Reads Assembly into Haplotypes',
     url='http://github.com/cbg-ethz/shorah',
-    # author='Osvaldo Zagordi',
-    # author_email='firstname.lastname@gmail.com',
     packages=find_packages('src'),  # include all packages under src
     package_dir={'': 'src'},  # tell setuptools packages are under src
     entry_points={
