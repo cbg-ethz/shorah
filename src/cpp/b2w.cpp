@@ -39,6 +39,8 @@ adapted from samtools/calDep.c
 #include "faidx.h"
 #include "sam.h"
 
+#define UNUSED(expr) (void)(expr)
+
 // data for fetch_func and pileup_func
 typedef struct
 {
@@ -79,7 +81,8 @@ static int fetch_func1(const bam1_t* b, void* data)
             overlap = tmp->end - Rstart + 1;
         }
         if (overlap >= tmp->min_overlap) {
-            char rd[wSize + 1];  // store blank read segment of 'N's
+            //char rd[wSize + 1]; store blank read segment of 'N's
+            char *rd = new char[wSize + 1];
             for (int i = 0; i < wSize; i++) {
                 rd[i] = 'N';
             }
@@ -93,6 +96,7 @@ static int fetch_func1(const bam1_t* b, void* data)
                 << '>' << bam1_qname(b) << ' ' << Rstart << '\n';
             tmp->outFile  // write read
                 << rd << "\n";
+            delete [] rd;
         }
     }
     return 0;
@@ -102,6 +106,8 @@ static int fetch_func1(const bam1_t* b, void* data)
 static int pileup_func(uint32_t tid, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
 {
     tmpstruct_t* tmp = (tmpstruct_t*)data;
+    UNUSED(tid);
+    UNUSED(n);
     int i = pos - tmp->beg;                    // base position within window
     char* mm = (char*)tmp->rd + i;             // location of base
     if (pos >= tmp->beg && pos <= tmp->end) {  // make sure read position within window
@@ -199,6 +205,7 @@ int main(int argc, char* argv[])
     tmp.fai = fai_load(argv[optind + 1]);
 
     int iBuild = bam_index_build(argv[optind]);  // generate bam index
+    UNUSED(iBuild);
     bam_index_t* idx;
     idx = bam_index_load(argv[optind]);  // load bam index
     if (idx == 0) {

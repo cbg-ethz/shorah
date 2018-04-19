@@ -1,4 +1,6 @@
-# Copyright 2007-2012
+#!/usr/bin/env python3
+
+# Copyright 2007-2018
 # Niko Beerenwinkel,
 # Nicholas Eriksson,
 # Moritz Gerstung,
@@ -27,17 +29,28 @@
 
 from __future__ import division
 from __future__ import print_function
-import numpy as np
+
 import os
 import pipes
 import sys
-
+import shlex
 import logging
-import logging.handlers
+from pkg_resources import resource_filename
 
-# Make a global logging object.
-declog = logging.getLogger(__name__)
+import numpy as np
 
+dn_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if __name__ == '__main__':
+    if __package__ is None:
+        os.sys.path.insert(1, dn_dir)
+        mod = __import__('shorah')
+        sys.modules["shorah"] = mod
+        import shorah_snv
+else:
+    from . import shorah_snv
+
+diri_exe = resource_filename(__name__, 'bin/diri_sampler')
+b2w_exe = resource_filename(__name__, 'bin/b2w')
 #################################################
 # a common user should not edit above this line #
 #################################################
@@ -60,13 +73,14 @@ correction = {}
 # Dictionary storing by read ID (key) the posterior for each of window
 quality = {}
 
-count = {}
-count['A'] = 0
-count['C'] = 0
-count['G'] = 0
-count['T'] = 0
-count['X'] = 0
-count['-'] = 0
+count = {
+    'A': 0,
+    'C': 0,
+    'G': 0,
+    'T': 0,
+    'X': 0,
+    '-': 0
+}
 clusters = [[]]
 untouched = [[]]
 
@@ -91,18 +105,18 @@ def parse_aligned_reads(reads_file):
     out_reads = {}
 
     if not os.path.isfile(reads_file):
-        declog.error('There should be a file here: ' + reads_file)
+        logging.error('There should be a file here: ' + reads_file)
         sys.exit('There should be a file here: ' + reads_file)
     else:
-        declog.info('Using file ' + reads_file + ' of aligned reads')
+        logging.info('Using file ' + reads_file + ' of aligned reads')
 
     handle = open(reads_file)
-    declog.debug('Parsing aligned reads')
+    logging.debug('Parsing aligned reads')
 
     for h in handle:
         name, start, stop, mstart, mstop, this_m = h.rstrip().split('\t')
         if this_m == '':
-            declog.warning('parsing empty read: %s' % h)
+            logging.warning('parsing empty read: %s', h)
         out_reads[name] = [None, None, None, None, []]
         # start of the region of interest (0-based indexing)
         out_reads[name][0] = int(start)
@@ -122,21 +136,22 @@ def windows(run_settings):
     """
     import subprocess
     bam, fasta, w, i, m, x, reg = run_settings
-    dn = sys.path[0]
-    my_prog = os.path.join(dn, 'b2w')
+    #dn = sys.path[0]
+    my_prog = shlex.quote(b2w_exe)  # os.path.join(dn, 'b2w')
+
     my_arg = ' -w %i -i %i -m %i -x %i %s %s %s' % \
         (w, i, m, x, bam, fasta, reg)
 
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
         if retcode > 0:
-            declog.error('%s %s' % (my_prog, my_arg))
-            declog.error('b2w returned %i' % retcode)
+            logging.error('%s %s', my_prog, my_arg)
+            logging.error('b2w returned %i', retcode)
         else:
-            declog.debug('Finished making windows')
-            declog.debug('b2w returned %i' % retcode)
+            logging.debug('Finished making windows')
+            logging.debug('b2w returned %i', retcode)
     except OSError as ee:
-        declog.error('Execution of b2w failed: %s' % ee)
+        logging.error('Execution of b2w failed: %s', ee)
     return retcode
 
 
@@ -153,7 +168,7 @@ def run_dpm(run_setting):
     stem = filein.split('.reads')[0]
     corgz = 'corrected/%s.reads-cor.fas.gz' % stem
     if os.path.exists(corgz):
-        declog.debug('file %s already analysed, skipping' % filein)
+        logging.debug('file %s already analysed, skipping', filein)
         return
 
     # if already run before, extract the read file
@@ -164,8 +179,8 @@ def run_dpm(run_setting):
         shutil.move(fstgz, './')
         subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
-    dn = sys.path[0]
-    my_prog = os.path.join(dn, 'diri_sampler')
+    # dn = sys.path[0]
+    my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
     my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
         (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
 
@@ -174,18 +189,18 @@ def run_dpm(run_setting):
         # os.remove('./assignment.tmp')
     except OSError:
         pass
-    declog.debug(my_prog + my_arg)
+    logging.debug(my_prog + my_arg)
     # runs the gibbs sampler for the dirichlet process mixture
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
         if retcode < 0:
-            declog.error('%s %s' % (my_prog, my_arg))
-            declog.error('Child %s terminated by SIG %d' % (my_prog, -retcode))
+            logging.error('%s %s' % (my_prog, my_arg))
+            logging.error('Child %s terminated by SIG %d' % (my_prog, -retcode))
         else:
-            declog.debug('run %s finished' % my_arg)
-            declog.debug('Child %s returned %i' % (my_prog, retcode))
+            logging.debug('run %s finished' % my_arg)
+            logging.debug('Child %s returned %i' % (my_prog, retcode))
     except OSError as ee:
-        declog.error('Execution of %s failed: %s' % (my_prog, ee))
+        logging.error('Execution of %s failed: %s' % (my_prog, ee))
 
     return
 
@@ -231,7 +246,7 @@ def correct_reads(chr_c, wstart, wend):
         handle.close()
         return
     except IOError:
-        declog.warning('No reads in window %s?' % wstart)
+        logging.warning('No reads in window %s?' % wstart)
         return
 
 
@@ -350,8 +365,9 @@ def merge_corrected_reads(aligned_read):
     return(ID, merged_corrected_read)
 
 
-def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
-         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
+#def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
+#         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
+def main(args):
     '''
     Performs the error correction analysis, running diri_sampler
     and analyzing the result
@@ -361,25 +377,25 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     import shutil
     import time
 
-    import shorah_snv
+    #import shorah_snv
 
-    # set logging level
-    declog.setLevel(logging.DEBUG)
-    # This handler writes everything to a file.
-    LOG_FILENAME = './dec.log'
-    hl = logging.handlers.RotatingFileHandler(LOG_FILENAME, 'w',
-                                              maxBytes=100000, backupCount=5)
-    f = logging.Formatter("%(levelname)s %(asctime)s\
-                          %(funcName)s %(lineno)d %(message)s")
-    hl.setFormatter(f)
-    declog.addHandler(hl)
-    declog.info(' '.join(sys.argv))
+    in_bam = args.b
+    in_fasta = args.f
+    win_length = args.w
+    win_shifts = args.win_shifts
+    region = args.r
+    max_coverage = args.max_coverage
+    alpha = args.a
+    keep_files = args.keep_files
+    seed = args.seed
+
+    logging.info(' '.join(sys.argv))
 
     # check options
     if win_length % win_shifts != 0:
         sys.exit('Window size must be divisible by win_shifts')
     if win_min_ext < 1 / win_shifts:
-        declog.warning('Some bases might not be covered by any window')
+        logging.warning('Some bases might not be covered by any window')
     if max_coverage / win_length < 1:
         sys.exit('Please increase max_coverage')
     if not os.path.isfile(in_bam):
@@ -406,14 +422,14 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     if win_length > gen_length:
         sys.exit('The window size must be smaller than the genome region')
 
-    declog.info('%s reads are being considered' % len(aligned_reads))
+    logging.info('%s reads are being considered', len(aligned_reads))
 
     ############################################
     # Now the windows and the error correction #
     ############################################
 
     runlist = win_to_run(alpha, seed)
-    declog.info('will run on %d windows' % len(runlist))
+    logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
     pool = Pool(processes=max_proc)
@@ -434,24 +450,24 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     proposed = {}
     for i in runlist:
         winFile, j, a, s = i
-        del(a)  # in future alpha might be different on each window
+        del a  # in future alpha might be different on each window
         parts = winFile.split('.')[0].split('-')
         chrom = '-'.join(parts[1:-2])
         beg = int(parts[-2])
         end = int(parts[-1])
-        declog.info('reading windows for start position %s' % beg)
+        logging.info('reading windows for start position %s', beg)
         # correct reads populates correction and quality, globally defined
         correct_reads(chrom, beg, end)
         stem = 'w-%s-%s-%s' % (chrom, beg, end)
-        declog.info('this is window %s' % stem)
+        logging.info('this is window %s' % stem)
         dbg_file = stem + '.dbg'
         # if os.path.exists(dbg_file):
         proposed[beg] = (get_prop(dbg_file), j)
-        declog.info('there were %s proposed' % str(proposed[beg][0]))
+        logging.info('there were %s proposed' % str(proposed[beg][0]))
 
     # (re)move intermediate files
     if not keep_all_files:
-        declog.info('removing intermediate files')
+        logging.info('removing intermediate files')
         tr_files = glob.glob('./w*reads.fas')
         tr_files.extend(glob.glob('./*.smp'))
         tr_files.extend(glob.glob('./w*.dbg'))
@@ -538,7 +554,7 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     ## correction[read_id][wstart] = sequence ##
     ## quality[read_id][wstart] = posterior   ##
     # ##########################################
-    declog.info('Merging windows of corrected reads')
+    logging.info('Merging windows of corrected reads')
     # Multi-threaded version
     params = list(aligned_reads.items())
     pool = Pool(processes=max_proc)
@@ -546,12 +562,12 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     pool.close()
     pool.join()
 
-    declog.info('All corrected reads have been merged')
+    logging.info('All corrected reads have been merged')
 
     ccx = {}
     cin_stem = '.'.join(os.path.split(in_bam)[1].split('.')[:-1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
-    declog.debug('writing to file %s.cor.fas' % cin_stem)
+    logging.debug('writing to file %s.cor.fas', cin_stem)
     for ID, seq_list in to_correct:
         cor_read = ''.join(seq_list)
         init_x = len(cor_read.lstrip('-')) - len(cor_read.lstrip('-X'))
@@ -584,7 +600,7 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
                      (kp, proposed[kp][0] / proposed[kp][1]))
     ph.close()
 
-    declog.info('running snv.py')
+    logging.info('running snv.py')
     shorah_snv.main(reference=in_fasta, bam_file=in_bam,
                     increment=win_length // win_shifts, max_coverage=max_coverage)
 
@@ -597,4 +613,4 @@ def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
     for snv_file in glob.glob('./SNV*'):
         shutil.move(snv_file, 'snv/')
 
-    declog.info('dec.py ends')
+    logging.info('shotgun run ends')

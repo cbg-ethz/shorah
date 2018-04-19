@@ -810,7 +810,7 @@ void build_assignment(std::ofstream& out_file)
 
         if (cn->next->size == 0) {
 #ifndef NDEBUG
-            printf("removing some node... p=%p\n", cn->next);
+            printf("removing some node... p=%p\n", (void *)cn->next);
 #endif
             remove_comp(&cn->next);
         } else {
@@ -1300,7 +1300,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     temp = new int[J / 10 + 1];
 #ifndef NDEBUG
     for (removed = 0; removed < q; removed++)
-        printf("c_ptr[%d]=%p\n", removed, c_ptr[removed]);
+        printf("c_ptr[%d]=%p\n", removed, (void *)c_ptr[removed]);
     removed = 0;
     printf("---------------------------------------------------\n");
     printf("-----------> sampling class for %ith read <----------\n", i);
@@ -1496,7 +1496,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
 #ifndef NDEBUG
     for (j = 0; j <= st; j++)
-        printf("with P[%i] = %e to class %p\n", j, P[j], cl_ptr[j]);
+        printf("with P[%i] = %e to class %p\n", j, P[j], (void *)cl_ptr[j]);
 #endif
 
     g = gsl_ran_discrete_preproc(st + 1, P);
@@ -1518,7 +1518,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
         if (from_class == to_class) {
 #ifndef NDEBUG
-            printf("from %p to itself\n", from_class);
+            printf("from %p to itself\n", (void *)from_class);
 #endif
 
             //      free(P);
@@ -1532,7 +1532,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
         else if (to_class != NULL) {
 #ifndef NDEBUG
-            printf("moving the read from %p to %p\n", from_class, to_class);
+            printf("moving the read from %p to %p\n", (void *)from_class, (void *)to_class);
 #endif
 
             c_ptr[i] =
@@ -1554,7 +1554,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
         else if (to_class == NULL) {
 #ifndef NDEBUG
-            printf("moving %i to a new class from %p\n", i, from_class);
+            printf("moving %i to a new class from %p\n", i, (void *)from_class);
 #endif
 
             remove_read(search_read(&from_class->rlist, i));

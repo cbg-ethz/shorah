@@ -1,13 +1,17 @@
-language: c cpp
+language: c cpp python
+
+python:
+  - "3.6"
 
 # GSL and Autotools needed
 before_install:
   - sudo add-apt-repository ppa:ondrej/autotools -y
   - sudo apt-get update -qq
   - sudo apt-get install -y gsl-bin libgsl0-dev autoconf automake-1.15 pkg-config m4
+  - source ~/virtualenv/python3.6/bin/activate
 
 compiler:
   - gcc
 
 before_script: autoreconf -vif
-script: ./configure && make -j1 && make distcheck
+script: ./configure && make -j1 distcheck

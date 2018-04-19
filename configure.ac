@@ -21,10 +21,10 @@ dnl           https://github.com/cbg-ethz/shorah/releases
 dnl Initialise Autoconf
 AC_PREREQ([2.69])
 AC_INIT(
-	[ShoRAH],
-	[1.1.1],
+	[shorah],
+	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
 	[osvaldo.zagordi@gmail.com])
-AC_CONFIG_SRCDIR([src/shorah/freqEst.cpp])
+AC_CONFIG_SRCDIR([src/cpp/dpm_sampler.cpp])
 AC_CONFIG_MACRO_DIR([m4])
 
 
@@ -64,6 +64,7 @@ AC_PROG_SED
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_RANLIB
+AM_PROG_AR
 
 AC_LANG([C])
 AX_COMPILER_VENDOR
@@ -142,23 +143,14 @@ AM_SILENT_RULES([yes])
 dnl ======================================
 dnl Initialise Perl and Python directories
 dnl ======================================
-AM_PATH_PYTHON
-AC_ARG_VAR([perldir], [path in which to install perl modules, '${libdir}/perl' by default])
-: ${perldir="${libdir}/perl"}
+AM_PATH_PYTHON([3.5])
 
 
 
 dnl ========
 dnl Finalise
 dnl ========
-AC_CONFIG_FILES([
-	Makefile
-	src/scripts/amplian.py
-	src/scripts/dec.py
-	src/scripts/mm.py
-	src/scripts/shorah.py
-	src/scripts/snv.py
-	])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
 
@@ -169,12 +161,15 @@ dnl ============================
 AC_MSG_RESULT([
 	${PACKAGE_NAME} ${VERSION}
 
-	CC:         ${CC} (${ax_cv_c_compiler_vendor}, ${ax_cv_c_compiler_version})
-	CFLAGS:     ${CFLAGS}
+	CC : ...................... ${CC} (${ax_cv_c_compiler_vendor}, ${ax_cv_c_compiler_version})
+	CFLAGS : .................. ${CFLAGS}
 
-	CXX:        ${CXX} (${ax_cv_cxx_compiler_vendor}, ${ax_cv_cxx_compiler_version})
-	CXXFLAGS:   ${CXXFLAGS}
+	CXX : ..................... ${CXX} (${ax_cv_cxx_compiler_vendor}, ${ax_cv_cxx_compiler_version})
+	CXXFLAGS : ................ ${CXXFLAGS}
 
-	CPPFLAGS:   ${CPPFLAGS}
-	LDFLAGS:    ${LDFLAGS}
+	CPPFLAGS : ................ ${CPPFLAGS}
+	LDFLAGS : ................. ${LDFLAGS}
+
+	PYTHON : .................. ${PYTHON}
+	Python version : .......... ${PYTHON_VERSION}
 ])
