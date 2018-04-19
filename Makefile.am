@@ -3,17 +3,17 @@ bin_SCRIPTS = \
 	shorah
 CLEANFILES = $(bin_SCRIPTS)
 EXTRA_DIST = \
-	$(top_srcdir)/.version \
+	.version \
 	meson.build \
 	setup.py \
 	src/meson.build \
 	src/cpp/meson.build \
 	src/samtools/COPYING \
 	src/samtools/meson.build
-BUILT_SOURCES = $(top_srcdir)/.version
+BUILT_SOURCES = .version
 
-shorah: $(top_srcdir)/src/python/__main__.py Makefile
-	$(SED) 's,#!/usr/bin/env python3,#!/usr/bin/env $(PYTHON),g' $(top_srcdir)/src/python/__main__.py > $@
+shorah: $(top_srcdir)/src/shorah/__main__.py Makefile
+	$(SED) 's,#!/usr/bin/env python3,#!/usr/bin/env $(PYTHON),g' $(top_srcdir)/src/shorah/__main__.py > $@
 
 # actual C/C++ programs doing the real computation
 bin_PROGRAMS = diri_sampler b2w fil
@@ -77,11 +77,12 @@ libbam_a_CFLAGS = $(PTHREAD_CFLAGS)
 
 # python modules
 dist_pkgpython_PYTHON = \
-	src/python/__main__.py \
-	src/python/amplicon.py \
-	src/python/cli.py \
-	src/python/shorah_snv.py \
-	src/python/shotgun.py
+	src/shorah/__main__.py \
+	src/shorah/amplicon.py \
+	src/shorah/cli.py \
+	src/shorah/shorah_snv.py \
+	src/shorah/shotgun.py
+pkgpython_PYTHON = .version
 
 # example files
 dist_pkgdata_DATA = \

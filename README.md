@@ -132,10 +132,10 @@ These can be run one after the other, or one can invoke `shorah.py`, that runs
 the whole process from bam file to frequency estimation and SNV calling.
 
 ## Coding style
-All changes to the C++ code in `src/shorah` should always be formatted according to the included `.clang-format` style by doing
+All changes to the C++ code in `src/cpp` should always be formatted according to the included `.clang-format` style by doing
 
-	clang-format -style=file -i src/shorah/*.[ch]pp
+	clang-format -style=file -i src/cpp/*.[ch]pp
 
 in the root of the repository.
 
-All changes to the python code in `src/python` and `src/scripts` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8). 
+All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8). 

@@ -1,6 +1,6 @@
 project('shorah',
   ['c', 'cpp'],
-  version : '1.9.99',
+  version : '1.9.95',
   default_options : [
     'buildtype=release',
     'default_library=shared',

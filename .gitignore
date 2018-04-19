@@ -20,7 +20,7 @@ install-sh
 missing
 py-compile
 ar-lib
-shorah
+/shorah
 
 # generated tarball
 shorah*.tar.bz2
