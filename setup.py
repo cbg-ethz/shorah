@@ -1,9 +1,38 @@
 #!/usr/bin/env python
 """setup.py for shorah."""
+import glob
 import sys
+import os
+import shutil
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
+from setuptools.command.develop import develop
+from setuptools.command.install import install
+
+
+def move_files():
+    """Identify the build directory and copy executables into src/shorah."""
+    try:
+        diri_file = glob.glob('*/src/cpp/diri_sampler')[0]
+    except IndexError:
+        sys.exit('No executable diri_sampler found. Build first.')
+    exe_dir = os.path.dirname(diri_file)
+    for exe in ['b2w', 'diri_sampler', 'fil']:
+        shu = shutil.copy('%s/%s' % (exe_dir, exe), 'src/shorah/bin')
+        print(shu)
+class CustomDevelop(develop):
+    """Subclassing develop to install files in the correct location."""
+    def run(self):
+        move_files()
+        develop.run(self)
+
+
+class CustomInstall(install):
+    """Subclassing develop to install files in the correct location."""
+    def run(self):
+        move_files()
+        install.run(self)
 
 
 class PyTest(TestCommand):
@@ -32,7 +61,9 @@ setup(
     install_requires=['setuptools_scm'],
     tests_require=['pytest', 'flake8', 'pep257'],
     cmdclass={
-        'test': PyTest
+        'test': PyTest,
+        'install': CustomInstall,
+        'develop': CustomDevelop
         },
     name='ShoRAH',
     description='SHOrt Reads Assembly into Haplotypes',
