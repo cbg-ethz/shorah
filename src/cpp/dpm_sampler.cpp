@@ -77,7 +77,12 @@ int main(int argc, char** argv)
     std::string instr = filein;
 
     /// rename sampling file and debug file
-    int insize = instr.find('.');
+    // TODO once bioconda moves to gcc 4.9+ (with c++11 regex library), we could convert the whole rename section to regex, to keep coherent accross the whole project
+    int insize = instr.rfind(".reads");  // NOTE : this is robust enough against name generated in b2w.cpp:246
+    if (insize == std::string::npos)
+        insize = instr.length();
+    // TODO clean ref_name of special caracters - that would be an alternative to processing everything with regex down the line. But that will break any legacy data set
+    // BUG the solution currently used by ShoRAH can still fail when path '/' (or on windows '\\' and ':') characters are present in the sam->header->target_name
     std::string statstr = instr.substr(0, insize).append(".dbg");
     std::string outstr = instr.substr(0, insize).append(".smp");
     std::string alphastr = instr.substr(0, insize).append(".alpha");
@@ -1892,7 +1897,7 @@ void write_posterior_files(std::string instr)
     /** All the posterior information is written here
    */
     //  std::cout << "HISTORY = " << HISTORY << std::endl;
-    int insize = instr.rfind('.');
+    int insize = instr.rfind('.'); // NOTE robust against dots in id name
     std::string corstr = instr.substr(0, insize).append("-cor.fas");
     std::string supstr = instr.substr(0, insize).append("-support.fas");
     std::string freqstr = instr.substr(0, insize).append("-freq.csv");

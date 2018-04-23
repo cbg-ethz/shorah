@@ -243,8 +243,11 @@ int main(int argc, char* argv[])
                     rLen[j] = 0;
                 }
                 tmp.rLen = rLen;
-                sprintf(filename, "w-%s-%d-%d.reads.fas",  // read window filename
+                sprintf(filename, "w-%s-%u-%u.reads.fas",  // read window filename
                         tmp.in->header->target_name[i], tmp.beg + 1, tmp.end + 1);
+                // TODO clean ref_name of special caracters - that would be an alternative to processing everything with regex down the line
+                // BUG the solution currently used by ShoRAH can still fail when path '/' (or on windows '\\' and ':') characters are present in the sam->header->target_name
+
                 tmp.outFile.open(filename, std::ios::out);
                 bam_fetch(tmp.in->x.bam, idx, i, tmp.beg, tmp.end, &tmp,
                           fetch_func1);         // fetch and write reads
