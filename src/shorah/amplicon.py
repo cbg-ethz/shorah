@@ -33,6 +33,7 @@ import os
 import os.path
 import sys
 import shlex
+import re
 
 import logging
 import logging.handlers
@@ -92,8 +93,10 @@ def run_diagnostics(window_file, reads):
     """
     import warnings
 
-    smp_file = window_file.split('.')[0] + '.smp'
-    dbg_file = window_file.split('.')[0] + '.dbg'
+    stem = re.match(r'^(?P<stem>.*).reads', window_file).group('stem')  # greedy re match to handle situation where '.reads' appears in the ID
+    smp_file = stem + '.smp'
+    dbg_file = stem + '.dbg'
+    del stem
 
     with open(dbg_file) as l:
         lines = l.readlines()
@@ -197,7 +200,6 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     """Parse reads to have their length distribution and compute the
     trimmed mean read length"""
 
-    import re
     import warnings
 
     read_len = []
@@ -333,9 +335,10 @@ def main(args):
     ref_seq = list(SeqIO.parse(in_fasta, 'fasta'))[0]
     ref_name = ref_seq.id
     if region:
-        reg_bound = region.split(':')[1].split('-')
-        reg_start, reg_stop = int(reg_bound[0]), int(reg_bound[1])
+        reg_bound = re.search(r':(?P<start>\d+)-(?P<stop>\d+)$', region)  # handles situation where ':' or '-' appears in the ID
+        reg_start, reg_stop = int(reg_bound.group('start')), int(reg_bound.group('stop'))
         ref_length = reg_stop - reg_start + 1
+        del reg_bound
     elif region == '' and diversity:
         reg_start, reg_stop = highest_entropy(in_bam, in_fasta)
         ref_length = reg_stop - reg_start + 1
@@ -356,7 +359,9 @@ def main(args):
     logging.debug('b2w returned %d', ret_b2w)
 
     # run diri_sampler on the aligned reads
-    win_file = 'w-%s-%d-%d.reads.fas' % (ref_name, reg_start, reg_stop)
+    win_file = 'w-%s-%u-%u.reads.fas' % (ref_name, reg_start, reg_stop)
+    # TODO clean ref_name of special caracters - that would be an alternative to processing everything with regex down the line
+    # BUG the solution currently used by ShoRAH can still fail when path '/' (or on windows '\\' and ':') characters are present in the ref_seq.id
     h = list(open('coverage.txt'))[0]
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file %s not found' % win_file

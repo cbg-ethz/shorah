@@ -36,6 +36,7 @@ import sys
 import shlex
 import logging
 from pkg_resources import resource_filename
+import re
 
 import numpy as np
 
@@ -174,7 +175,7 @@ def run_dpm(run_setting):
     filein, j, a, seed = run_setting
 
     # if cor.fas.gz exists, skip
-    stem = filein.split('.reads')[0]
+    stem = re.match(r'^(?P<stem>.*).reads', filein).group('stem')  # greedy re match to handle situation where '.reads' appears in the ID
     corgz = 'corrected/%s.reads-cor.fas.gz' % stem
     if os.path.exists(corgz):
         logging.debug('file %s already analysed, skipping', filein)
@@ -459,14 +460,15 @@ def main(args):
         winFile, j, a, s = i
         del a  # in future alpha might be different on each window
         del s
-        parts = winFile.split('.')[0].split('-')
-        chrom = '-'.join(parts[1:-2])
-        beg = int(parts[-2])
-        end = int(parts[-1])
+        parts = re.match(r'^w-(?P<chrom>.*)-(?P<beg>\d+)-(?P<end>\d+).reads', winFile)  # greedy re match to handle situation where '.' or '-' appears in the ID
+        chrom = parts.group('chrom')
+        beg = int(parts.group('beg'))
+        end = int(parts.group('end'))
+        del parts
         logging.info('reading windows for start position %s', beg)
         # correct reads populates correction and quality, globally defined
         correct_reads(chrom, beg, end)
-        stem = 'w-%s-%s-%s' % (chrom, beg, end)
+        stem = 'w-%s-%u-%u' % (chrom, beg, end)
         logging.info('this is window %s', stem)
         dbg_file = stem + '.dbg'
         # if os.path.exists(dbg_file):
@@ -573,7 +575,7 @@ def main(args):
     logging.info('All corrected reads have been merged')
 
     ccx = {}
-    cin_stem = '.'.join(os.path.split(in_bam)[1].split('.')[:-1])
+    cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1]) # handle case where bamfile has no dots in name
     fch = open('%s.cor.fas' % cin_stem, 'w')
     logging.debug('writing to file %s.cor.fas', cin_stem)
     for ID, seq_list in to_correct:
