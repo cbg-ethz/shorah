@@ -37,7 +37,6 @@ from __future__ import division
 import glob
 import gzip
 import os
-import shutil
 import sys
 import warnings
 import shlex
@@ -46,12 +45,10 @@ import logging
 
 from pkg_resources import resource_filename
 fil_exe = resource_filename(__name__, 'bin/fil')
-
 if not os.path.exists(fil_exe):
     import shutil
-    diri_exe = shutil.which('diri_sampler')
-    b2w_exe = shutil.which('b2w')
-    if not (diri_exe and b2w_exe):
+    fil_exe = shutil.which('fil')
+    if not fil_exe:
         logging.error('Executable fil not found, compile first.')
         sys.exit('Executable fil not found, compile first.')
 
