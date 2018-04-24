@@ -22,11 +22,11 @@
 
 # You should have received a copy of the GNU General Public License
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
-'''amplian.py is the program that performs the analysis in amplicon mode.
+"""amplian.py is the program that performs the analysis in amplicon mode.
    It creates a MSA of the reads and performs error correction with a
    single run of diri_sampler. Then, it performs SNV discovery by
    calling the program snv.py.
-   '''
+   """
 from __future__ import division
 from __future__ import print_function
 import os
@@ -53,12 +53,20 @@ else:
 diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
 
+if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
+    import shutil
+    diri_exe = shutil.which('diri_sampler')
+    b2w_exe = shutil.which('b2w')
+    if not (diri_exe and b2w_exe):
+        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        sys.exit('Executables b2w and diri_sampler not found, compile first.')
+
 win_min_ext = 0.95
 cutoff_depth = 10000
 
 
 def run_child(exe_name, arg_string):
-    '''use subrocess to run an external program with arguments'''
+    """use subrocess to run an external program with arguments"""
     import subprocess
 
     if not arg_string.startswith(' '):
@@ -80,8 +88,8 @@ def run_child(exe_name, arg_string):
 
 
 def run_diagnostics(window_file, reads):
-    '''Performs some basic diagnostics on the quality of the MC sampling
-    '''
+    """Performs some basic diagnostics on the quality of the MC sampling
+    """
     import warnings
 
     smp_file = window_file.split('.')[0] + '.smp'
@@ -127,7 +135,7 @@ def run_diagnostics(window_file, reads):
 
 
 def matchremove(matchobj):
-    '''Callback function used in mpileup manipulation'''
+    """Callback function used in mpileup manipulation"""
     match = matchobj.group(0)
     if match.startswith('+') or match.startswith('-'):
         c = int(match[1:])
@@ -138,8 +146,8 @@ def matchremove(matchobj):
 
 
 def shannon_entropy(bases):
-    '''Shannon entropy of a mpileup column: Pseudocount = 1 and
-    returns 0 if length = 1'''
+    """Shannon entropy of a mpileup column: Pseudocount = 1 and
+    returns 0 if length = 1"""
     import math
     if len(bases) == 1:
         return 0.0
@@ -151,7 +159,7 @@ def shannon_entropy(bases):
 
 
 def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
-    '''Plot entropies and window to a pdf file with matplotlib'''
+    """Plot entropies and window to a pdf file with matplotlib"""
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -186,8 +194,8 @@ def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
     del fig
 
 def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
-    '''Parse reads to have their length distribution and compute the
-    trimmed mean read length'''
+    """Parse reads to have their length distribution and compute the
+    trimmed mean read length"""
 
     import re
     import warnings
@@ -306,10 +314,10 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
 #def main(in_bam, in_fasta, min_overlap=0.95, max_coverage=50000,
 #         alpha=0.5, s=0.01, region='', diversity=False):
 def main(args):
-    '''
+    """
     Performs the amplicon analysis, running diri_sampler
     and analyzing the result
-    '''
+    """
     in_bam = args.b
     in_fasta = args.f
     region = args.r

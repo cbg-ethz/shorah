@@ -22,10 +22,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 
-'''dec.py draws windows on the bam file, cuts them into separate fasta files,
+"""dec.py draws windows on the bam file, cuts them into separate fasta files,
     calls diri_sampler to correct them, and merges the correction into a
     file of corrected reads
-'''
+"""
 
 from __future__ import division
 from __future__ import print_function
@@ -51,6 +51,15 @@ else:
 
 diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
+
+if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
+    import shutil
+    diri_exe = shutil.which('diri_sampler')
+    b2w_exe = shutil.which('b2w')
+    if not (diri_exe and b2w_exe):
+        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        sys.exit('Executables b2w and diri_sampler not found, compile first.')
+
 #################################################
 # a common user should not edit above this line #
 #################################################
@@ -86,8 +95,8 @@ untouched = [[]]
 
 
 def gzip_file(f_name):
-    '''Gzip a file and return the name of the gzipped, removing the original
-    '''
+    """Gzip a file and return the name of the gzipped, removing the original
+    """
     import gzip
     f_in = open(f_name, 'rb')
     f_out = gzip.open(f_name + '.gz', 'wb')
@@ -105,10 +114,10 @@ def parse_aligned_reads(reads_file):
     out_reads = {}
 
     if not os.path.isfile(reads_file):
-        logging.error('There should be a file here: ' + reads_file)
+        logging.error('There should be a file here: %s', reads_file)
         sys.exit('There should be a file here: ' + reads_file)
     else:
-        logging.info('Using file ' + reads_file + ' of aligned reads')
+        logging.info('Using file %s of aligned reads', reads_file)
 
     handle = open(reads_file)
     logging.debug('Parsing aligned reads')
@@ -194,20 +203,20 @@ def run_dpm(run_setting):
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
         if retcode < 0:
-            logging.error('%s %s' % (my_prog, my_arg))
-            logging.error('Child %s terminated by SIG %d' % (my_prog, -retcode))
+            logging.error('%s %s', my_prog, my_arg)
+            logging.error('Child %s terminated by SIG %d', my_prog, -retcode)
         else:
-            logging.debug('run %s finished' % my_arg)
-            logging.debug('Child %s returned %i' % (my_prog, retcode))
+            logging.debug('run %s finished', my_arg)
+            logging.debug('Child %s returned %i', my_prog, retcode)
     except OSError as ee:
-        logging.error('Execution of %s failed: %s' % (my_prog, ee))
+        logging.error('Execution of %s failed: %s', my_prog, ee)
 
     return
 
 
 def correct_reads(chr_c, wstart, wend):
-    ''' Parses corrected reads (in fasta format) and correct the reads
-    '''
+    """ Parses corrected reads (in fasta format) and correct the reads
+    """
     # out_reads[match_rec.id][0] = qstart
     # out_reads[match_rec.id][1] = qstop
     # out_reads[match_rec.id][2] = mstart
@@ -246,7 +255,7 @@ def correct_reads(chr_c, wstart, wend):
         handle.close()
         return
     except IOError:
-        logging.warning('No reads in window %s?' % wstart)
+        logging.warning('No reads in window %s?', wstart)
         return
 
 
@@ -277,8 +286,7 @@ def get_prop(filename):
 
 
 def base_break(baselist):
-    """break the tie if different corrections are found
-    """
+    """Break the tie if different corrections are found."""
     import random
 
     for c1 in count:
@@ -302,8 +310,7 @@ def base_break(baselist):
 
 
 def win_to_run(alpha_w, seed):
-    '''returns windows to run on diri_sampler
-    '''
+    """Return windows to run on diri_sampler."""
 
     rn_list = []
     try:
@@ -316,7 +323,7 @@ def win_to_run(alpha_w, seed):
         j = min(300000, int(cov) * 15)
         rn_list.append((winFile, j, alpha_w, seed))
 
-    del(end)
+    del end
     del(beg, chr1)
     return rn_list
 
@@ -368,10 +375,10 @@ def merge_corrected_reads(aligned_read):
 #def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
 #         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
 def main(args):
-    '''
+    """
     Performs the error correction analysis, running diri_sampler
     and analyzing the result
-    '''
+    """
     from multiprocessing import Pool, cpu_count
     import glob
     import shutil
@@ -451,6 +458,7 @@ def main(args):
     for i in runlist:
         winFile, j, a, s = i
         del a  # in future alpha might be different on each window
+        del s
         parts = winFile.split('.')[0].split('-')
         chrom = '-'.join(parts[1:-2])
         beg = int(parts[-2])
@@ -459,11 +467,11 @@ def main(args):
         # correct reads populates correction and quality, globally defined
         correct_reads(chrom, beg, end)
         stem = 'w-%s-%s-%s' % (chrom, beg, end)
-        logging.info('this is window %s' % stem)
+        logging.info('this is window %s', stem)
         dbg_file = stem + '.dbg'
         # if os.path.exists(dbg_file):
         proposed[beg] = (get_prop(dbg_file), j)
-        logging.info('there were %s proposed' % str(proposed[beg][0]))
+        logging.info('there were %s proposed', str(proposed[beg][0]))
 
     # (re)move intermediate files
     if not keep_all_files:
