@@ -21,6 +21,8 @@ def move_files():
     for exe in ['b2w', 'diri_sampler', 'fil']:
         shu = shutil.copy('%s/%s' % (exe_dir, exe), 'src/shorah/bin')
         print(shu)
+
+
 class CustomDevelop(develop):
     """Subclassing develop to install files in the correct location."""
     def run(self):
