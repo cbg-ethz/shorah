@@ -54,13 +54,12 @@ diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
 
 if not os.path.exists(diri_exe) or not os.path.exists(b2w_exe):
-    for path in os.environ["PATH"].split(os.pathsep):
-        diri_exe = os.path.join(path, 'diri_sampler')
-        b2w_exe = os.path.join(path, 'b2w')
-        if os.path.exists(diri_exe) and os.path.exists(b2w_exe):
-            break
-    logging.error('Executables b2w and diri_sampler not found, compile first.')
-    sys.exit('Executables b2w and diri_sampler not found, compile first.')
+    import shutil
+    diri_exe = shutil.which('diri_sampler')
+    b2w_exe = shutil.which('b2w')
+    if not (diri_exe and b2w_exe):
+        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 win_min_ext = 0.95
 cutoff_depth = 10000
