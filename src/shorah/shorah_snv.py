@@ -48,12 +48,12 @@ from pkg_resources import resource_filename
 fil_exe = resource_filename(__name__, 'bin/fil')
 
 if not os.path.exists(fil_exe):
-    for path in os.environ["PATH"].split(os.pathsep):
-        fil_exe = os.path.join(path, 'fil')
-        if os.path.exists(fil_exe):
-            break
-    logging.error('Executable fil not found, compile first.')
-    sys.exit('Executable fil not found, compile first.')
+    import shutil
+    diri_exe = shutil.which('diri_sampler')
+    b2w_exe = shutil.which('b2w')
+    if not (diri_exe and b2w_exe):
+        logging.error('Executable fil not found, compile first.')
+        sys.exit('Executable fil not found, compile first.')
 
 # used to parse variants from support files
 posterior_thresh = 0.9
