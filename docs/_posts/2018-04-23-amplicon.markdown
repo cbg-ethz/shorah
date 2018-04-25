@@ -1,0 +1,32 @@
+---
+layout: default
+modal-id: amplicon
+date: 2014-07-18
+title: Amplicon mode
+img: amplicon.png
+alt: Amplicon mode
+# project-date: April 2014
+# client: Start Bootstrap
+# category: Web Development
+description: I am interested in genetic variants in a region small enough that one read covers it entirely. Coverage there is high, even in the order of thousands.
+
+---
+
+The user knows exactly the region where they want to investigate the genetic diversity. One specific window is drawn
+on this alignment, reads overlapping it are cut and clustered together in order to remove sequencing errors.
+The input files are a reference sequence and alignment of reads in sorted BAM.
+The output is a list of haplotypes (true genetic variants found in the samples) with an estimate of their posterior
+probability and the number of reads assigned.
+
+The code below uses as input the files found in the directory `examples/amplicon_test` in the GitHub repo.
+
+    [user@host]$ shorah -f reference.fasta -b ampli_sorted.bam amplicon
+    ... a few seconds later ...
+    [user@host]$ cat w-reference-1-73.reads-support.fas
+    >hap_0|posterior=1.0895 ave_reads=646.03
+    CTCAGGTCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
+    >hap_1|posterior=1 ave_reads=291
+    CTCAGGTAACTCTTTGGCAACGACCCCACGTCACCATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
+
+The output is found in the file `*support.fas`. Two haplotypes are found, one with 646 reads, and one with 291.
+Due to

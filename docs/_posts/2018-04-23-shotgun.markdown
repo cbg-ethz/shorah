@@ -1,0 +1,21 @@
+---
+layout: default
+modal-id: shotgun
+date: 2014-07-18
+title: Shotgun mode
+img: shotgun.png
+alt: Shotgun mode
+# project-date: April 2014
+# client: Start Bootstrap
+# category: Web Development
+description: I am interested in a region long enough that multiple reads are needed to cover it entirely. Coverage is variable, but it never drops too low.
+
+---
+
+Put some content here
+
+
+Some code
+
+
+    user@host $ samtools

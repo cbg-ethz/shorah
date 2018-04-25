@@ -1,6 +1,6 @@
 What is ShoRAH?
 ===============
-[![Build Status](https://travis-ci.org/ozagordi/shorah.svg?branch=master)](https://travis-ci.org/ozagordi/shorah)
+[![Build Status](https://travis-ci.org/cbg-ethz/shorah.svg?branch=master)](https://travis-ci.org/cbg-ethz/shorah)
 
 ShoRAH is an open source project for the analysis of next generation sequencing
 data. It is designed to analyse genetically heterogeneous samples. Its tools
@@ -12,7 +12,19 @@ More information [here](http://cbg-ethz.github.io/shorah).
 
 ---
 
-The software suite ShoRAH (Short Reads Assembly into Haplotypes) consists of
+ShoRAH is an open source project for the analysis of sequencing data.
+designed to analyse genetically heterogeneous samples. It is written in Python (with some C++
+code for performance reasons) and provides error correction, haplotype reconstruction and
+estimation of the frequency of the different genetic variants present in a mixed sample.</p>
+</div>
+<div class="col-lg-4">
+<p>ShoRAH 2 is an API breaking update that removes the option to run a <em>global haplotype reconstruction</em>.
+While this was motivated by the emergence of better tools for this difficult problem, a welcome
+consequence was the simplification of the codebase (<em>e.g.</em> by removing some Perl legacy
+code), resulting in a simpler interface and easier development.</p>
+
+
+ShoRAH2 (Short Reads Assembly into Haplotypes) consists of
 several programs, the most imporant of which are:
 
 | Tool           | What it does                                                        |
@@ -36,7 +48,7 @@ shorah requires the following pieces of software:
 
 1. **Python 2 or Python 3**, backward compatibility is provided as some current Linux distributions and OS X systems are still using 2.x as default. The required dependencies are:
 
-   a) **Biopython**, and 
+   a) **Biopython**, and
    b) **NumPy**.
    These packages can be downloaded using pip or anaconda
 
@@ -138,4 +150,4 @@ All changes to the C++ code in `src/cpp` should always be formatted according to
 
 in the root of the repository.
 
-All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8). 
+All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
