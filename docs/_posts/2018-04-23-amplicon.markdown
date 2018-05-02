@@ -12,11 +12,18 @@ description: I am interested in genetic variants in a region small enough that o
 
 ---
 
-The user knows exactly the region where they want to investigate the genetic diversity. One specific window is drawn
-on this alignment, reads overlapping it are cut and clustered together in order to remove sequencing errors.
-The input files are a reference sequence and alignment of reads in sorted BAM.
-The output is a list of haplotypes (true genetic variants found in the samples) with an estimate of their posterior
-probability and the number of reads assigned.
+#### Introduction
+
+This method is useful when the user knows exactly the region where they want to investigate the genetic diversity.
+For example, with 250 bp reads obtained with Illumina technology, it is possible to cover all resistance mutations
+associated to protease inhibitors on HIV-1 (from amino acid 10 to amino acid 90 of the protease). By extracting
+reads entirely overlapping this region, the user can accurately reconstruct these local haplotypes. This is done by
+aligning reads to a sequence, then drawing a specific window on this alignment. Reads overlapping it are cut and
+clustered together in order to remove sequencing errors. This analysis is shown here below.
+
+#### Run
+
+The input files are a reference sequence and alignment of reads to it in sorted BAM.
 
 The code below uses as input the files found in the directory `examples/amplicon_test` in the GitHub repo.
 
@@ -27,6 +34,10 @@ The code below uses as input the files found in the directory `examples/amplicon
     CTCAGGTCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
     >hap_1|posterior=1 ave_reads=291
     CTCAGGTAACTCTTTGGCAACGACCCCACGTCACCATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
+
+The output is a list of haplotypes (true genetic variants found in the samples) with an estimate of their posterior
+probability and the number of reads assigned.
+
 
 The output is found in the file `*support.fas`. Two haplotypes are found, one with 646 reads, and one with 291.
 Due to
