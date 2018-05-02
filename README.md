@@ -132,6 +132,8 @@ All changes to the python code in `src/shorah` should always be formatted confor
 - Nicholas Eriksson
 - Moritz Gerstung
 - Lukas Geyrhofer
+- Fabio Luciani
+- Kerensa McElroy
 - Susana Posada Céspedes
 - David Seifert
 - Ivan Topolsky
