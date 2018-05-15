@@ -26,8 +26,8 @@ ShoRAH2 can be run in two different modes:
 
 |     mode     |                         Use                               |   old name   |
 |:------------:|:---------------------------------------------------------:|:------------:|
-| `amplicon`   | useful on small regions entirely covered by a single read | `amplian.py` |
-| `shotgun`    | local error correction of reads covering a long region    |   `dec.py `  |
+|  `amplicon`  | useful on small regions entirely covered by a single read | `amplian.py` |
+|  `shotgun`   | local error correction of reads covering a long region    |   `dec.py `  |
 
 See `shorah -h` for details and the [documentation](http://cbg-ethz.github.io/shorah).
 
@@ -81,25 +81,25 @@ installation more brittle.
 Say for instance, you would like to install shorah to `/usr/local/shorah`. The first step consists of installing
 the required python dependencies. Create a virtualenv:
 
-	/opt/local/bin/virtualenv-3.6 /usr/local/shorah
+    /opt/local/bin/virtualenv-3.6 /usr/local/shorah
 
 where `/opt/local/bin/virtualenv-3.6` is the virtualenv command for python 3.6 on MacPorts. Now install
 the python dependencies:
 
-	/usr/local/shorah/bin/pip install Biopython numpy
+    /usr/local/shorah/bin/pip install Biopython numpy
 
 Now call the `configure` script from the shorah tarball, taking care to specify the **absolute** path of the
 python interpreter (or the relative one if it is in your `PATH`), as this gets inserted into the shebang line of all python scripts:
 
-	./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python3.6
+    ./configure --prefix=/usr/local/shorah PYTHON=/usr/local/shorah/bin/python3.6
 
 The configure script finds the dependencies using pkg-config. Once it completes, run:
 
-	make -j4
+    make -j4
 
 where `4` specifies the number of compilation threads to use. Finally, after compilation, install using:
 
-	make install
+    make install
 
 All the programs should now be located in `/usr/local/shorah/bin`.
 
@@ -107,7 +107,7 @@ All the programs should now be located in `/usr/local/shorah/bin`.
 If you opted to clone the git repository instead of downloading a prepared tarball, you will need to bootstrap
 the configure script:
 
-	autoreconf -vif
+    autoreconf -vif
 
 After this, you can run the `configure` script as described previously.
 
@@ -119,11 +119,13 @@ The input is a sorted bam file. Analysis can be performed in shotgun or amplicon
 ## Coding style
 All changes to the C++ code in `src/cpp` should always be formatted according to the included `.clang-format` style by doing
 
-	clang-format -style=file -i src/cpp/*.[ch]pp
+    clang-format -style=file -i src/cpp/*.[ch]pp
 
 in the root of the repository.
 
-All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
+All changes to the python code in `src/shorah` should always be formatted conforming to the
+[PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use
+[autopep8](https://pypi.python.org/pypi/autopep8).
 
 ## Collaborators
 
