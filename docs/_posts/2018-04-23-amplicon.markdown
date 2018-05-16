@@ -12,7 +12,7 @@ description: I am interested in genetic variants in a region small enough that o
 
 ---
 
-#### Introduction
+### Introduction
 
 This method is useful when the user knows exactly the region where they want to investigate the genetic diversity.
 For example, with 250 bp reads obtained with Illumina technology, it is possible to cover all resistance mutations
@@ -21,23 +21,53 @@ reads entirely overlapping this region, the user can accurately reconstruct thes
 aligning reads to a sequence, then drawing a specific window on this alignment. Reads overlapping it are cut and
 clustered together in order to remove sequencing errors. This analysis is shown here below.
 
-#### Run
+### Preparation
 
-The input files are a reference sequence and alignment of reads to it in sorted BAM.
+We will be working with files in the `sample_data` directory in the GitHub repository. Besides `shorah`, we will need:
 
-The code below uses as input the files found in the directory `examples/amplicon_test` in the GitHub repo.
+- `bwa`,
+- `samtools`,
+- `wgsim`,
 
-    [user@host]$ shorah -f reference.fasta -b ampli_sorted.bam amplicon
+all available in Bioconda. Run the script `prepare.sh` and check that `aln_sorted.bam` has been created. This is
+a sorted BAM alignment of the 250 bp reads to the 1488 bp gag/pol sequence contained in `ref.fasta` and, together with
+the reference, is the input for shorah.
+
+### Analysis
+
+By aligning the reference with [HIV locator](http://www.hiv.lanl.gov/content/sequence/LOCATE/locate.html), we observe
+that the protease correspond to nucleotides 169 → 465. Since we are using 250 bp long reads, we can cover entirely
+the amino acids 10 → 90, _i.e._, those interesting for drug resistance mutations. They correspond to nucleotides
+196 438. We can find haplotypes on this region with the following command.
+
+
+    [user@host]$ shorah -b aln_sorted.bam -f ref.fasta -r gagpol:196-438 -a 3.0 amplicon
     ... a few seconds later ...
-    [user@host]$ cat w-reference-1-73.reads-support.fas
-    >hap_0|posterior=1.0895 ave_reads=646.03
-    CTCAGGTCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
-    >hap_1|posterior=1 ave_reads=291
-    CTCAGGTAACTCTTTGGCAACGACCCCACGTCACCATAAAGATAGGGGGGCAACTAAAGGAAGCTCTATTAGA
+    prefix ... shorah_snv.py:134: UserWarning: posterior = 1.030 > 1
+      warnings.warn('posterior = %4.3f > 1' % post)
+    [user@host]$ head -8 w-gagpol-196-438.reads-support.fas | cut -c -80  # only prints first 80 characters
+    >hap_0|posterior=1.03 ave_reads=380.277
+    TTAATCACAGTAAAAATAGGGGGACAGCTAATAGAAGCCCTATTAGACACAGGGGCAGATGATACAGTATTAGAAGAAAT
+    >hap_1|posterior=1 ave_reads=313
+    TTAGTCACAGTAAAAATAGGGGGACAGCCAATAGAAGCCCTATTAGACACAGGAGCAGATGATACAGTATTAGAAGAAAT
+    >hap_2|posterior=0.325 ave_reads=2.261
+    TTAATCACAGTAAAAATAGGGGGACAGCTAAAAGAAGCCCTATTAGACACAGGGGCAGATGATACAGTATTAGAAGAAAT
+    >hap_3|posterior=0.029 ave_reads=0.029
+    TTAATCACAGTAACAATAGGGGGACAGCTAATAGAAGCCCTATTAGACACAGGGGCAGATGATACAGTATTATAAGAAAT
 
-The output is a list of haplotypes (true genetic variants found in the samples) with an estimate of their posterior
-probability and the number of reads assigned.
+### Interpretation
 
+The file `*support.fas` contains all inferred haplotypes (true genetic variants found in the samples) with an estimate
+of their posterior probability and the number of reads assigned. They are sorted by posterior in descending order.
+In the above example two haplotypes are found:
 
-The output is found in the file `*support.fas`. Two haplotypes are found, one with 646 reads, and one with 291.
-Due to
+- `hap_0`, with approximately 380 reads,
+- `hap_1`, with 313 reads.
+
+Other haplotypes have very low posterior and can be discarded. It's recommended to discard below 95% probability, and
+to look for a sharp drop in the posterior from around 1 to very low values as this is a good measure of the quality of
+the reconstruction.
+
+Posterior values greater than one obviously don't make sense mathematically. Yet they sometimes appear as a result of
+poor mixing in the sampling. Values slightly higher than one as in this case are not too concerning, but the user
+should not overlook this.
