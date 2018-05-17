@@ -74,7 +74,7 @@ AC_LANG([C++])
 AX_COMPILER_VENDOR
 AX_COMPILER_VERSION
 
-dnl required by samtools on linux
+dnl required by HTSlib on linux
 AX_PTHREAD
 
 
@@ -124,11 +124,12 @@ AS_IF([test "x$enable_popcnt" != "xno"], [
 
 
 
-dnl =================
-dnl Find zlib and gsl
-dnl =================
+dnl =========================
+dnl Find zlib, gsl and HTSlib
+dnl =========================
 PKG_CHECK_MODULES([ZLIB], [zlib])
 PKG_CHECK_MODULES([GSL], [gsl])
+PKG_CHECK_MODULES([HTSLIB], [htslib])
 
 
 
@@ -169,6 +170,9 @@ AC_MSG_RESULT([
 
 	CPPFLAGS : ................ ${CPPFLAGS}
 	LDFLAGS : ................. ${LDFLAGS}
+
+	HTSlib_CFLAGS : ........... ${HTSLIB_CFLAGS}
+	HTSlib_LIBS : ............. ${HTSLIB_LIBS}
 
 	PYTHON : .................. ${PYTHON}
 	Python version : .......... ${PYTHON_VERSION}
