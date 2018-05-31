@@ -23,27 +23,23 @@ ETH Zurich
 adapted from samtools/calDep.c
  ******************************/
 #include <getopt.h>
-#include <gsl/gsl_sf.h>
 #include <cstdio>
 #include <fstream>
-#include <iostream>
+#include <sstream>
 #include <map>
 #include <string>
-#include <functional>
-#include <limits>
 
-#include <string.h>
-#include <assert.h>
-
+#include <gsl/gsl_sf.h>
 #include <htslib/sam.h>
 #include <htslib/faidx.h>
+
+#define UNUSED(expr) (void)(expr)
 
 typedef struct
 {
     int pos, pos1, SNP, forwM, revM, forwT, revT, maxdepth;
     double sig, pval;
-    char nuc;
-    htsFile* in;
+    char nuc; // nucleotide that we're looking for in this SNP
 } tmpstruct_t;
 
 // reinit members of tmpstruct_t
@@ -71,8 +67,6 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n, const bam_pileup1_t* p
             char c;
             const bam_pileup1_t* p = pl + i;
             if (p->indel == 0 and p->is_del != 1)
-//              c = bam_nt16_rev_table[bam1_seqi(bam1_seq(p->b),
-//                                               p->qpos)];  // get base for this read
                 // based on samtools/bam.h
                 c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
             else if (p->is_del == 1)
@@ -146,13 +140,15 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n, const bam_pileup1_t* p
 int main(int argc, char* argv[])
 {
     tmpstruct_t tmp;
+    tmp.maxdepth = 10000; tmp.sig = 0.01; // cli.py's defaults
     int c = 0;
-    hts_idx_t* idx;
+    hts_idx_t* idx = NULL;
     int amplicon = 0;
+    htsFile* inFile = NULL;
     while ((c = getopt(argc, argv, "b:v:x:a")) != EOF) {
         switch (c) {
             case 'b':
-                tmp.in = hts_open(optarg, "r");
+                inFile = hts_open(optarg, "r");
                 idx = hts_idx_load(optarg, HTS_FMT_BAI);
                  // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI
                 break;
@@ -166,140 +162,140 @@ int main(int argc, char* argv[])
                 amplicon = 1;
         }
     }
-    if (tmp.in == 0) {
-        fprintf(stderr, "Failed to open BAM file %s\n", argv[1]);
+    if (inFile == NULL) {
+        std::fprintf(stderr, "Failed to open BAM file %s\n", argv[1]);
         return 1;
     }
-    bam_hdr_t* header = sam_hdr_read(tmp.in);
-    if (idx == 0) {
-        fprintf(stderr, "BAM indexing file is not available.\n");
+    bam_hdr_t* header = sam_hdr_read(inFile);
+    if (idx == NULL) {
+        std::fprintf(stderr, "BAM indexing file is not available.\n");
         return 2;
     }
-//  bam_plbuf_t* buf;
-//  buf = bam_plbuf_init(pileup_func, &tmp);
     bam_plp_t plp_iter = bam_plp_init(0, 0);
     bam_plp_set_maxcnt(plp_iter, tmp.maxdepth);
-    FILE* fl = fopen("SNV.txt", "rt");
-    if (fl == NULL) {
-        fprintf(stderr, "Failed to open SNV file.\n");
+    std::ifstream fl ("SNV.txt", std::ios_base::in);
+    if (fl.fail()) {
+        std::fprintf(stderr, "Failed to open SNV file.\n");
         return 3;
     }
-    // BUG way too many fixed size for my comfort
-    char chr[100], ref, var, fr1[7], fr2[7], fr3[7], p1[7], p2[7], p3[7];
-    int pos, name;
-    char str_buf[200];
-    char reg[200];
+    std::string str_buf ("");
+
     char* filename = NULL;
-    std::ofstream snpsOut;
     asprintf(&filename, "SNVs_%f.txt", tmp.sig);
+    std::ofstream snpsOut;
     snpsOut.open(filename, std::ios::out);
 
-    // setup reader and writer depending on amplicon mode
-    std::function<int(const char*)> input_scanf;
-    std::function<void(std::ofstream &)> output_SNPs;
-    if (amplicon) {
+    // process the input line by line (one SNV after the other)
+    while (std::getline(fl, str_buf)) {
+        /*
+         * General workflow
+         *
+         * for each SNVs, we fetch all the reads that cover this position,
+         * push them on a pileup, and finally read the pileup.
+         */
+
+        std::string chr; // chr:   target chromosone in text form
+        int name, pos;   // name : target (as header's numeric form)  pos: 1-based position of SNV
+        char ref, var;   // reference and variant for this SNV
+        std::istringstream iss(str_buf);
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1
-        // only
-        input_scanf = [&] (const char* line) -> bool {
-                // BUG scanf formart string completely misses any size-limitation, and is at high-risk of over-flowing (cue in the valgrind-furby)
-                return sscanf(line, "%s %d %c %c %s %s", chr, &pos, &ref, &var, fr1, p1) == 6;
-            };
-        output_SNPs = [&] (std::ofstream &out) {
-                out << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
-                    << p1 << '\t' << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t'
-                    << tmp.revT << '\t' << tmp.pval << '\n';
-            };
-    } else {
-        input_scanf = [&] (const char* line) -> bool {
-                // BUG scanf formart string completely misses any size-limitation, and is at high-risk of over-flowing (cue in the valgrind-furby)
-                return sscanf(line, "%s %d %c %c %s %s %s %s %s %s", chr, &pos, &ref, &var, fr1, fr2,
-                       fr3, p1, p2, p3) == 10;
-            };
-        output_SNPs = [&] (std::ofstream &out) {
-                out << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
-                    << fr2 << '\t' << fr3 << '\t' << p1 << '\t' << p2 << '\t' << p3 << '\t'
-                    << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t' << tmp.revT
-                    << '\t' << tmp.pval << '\n';
-            };
-    }
+        UNUSED(amplicon);
+        //  - except that, because we're just spitting the exact same output, and only *adding* new columns,
+        //    not modifying the existing ones, well we actually don't need to care.
+        // so we just parse the first couple of interesting columns and keep the line as-is for output
+        if (iss >> chr >> pos >> ref >> var) { // Get the SNV location
+            /// for the frequencies and posteriors :
+            //stdstrings fr1, fr2, fr3, p1, p2, p3;
+            // for amplicon:
+            //  >> fr1 >> p1
+            // for everything else:
+            //  >> fr1 >> fr2 >> fr3 >> p1 >> p2 >> p2
 
-    // process the input line by line
-    while (fgets(str_buf, 200, fl) != NULL) {
-        if (input_scanf(str_buf)) {
-            sprintf(reg, "%s:%d-%d", chr, pos, pos);
-            tmp.nuc = var;
-
+            /*
+             * Prepare the data
+             */
             re_init_tmp(&tmp);
-//          bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
-            // based on samtools/bam_aux.c:bam_parse_region
-            name = -1; tmp.pos = 0; tmp.pos1 = std::numeric_limits<typeof(tmp.pos1)>::max();
+            tmp.nuc = var;
+#if 1
+            // as seen in htslib/hts.c:hts_parse_reg
+            tmp.pos = pos - 1;  // begin is 0-based (so position-1)
+            tmp.pos1 = pos;     // end is 1-based (so straight position)
+#else       // alternative : based on samtools/bam_aux.c:bam_parse_region
             {
-                const char* name_lim = hts_parse_reg(reg, &tmp.pos, &tmp.pos1);
-                if (name_lim) { // valid name ?
-                    if (tmp.pos <= tmp.pos1) { // valid range ?
-                        const std::ptrdiff_t nl = name_lim - reg; // get only the 'name' part (everything before the colon ':')
-                        assert(nl > 0);
-                        char *tnam = strndup(reg, nl);
-                        name = bam_name2id(header, tnam);
-                        free(tnam);
-                    }
-                } else {
-                    // not parsable as a region, but possibly a sequence named "foo:a"
-                    name = bam_name2id(header, reg);
-                    tmp.pos = 0;
-                    tmp.pos1 = header->target_len[name] - 1;
-                }
+                char* reg = NULL;
+                tmp.pos = 0; tmp.pos1 = std::numeric_limits<typeof(tmp.pos1)>::max();
+                asprintf(&reg, ":%d-%d", pos, pos);
+                hts_parse_reg(reg, &tmp.pos, &tmp.pos1);
+                free(reg);
             }
-
-            if (name < 0) {
-                fprintf(stderr, "Invalid region %s\n", reg);
+#endif
+            // based on samtools/bam_aux.c:bam_parse_region
+            if ((name = bam_name2id(header, chr.c_str())) < 0) {
+                std::fprintf(stderr, "Invalid region %s\n", chr.c_str());
                 return 4;
             }
 
-//          bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
+            /*
+             * Phase 1:
+             *
+             * Get all the reads that cover the interesting region (on chromosomes/target "name", position "pos"
+             * And store them on a pileup
+             */
             // based on samtools/bam.c:bam_fetch
             // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
             hts_itr_t* iter = bam_itr_queryi(idx, name, tmp.pos, tmp.pos1);
-            while (hts_itr_next(tmp.in->fp.bgzf, iter, b, 0) >= 0) {
+            while (hts_itr_next(inFile->fp.bgzf, iter, b, 0) >= 0) {
                 // callback for bam_fetch()
-//              bam_plbuf_push(b, buf);  // push all reads covering variant to pileup buffer
                 // based on samtools/bam_plbuf.c
-                const bam_pileup1_t *plp;
                 if (bam_plp_push(plp_iter, b) < 0) {
                     // TODO trap errors
-                    fprintf(stderr, "!");
-                } else {
-                    // TODO call-back here too ?
-                    int n_plp, tid, p_pos;
-                    const bam_pileup1_t *plp;
-                    while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0)
-                            pileup_func(tid, p_pos, n_plp, plp, &tmp);
+                    std::fprintf(stderr, "!");
                 }
             }
             bam_itr_destroy(iter);
             bam_destroy1(b);
 
-//          bam_plbuf_push(0, buf);
             // based on samtools/bam_plbuf.c
             bam_plp_push(plp_iter, 0);
             {
+
+            /*
+             * Phase 2:
+             *
+             * Get the whole pileup and look at what's happening at the SNVs site.
+             */
                 int n_plp, tid, p_pos;
                 const bam_pileup1_t *plp;
-                while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0)
-                    pileup_func(tid, p_pos, n_plp, plp, &tmp);
+                while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
+                    if (p_pos == tmp.pos) { // only pay attention to pileups in out target position
+                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
+                        break;
+                    }
+                }
             }
-//          bam_plbuf_reset(buf);
+
+            // write the results add
             bam_plp_reset(plp_iter);
-            output_SNPs(snpsOut);
+            snpsOut << str_buf << '\t' // we will simply append the new column instead of re-writing them
+
+            //  for amplicons :
+            //      << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t'
+            //      << fr1 << '\t' << p1 << '\t'
+            //  for the normal mode :
+            //      << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t'
+            //      << fr1 << '\t' << fr2 << '\t' << fr3 << '\t'
+            //      << p1 << '\t' << p2 << '\t' << p3 << '\t'
+
+                    << tmp.forwM << '\t' << tmp.revM << '\t'
+                    << tmp.forwT << '\t' << tmp.revT << '\t' << tmp.pval << '\n';
         }
     }
     snpsOut.close();
-    free(filename);
-    fclose(fl);
-//  bam_plbuf_destroy(buf);
+    std::free(filename);
+    fl.close();
     bam_plp_destroy(plp_iter);
     bam_hdr_destroy(header);
     hts_idx_destroy(idx);
-    hts_close(tmp.in);
+    hts_close(inFile);
 }
