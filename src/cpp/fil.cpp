@@ -29,15 +29,21 @@ adapted from samtools/calDep.c
 #include <iostream>
 #include <map>
 #include <string>
-#include "faidx.h"
-#include "sam.h"
+#include <functional>
+#include <limits>
+
+#include <string.h>
+#include <assert.h>
+
+#include <htslib/sam.h>
+#include <htslib/faidx.h>
 
 typedef struct
 {
     int pos, pos1, SNP, forwM, revM, forwT, revT, maxdepth;
     double sig, pval;
     char nuc;
-    samfile_t* in;
+    htsFile* in;
 } tmpstruct_t;
 
 // reinit members of tmpstruct_t
@@ -46,14 +52,6 @@ static int re_init_tmp(tmpstruct_t* tmp)
     // re-init sane defaults for struct members that should be filled in by pileup callback fonction
     tmp->forwM = tmp->revM = tmp->forwT = tmp->revT = 0;
     tmp->pval = 1.;
-    return 0;
-}
-
-// callback for bam_fetch()
-static int fetch_func(const bam1_t* b, void* data)
-{
-    bam_plbuf_t* buf = (bam_plbuf_t*)data;
-    bam_plbuf_push(b, buf);  // push all reads covering variant to pileup buffer
     return 0;
 }
 
@@ -73,18 +71,20 @@ static int pileup_func(uint32_t tid, uint32_t pos, int n, const bam_pileup1_t* p
             char c;
             const bam_pileup1_t* p = pl + i;
             if (p->indel == 0 and p->is_del != 1)
-                c = bam_nt16_rev_table[bam1_seqi(bam1_seq(p->b),
-                                                 p->qpos)];  // get base for this read
+//              c = bam_nt16_rev_table[bam1_seqi(bam1_seq(p->b),
+//                                               p->qpos)];  // get base for this read
+                // based on samtools/bam.h
+                c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
             else if (p->is_del == 1)
                 c = '-';
             else
                 c = '*';
-            if (bam1_strand(p->b) == 0)  // forward read
+            if (bam_is_rev(p->b) == 0)  // forward read
                 st_freq_all['f']++;
             else
                 st_freq_all['r']++;  // reverse read
             if (c == tmp->nuc) {     // base is variant
-                if (bam1_strand(p->b) == 0) {
+                if (bam_is_rev(p->b) == 0) {
                     st_freq_Mut['f']++;  // forward read
                 } else
                     st_freq_Mut['r']++;  // reverse read
@@ -147,13 +147,14 @@ int main(int argc, char* argv[])
 {
     tmpstruct_t tmp;
     int c = 0;
-    bam_index_t* idx;
+    hts_idx_t* idx;
     int amplicon = 0;
     while ((c = getopt(argc, argv, "b:v:x:a")) != EOF) {
         switch (c) {
             case 'b':
-                tmp.in = samopen(optarg, "rb", 0);
-                idx = bam_index_load(optarg);
+                tmp.in = hts_open(optarg, "r");
+                idx = hts_idx_load(optarg, HTS_FMT_BAI);
+                 // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI
                 break;
             case 'v':
                 tmp.sig = atof(optarg);
@@ -169,66 +170,136 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Failed to open BAM file %s\n", argv[1]);
         return 1;
     }
+    bam_hdr_t* header = sam_hdr_read(tmp.in);
     if (idx == 0) {
         fprintf(stderr, "BAM indexing file is not available.\n");
         return 2;
     }
-    bam_plbuf_t* buf;
-    buf = bam_plbuf_init(pileup_func, &tmp);
-    bam_plp_set_maxcnt(buf->iter, tmp.maxdepth);
+//  bam_plbuf_t* buf;
+//  buf = bam_plbuf_init(pileup_func, &tmp);
+    bam_plp_t plp_iter = bam_plp_init(0, 0);
+    bam_plp_set_maxcnt(plp_iter, tmp.maxdepth);
     FILE* fl = fopen("SNV.txt", "rt");
     if (fl == NULL) {
         fprintf(stderr, "Failed to open SNV file.\n");
         return 3;
     }
+    // BUG way too many fixed size for my comfort
     char chr[100], ref, var, fr1[7], fr2[7], fr3[7], p1[7], p2[7], p3[7];
     int pos, name;
     char str_buf[200];
     char reg[200];
-    char filename[50];
+    char* filename = NULL;
     std::ofstream snpsOut;
-    sprintf(filename, "SNVs_%f.txt", tmp.sig);
+    asprintf(&filename, "SNVs_%f.txt", tmp.sig);
     snpsOut.open(filename, std::ios::out);
 
+    // setup reader and writer depending on amplicon mode
+    std::function<int(const char*)> input_scanf;
+    std::function<void(std::ofstream &)> output_SNPs;
     if (amplicon) {
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1
         // only
-        while (fgets(str_buf, 200, fl) != NULL) {
-            if (sscanf(str_buf, "%s %d %c %c %s %s", chr, &pos, &ref, &var, fr1, p1) == 6) {
-                tmp.nuc = var;
-                sprintf(reg, "%s:%d-%d", chr, pos, pos);
-
-                re_init_tmp(&tmp);
-                bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
-                bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
-                bam_plbuf_push(0, buf);
-                bam_plbuf_reset(buf);
-                snpsOut << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
-                        << p1 << '\t' << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t'
-                        << tmp.revT << '\t' << tmp.pval << '\n';
-            }
-        }
+        input_scanf = [&] (const char* line) -> bool {
+                // BUG scanf formart string completely misses any size-limitation, and is at high-risk of over-flowing (cue in the valgrind-furby)
+                return sscanf(line, "%s %d %c %c %s %s", chr, &pos, &ref, &var, fr1, p1) == 6;
+            };
+        output_SNPs = [&] (std::ofstream &out) {
+                out << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
+                    << p1 << '\t' << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t'
+                    << tmp.revT << '\t' << tmp.pval << '\n';
+            };
     } else {
-        while (fgets(str_buf, 200, fl) != NULL) {
-            if (sscanf(str_buf, "%s %d %c %c %s %s %s %s %s %s", chr, &pos, &ref, &var, fr1, fr2,
-                       fr3, p1, p2, p3) == 10) {
-                tmp.nuc = var;
-                sprintf(reg, "%s:%d-%d", chr, pos, pos);
+        input_scanf = [&] (const char* line) -> bool {
+                // BUG scanf formart string completely misses any size-limitation, and is at high-risk of over-flowing (cue in the valgrind-furby)
+                return sscanf(line, "%s %d %c %c %s %s %s %s %s %s", chr, &pos, &ref, &var, fr1, fr2,
+                       fr3, p1, p2, p3) == 10;
+            };
+        output_SNPs = [&] (std::ofstream &out) {
+                out << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
+                    << fr2 << '\t' << fr3 << '\t' << p1 << '\t' << p2 << '\t' << p3 << '\t'
+                    << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t' << tmp.revT
+                    << '\t' << tmp.pval << '\n';
+            };
+    }
 
-                re_init_tmp(&tmp);
-                bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
-                bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
-                bam_plbuf_push(0, buf);
-                bam_plbuf_reset(buf);
-                snpsOut << chr << '\t' << pos << '\t' << ref << '\t' << var << '\t' << fr1 << '\t'
-                        << fr2 << '\t' << fr3 << '\t' << p1 << '\t' << p2 << '\t' << p3 << '\t'
-                        << tmp.forwM << '\t' << tmp.revM << '\t' << tmp.forwT << '\t' << tmp.revT
-                        << '\t' << tmp.pval << '\n';
+    // process the input line by line
+    while (fgets(str_buf, 200, fl) != NULL) {
+        if (input_scanf(str_buf)) {
+            sprintf(reg, "%s:%d-%d", chr, pos, pos);
+            tmp.nuc = var;
+
+            re_init_tmp(&tmp);
+//          bam_parse_region(tmp.in->header, reg, &name, &tmp.pos, &tmp.pos1);
+            // based on samtools/bam_aux.c:bam_parse_region
+            name = -1; tmp.pos = 0; tmp.pos1 = std::numeric_limits<typeof(tmp.pos1)>::max();
+            {
+                const char* name_lim = hts_parse_reg(reg, &tmp.pos, &tmp.pos1);
+                if (name_lim) { // valid name ?
+                    if (tmp.pos <= tmp.pos1) { // valid range ?
+                        const std::ptrdiff_t nl = name_lim - reg; // get only the 'name' part (everything before the colon ':')
+                        assert(nl > 0);
+                        char *tnam = strndup(reg, nl);
+                        name = bam_name2id(header, tnam);
+                        free(tnam);
+                    }
+                } else {
+                    // not parsable as a region, but possibly a sequence named "foo:a"
+                    name = bam_name2id(header, reg);
+                    tmp.pos = 0;
+                    tmp.pos1 = header->target_len[name] - 1;
+                }
             }
+
+            if (name < 0) {
+                fprintf(stderr, "Invalid region %s\n", reg);
+                return 4;
+            }
+
+//          bam_fetch(tmp.in->x.bam, idx, name, tmp.pos, tmp.pos1, buf, fetch_func);
+            // based on samtools/bam.c:bam_fetch
+            // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
+            bam1_t *b = bam_init1();
+            hts_itr_t* iter = bam_itr_queryi(idx, name, tmp.pos, tmp.pos1);
+            while (hts_itr_next(tmp.in->fp.bgzf, iter, b, 0) >= 0) {
+                // callback for bam_fetch()
+//              bam_plbuf_push(b, buf);  // push all reads covering variant to pileup buffer
+                // based on samtools/bam_plbuf.c
+                const bam_pileup1_t *plp;
+                if (bam_plp_push(plp_iter, b) < 0) {
+                    // TODO trap errors
+                    fprintf(stderr, "!");
+                } else {
+                    // TODO call-back here too ?
+                    int n_plp, tid, p_pos;
+                    const bam_pileup1_t *plp;
+                    while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0)
+                            pileup_func(tid, p_pos, n_plp, plp, &tmp);
+                }
+            }
+            bam_itr_destroy(iter);
+            bam_destroy1(b);
+
+//          bam_plbuf_push(0, buf);
+            // based on samtools/bam_plbuf.c
+            bam_plp_push(plp_iter, 0);
+            {
+                int n_plp, tid, p_pos;
+                const bam_pileup1_t *plp;
+                while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0)
+                    pileup_func(tid, p_pos, n_plp, plp, &tmp);
+            }
+//          bam_plbuf_reset(buf);
+            bam_plp_reset(plp_iter);
+            output_SNPs(snpsOut);
         }
     }
     snpsOut.close();
+    free(filename);
     fclose(fl);
-    bam_index_destroy(idx);
-    bam_plbuf_destroy(buf);
+//  bam_plbuf_destroy(buf);
+    bam_plp_destroy(plp_iter);
+    bam_hdr_destroy(header);
+    hts_idx_destroy(idx);
+    hts_close(tmp.in);
 }
