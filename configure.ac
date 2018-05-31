@@ -89,6 +89,7 @@ AS_IF([test "x${enable_flags_setting}" = "xyes" && test "x${enable_debug}" = "xn
 
 	AC_LANG([C++])
 	AX_APPEND_COMPILE_FLAGS([${cflags_test}], [CXXFLAGS])
+	AX_CXX_COMPILE_STDCXX([11], [ext], [mandatory])
 	CXXFLAGS=$( echo ${CXXFLAGS} | $SED -e 's/^ *//' -e 's/ *$//' )
 
 	AX_APPEND_COMPILE_FLAGS([${cppflags_test}], [CPPFLAGS])
