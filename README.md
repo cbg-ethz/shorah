@@ -1,6 +1,9 @@
 What is ShoRAH?
 ===============
 [![Build Status](https://travis-ci.org/cbg-ethz/shorah.svg?branch=master)](https://travis-ci.org/cbg-ethz/shorah)
+[![Bioconda package](https://img.shields.io/conda/dn/bioconda/shorah.svg?label=Bioconda)](https://bioconda.github.io/recipes/shorah/README.html)
+[![Docker container](https://quay.io/repository/biocontainers/shorah/status)](https://quay.io/repository/biocontainers/shorah)
+
 
 ShoRAH is an open source project for the analysis of next generation sequencing
 data. It is designed to analyse genetically heterogeneous samples. Its tools
