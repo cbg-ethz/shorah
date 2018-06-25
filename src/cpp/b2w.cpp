@@ -39,6 +39,7 @@ adapted from samtools/calDep.c
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <vector>
 #include <getopt.h>
 
 #include <htslib/sam.h>
@@ -172,14 +173,11 @@ int main(int argc, char* argv[])
       @param  plp_iter pileup_iterator
       @param  param    command-line provided parameters
      */
-    auto process_ROI = [idx, ln, &header, &inFile, &fai, &reads, &covOut, &plp_iter, param] (const int tid, const int roi_b, const uint32_t roi_e) {
+    auto process_ROI = [idx, ln, &header, &inFile, &reads, &covOut, &plp_iter, param] (const int tid, const int roi_b, const uint32_t roi_e) {
         const auto lnth = ln[tid]; // this chromosome ID's length  as is defined in the header
 
         {
-            int rLen[lnth];  // list for read start coverage
-            for (unsigned j = 0; j < lnth; j++) {
-                rLen[j] = 0;
-            }
+            std::vector<int> rLen(lnth, 0);  // list for read start coverage
             // based on samtools/bam.c:bam_fetch
             // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
@@ -191,14 +189,11 @@ int main(int argc, char* argv[])
                 int readLen = b->core.n_cigar ? bam_cigar2rlen(b->core.n_cigar, bam_get_cigar(b)) : 1;
                 uint32_t Rend = Rstart + readLen;
 
-                int* cv = rLen + Rstart;
+                int* cv = rLen.data() + Rstart;
                 *cv += 1;
                 if ((*cv < param.max) && (readLen >= param.min_overlap)) {
-                    char rd[readLen + 1];
-                    for (int i = 0; i < readLen; i++) {
-                        rd[i] = 'N';
-                    }
-                    rd[readLen] = 0;
+                    std::vector<char> rd(readLen + 1, 'N');
+                    rd.back() = '\0';
                     // based on samtools/bam_plbuf.c
                     {
                         int n_plp, tid, pos;
@@ -206,13 +201,13 @@ int main(int argc, char* argv[])
                         if (0 <= bam_plp_push(plp_iter, b)) {
                             bam_plp_push(plp_iter, 0);
                             while ((plp = bam_plp_next(plp_iter, &tid, &pos, &n_plp)) != 0)
-                                pileup_func(Rstart, Rend, pos, plp, rd);
+                                pileup_func(Rstart, Rend, pos, plp, rd.data());
                         } // TODO trap errors
                     }
                     bam_plp_reset(plp_iter);
 
                     reads << bam_get_qname(b) << "\t" << roi_b << "\t" << roi_e << "\t" << Rstart + 1
-                            << "\t" << Rend << "\t" << rd << "\n";
+                            << "\t" << Rend << "\t" << rd.data() << "\n";
                 }
             }
 
@@ -232,11 +227,7 @@ int main(int argc, char* argv[])
             win_e += param.inc
         ) {
             unsigned cov = 0;
-            int rLen[lnth];  // list for read start coverage
-            for (unsigned j = 0; j < lnth;
-                 j++) {  // restart read start coverage count for each window
-                rLen[j] = 0;
-            }
+            std::vector<int> rLen(lnth, 0);  // list for read start coverage
             char* filename = NULL;  // filename for window files
             asprintf(&filename, "w-%s-%u-%u.reads.fas",  // read window filename
                     header->target_name[tid], win_b + 1, win_e + 1);
@@ -256,7 +247,7 @@ int main(int argc, char* argv[])
                     // based on samtools/bam.h:bam_calend
                     Rend += b->core.n_cigar ? bam_cigar2rlen(b->core.n_cigar, bam_get_cigar(b)) : 1;
 
-                    int* cv = rLen + Rstart;  // tracks nr of reads starting at ref pos
+                    int* cv = rLen.data() + Rstart;  // tracks nr of reads starting at ref pos
                     *cv += 1;
 
                     if (*cv < param.max) {                              // limit coverage
@@ -312,7 +303,7 @@ int main(int argc, char* argv[])
                     ln[i]); // chromosome length == region of interest's end
     } else {  // parse specific region
         // based on samtools/bam_aux.c:bam_parse_region
-        int ref_id = -1, roi_b = 0, roi_e = std::numeric_limits<typeof(roi_e)>::max();
+        int ref_id = -1, roi_b = 0, roi_e = std::numeric_limits<decltype(roi_e)>::max();
         const char* roi_str = argv[optind + 2];
         {
             const char* name_lim = hts_parse_reg(roi_str, &roi_b, &roi_e);

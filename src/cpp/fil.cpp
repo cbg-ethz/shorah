@@ -52,7 +52,7 @@ static int re_init_tmp(tmpstruct_t* tmp)
 }
 
 // callback for bam_plbuf_init()
-static int pileup_func(uint32_t tid, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
+static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
 {
     tmpstruct_t* tmp = (tmpstruct_t*)data;
     std::map<char, int> st_freq_all;

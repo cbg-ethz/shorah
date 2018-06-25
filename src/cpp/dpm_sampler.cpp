@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 
     /// rename sampling file and debug file
     // TODO once bioconda moves to gcc 4.9+ (with c++11 regex library), we could convert the whole rename section to regex, to keep coherent accross the whole project
-    int insize = instr.rfind(".reads");  // NOTE : this is robust enough against name generated in b2w.cpp:246
+    std::size_t insize = instr.rfind(".reads");  // NOTE : this is robust enough against name generated in b2w.cpp:246
     if (insize == std::string::npos)
         insize = instr.length();
     // TODO clean ref_name of special caracters - that would be an alternative to processing everything with regex down the line. But that will break any legacy data set
@@ -2196,6 +2196,7 @@ int parsecommandline(int argc, char** argv)
                 break;
             case 'h':
                 exit_code = EXIT_SUCCESS;
+                // fallthrough
             default:
                 fprintf(stdout,
                         "%s [options]\n"
