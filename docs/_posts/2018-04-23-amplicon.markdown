@@ -23,15 +23,15 @@ clustered together in order to remove sequencing errors. This analysis is shown 
 
 ### Preparation
 
-We will be working with files in the `sample_data` directory in the GitHub repository. Besides `shorah`, we will need:
+We will be working with files in the `example_data` directory in the GitHub repository. Besides `shorah`, we will need:
 
 - `bwa`,
 - `samtools`,
 - `wgsim`,
 
-all available in Bioconda. Run the script `prepare.sh` and check that `aln_sorted.bam` has been created. This is
-a sorted BAM alignment of the 250 bp reads to the 1488 bp gag/pol sequence contained in `ref.fasta` and, together with
-the reference, is the input for shorah.
+all available in Bioconda. Run the script `prepare.sh` and check that `aln_sorted.bam` has been created (run
+`clean.sh` if you previously run analyses in this folder). This is a sorted BAM alignment of the 250 bp reads to the
+1488 bp gag/pol sequence contained in `ref.fasta` and, together with the reference, is the input for shorah.
 
 ### Analysis
 

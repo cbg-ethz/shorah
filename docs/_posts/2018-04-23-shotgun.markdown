@@ -12,10 +12,59 @@ description: I am interested in a region long enough that multiple reads are nee
 
 ---
 
-Put some content here
+### Introduction
+
+This method is useful when the the region where the user wants to investigate the genetic diversity is long, _i.e._
+one read is not sufficient to cover it. One of the first application of ShoRAH was to investigate the HIV
+quasispecies observed on a region of the _pol_ gene around 1k bp long.
+
+In this mode, reads are aligned to a sequence, then many overlapping windows are drawn on this alignment and reads
+found in each of these windows are clustered together in order to remove sequencing errors. This analysis is shown here below.
+
+### Preparation
+
+We will be working with files in the `example_data` directory in the GitHub repository. Besides `shorah`, we will need:
+
+- `bwa`,
+- `samtools`,
+- `wgsim`,
+
+all available in Bioconda. Run the script `prepare.sh` and check that `aln_sorted.bam` has been created (run
+`clean.sh` first if you previously run analyses in this folder). This is
+a sorted BAM alignment of the 250 bp reads to the 1488 bp gag/pol sequence contained in `ref.fasta` and, together with
+the reference, is the input for shorah.
+
+### Analysis
+
+By aligning the reference with [HIV locator](http://www.hiv.lanl.gov/content/sequence/LOCATE/locate.html), we observe
+that the protease correspond to nucleotides 169 → 465. Since we are using 250 bp long reads, we can cover entirely
+the amino acids 10 → 90, _i.e._, those interesting for drug resistance mutations. They correspond to nucleotides
+196 → 438. We can find haplotypes on this region with the following command.
 
 
-Some code
+    [user@host]$ shorah -b aln_sorted.bam -f ref.fasta -r gagpol:196-438 amplicon
+    ... a few seconds later ...
+    [user@host]$ head -8 w-gagpol-196-438.reads-support.fas | cut -c -80  # only prints 80 characters per line
+    >hap_0|posterior=1 ave_reads=384.75
+    TTAATCACAGTAAAAATAGGGGGACAGCTAATAGAAGCCCTATTAGACACAGGGGCAGATGATACAGTATTAGAAGAAAT
+    >hap_1|posterior=1 ave_reads=313
+    TTAGTCACAGTAAAAATAGGGGGACAGCCAATAGAAGCCCTATTAGACACAGGAGCAGATGATACAGTATTAGAAGAAAT
+    >hap_2|posterior=0.0785 ave_reads=0.161
+    TTAATCACAGTAAAAATAGGGGGACAGCTAATAGAAGCCCTATTAGACCCAGGGGCAGATGATACAGTATTAGAAGAAAT
 
+### Interpretation
 
-    user@host $ samtools
+The file `*support.fas` contains all inferred haplotypes (true genetic variants found in the samples) with an estimate
+of their posterior probability and the number of reads assigned. They are sorted by posterior in descending order.
+In the above example two haplotypes are found:
+
+- `hap_0`, with approximately 385 reads,
+- `hap_1`, with 313 reads.
+
+Other haplotypes have very low posterior and can be discarded. It's recommended to discard below 95% probability, and
+to look for a sharp drop in the posterior from around 1 to very low values as this is a good measure of the quality of
+the reconstruction.
+
+Although posterior values greater than one obviously don't make sense mathematically, they sometimes appear as a
+result of poor mixing in the sampling. Values slightly higher than one are not too concerning, but the user
+should not overlook this.
