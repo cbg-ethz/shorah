@@ -23,7 +23,8 @@ ETH Zurich
 adapted from samtools/calDep.c
  ******************************/
 #include <getopt.h>
-#include <cstdio>
+#include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <map>
@@ -51,16 +52,18 @@ static int re_init_tmp(tmpstruct_t* tmp)
     return 0;
 }
 
+
 // callback for bam_plbuf_init()
 static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
 {
     tmpstruct_t* tmp = (tmpstruct_t*)data;
-    std::map<char, int> st_freq_all;
-    std::map<char, int> st_freq_Mut;
-    st_freq_all['f'] = 0;  // store frequencies of forward and reverse reads
-    st_freq_all['r'] = 0;
-    st_freq_Mut['f'] = 0;
-    st_freq_Mut['r'] = 0;
+    enum class Strand { f, r };
+    std::map<Strand, int> st_freq_all;
+    std::map<Strand, int> st_freq_Mut;
+    st_freq_all[Strand::f] = 0;  // store frequencies of forward and reverse reads
+    st_freq_all[Strand::r] = 0;
+    st_freq_Mut[Strand::f] = 0;
+    st_freq_Mut[Strand::r] = 0;
     if ((int)pos >= tmp->pos && (int)pos < tmp->pos + 1) {
         for (int i = 0; i < n; i++)  // take each read in turn
         {
@@ -74,38 +77,38 @@ static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, v
             else
                 c = '*';
             if (bam_is_rev(p->b) == 0)  // forward read
-                st_freq_all['f']++;
+                st_freq_all[Strand::f]++;
             else
-                st_freq_all['r']++;  // reverse read
+                st_freq_all[Strand::r]++;  // reverse read
             if (c == tmp->nuc) {     // base is variant
                 if (bam_is_rev(p->b) == 0) {
-                    st_freq_Mut['f']++;  // forward read
+                    st_freq_Mut[Strand::f]++;  // forward read
                 } else
-                    st_freq_Mut['r']++;  // reverse read
+                    st_freq_Mut[Strand::r]++;  // reverse read
             }
         }
-        double mean = (double)st_freq_all['f'] /
-                      (st_freq_all['f'] +
-                       st_freq_all['r']);  // forward read ratio, all reads at this position
+        double mean = (double)st_freq_all[Strand::f] /
+                      (st_freq_all[Strand::f] +
+                       st_freq_all[Strand::r]);  // forward read ratio, all reads at this position
         double fr =
-            (double)st_freq_Mut['f'] /
-            (st_freq_Mut['f'] +
-             st_freq_Mut['r']);  // forward read ratio, only reads with variant at this position
+            (double)st_freq_Mut[Strand::f] /
+            (st_freq_Mut[Strand::f] +
+             st_freq_Mut[Strand::r]);  // forward read ratio, only reads with variant at this position
         double alpha;
         double beta;
         double sigma = tmp->sig;
         double prMut;
-        int m = st_freq_Mut['f'] + st_freq_Mut['r'];  // total reads with variant
+        int m = st_freq_Mut[Strand::f] + st_freq_Mut[Strand::r];  // total reads with variant
         int k;
         double tail = 0.0;
         alpha = mean / sigma;  // alpha and beta for beta binomial
         beta = (1 - mean) / sigma;
         if (alpha < 1E-6 or beta < 1E-6) {
-            fprintf(stderr, "All reads in the same orientation?\n");
+            std::cerr << "All reads in the same orientation?" << std::endl;
             return 11;
         }
         if (fr < mean) {
-            for (k = 0; k <= st_freq_Mut['f']; k++) {
+            for (k = 0; k <= st_freq_Mut[Strand::f]; k++) {
                 tail += gsl_sf_exp((
                     gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
                     gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
@@ -115,7 +118,7 @@ static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, v
                     gsl_sf_lngamma((double)m + (1 / sigma))));  // calculate cumulative distribution
             }
         } else {
-            for (k = st_freq_Mut['f']; k <= m; k++) {
+            for (k = st_freq_Mut[Strand::f]; k <= m; k++) {
                 tail += gsl_sf_exp(
                     (gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
                      gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
@@ -125,10 +128,10 @@ static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, v
                      gsl_sf_lngamma((double)m + (1 / sigma))));  // the other tail, if required
             }
         }
-        tmp->forwM = st_freq_Mut['f'];
-        tmp->revM = st_freq_Mut['r'];
-        tmp->forwT = st_freq_all['f'];
-        tmp->revT = st_freq_all['r'];
+        tmp->forwM = st_freq_Mut[Strand::f];
+        tmp->revM = st_freq_Mut[Strand::r];
+        tmp->forwT = st_freq_all[Strand::f];
+        tmp->revT = st_freq_all[Strand::r];
         prMut = tail * 2;  // two sided test
         if (prMut > 1) prMut = 1;
         tmp->pval = prMut;  // p value
@@ -163,25 +166,26 @@ int main(int argc, char* argv[])
         }
     }
     if (inFile == NULL) {
-        std::fprintf(stderr, "Failed to open BAM file %s\n", argv[1]);
+        std::cerr << "Failed to open BAM file  " << argv[1] << std::endl;
         return 1;
     }
     bam_hdr_t* header = sam_hdr_read(inFile);
     if (idx == NULL) {
-        std::fprintf(stderr, "BAM indexing file is not available.\n");
+        std::cerr << "BAM indexing file is not available." << std::endl;
         return 2;
     }
     bam_plp_t plp_iter = bam_plp_init(0, 0);
     bam_plp_set_maxcnt(plp_iter, tmp.maxdepth);
     std::ifstream fl ("SNV.txt", std::ios_base::in);
     if (fl.fail()) {
-        std::fprintf(stderr, "Failed to open SNV file.\n");
+        std::cerr << "Failed to open SNV file." << std::endl;
         return 3;
     }
-    std::string str_buf ("");
+    std::string str_buf;
 
-    char* filename = NULL;
-    asprintf(&filename, "SNVs_%f.txt", tmp.sig);
+    std::ostringstream oss_fn;
+    oss_fn << "SNVs_" << std::fixed << std::setprecision(6) << tmp.sig << ".txt";
+    std::string filename = oss_fn.str();
     std::ofstream snpsOut;
     snpsOut.open(filename, std::ios::out);
 
@@ -231,7 +235,7 @@ int main(int argc, char* argv[])
 #endif
             // based on samtools/bam_aux.c:bam_parse_region
             if ((name = bam_name2id(header, chr.c_str())) < 0) {
-                std::fprintf(stderr, "Invalid region %s\n", chr.c_str());
+                std::cerr << "Invalid region " << chr << std::endl;
                 return 4;
             }
 
@@ -250,7 +254,7 @@ int main(int argc, char* argv[])
                 // based on samtools/bam_plbuf.c
                 if (bam_plp_push(plp_iter, b) < 0) {
                     // TODO trap errors
-                    std::fprintf(stderr, "!");
+                    std::cerr << "!";
                 }
             }
             bam_itr_destroy(iter);
@@ -292,7 +296,6 @@ int main(int argc, char* argv[])
         }
     }
     snpsOut.close();
-    std::free(filename);
     fl.close();
     bam_plp_destroy(plp_iter);
     bam_hdr_destroy(header);
