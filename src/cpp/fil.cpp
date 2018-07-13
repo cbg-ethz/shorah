@@ -43,101 +43,8 @@ typedef struct
     char nuc; // nucleotide that we're looking for in this SNP
 } tmpstruct_t;
 
-// reinit members of tmpstruct_t
-static int re_init_tmp(tmpstruct_t* tmp)
-{
-    // re-init sane defaults for struct members that should be filled in by pileup callback fonction
-    tmp->forwM = tmp->revM = tmp->forwT = tmp->revT = 0;
-    tmp->pval = 1.;
-    return 0;
-}
 
 
-// callback for bam_plbuf_init()
-static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
-{
-    tmpstruct_t* tmp = (tmpstruct_t*)data;
-    enum class Strand { f, r };
-    std::map<Strand, int> st_freq_all;
-    std::map<Strand, int> st_freq_Mut;
-    st_freq_all[Strand::f] = 0;  // store frequencies of forward and reverse reads
-    st_freq_all[Strand::r] = 0;
-    st_freq_Mut[Strand::f] = 0;
-    st_freq_Mut[Strand::r] = 0;
-    if ((int)pos >= tmp->pos && (int)pos < tmp->pos + 1) {
-        for (int i = 0; i < n; i++)  // take each read in turn
-        {
-            char c;
-            const bam_pileup1_t* p = pl + i;
-            if (p->indel == 0 and p->is_del != 1)
-                // based on samtools/bam.h
-                c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
-            else if (p->is_del == 1)
-                c = '-';
-            else
-                c = '*';
-            if (bam_is_rev(p->b) == 0)  // forward read
-                st_freq_all[Strand::f]++;
-            else
-                st_freq_all[Strand::r]++;  // reverse read
-            if (c == tmp->nuc) {     // base is variant
-                if (bam_is_rev(p->b) == 0) {
-                    st_freq_Mut[Strand::f]++;  // forward read
-                } else
-                    st_freq_Mut[Strand::r]++;  // reverse read
-            }
-        }
-        double mean = (double)st_freq_all[Strand::f] /
-                      (st_freq_all[Strand::f] +
-                       st_freq_all[Strand::r]);  // forward read ratio, all reads at this position
-        double fr =
-            (double)st_freq_Mut[Strand::f] /
-            (st_freq_Mut[Strand::f] +
-             st_freq_Mut[Strand::r]);  // forward read ratio, only reads with variant at this position
-        double alpha;
-        double beta;
-        double sigma = tmp->sig;
-        double prMut;
-        int m = st_freq_Mut[Strand::f] + st_freq_Mut[Strand::r];  // total reads with variant
-        int k;
-        double tail = 0.0;
-        alpha = mean / sigma;  // alpha and beta for beta binomial
-        beta = (1 - mean) / sigma;
-        if (alpha < 1E-6 or beta < 1E-6) {
-            std::cerr << "All reads in the same orientation?" << std::endl;
-            return 11;
-        }
-        if (fr < mean) {
-            for (k = 0; k <= st_freq_Mut[Strand::f]; k++) {
-                tail += gsl_sf_exp((
-                    gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
-                    gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
-                    gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
-                    gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
-                    gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
-                    gsl_sf_lngamma((double)m + (1 / sigma))));  // calculate cumulative distribution
-            }
-        } else {
-            for (k = st_freq_Mut[Strand::f]; k <= m; k++) {
-                tail += gsl_sf_exp(
-                    (gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
-                     gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
-                     gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
-                     gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
-                     gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
-                     gsl_sf_lngamma((double)m + (1 / sigma))));  // the other tail, if required
-            }
-        }
-        tmp->forwM = st_freq_Mut[Strand::f];
-        tmp->revM = st_freq_Mut[Strand::r];
-        tmp->forwT = st_freq_all[Strand::f];
-        tmp->revT = st_freq_all[Strand::r];
-        prMut = tail * 2;  // two sided test
-        if (prMut > 1) prMut = 1;
-        tmp->pval = prMut;  // p value
-    }
-    return 0;
-}
 
 // main
 int main(int argc, char* argv[])
@@ -218,7 +125,17 @@ int main(int argc, char* argv[])
             /*
              * Prepare the data
              */
-            re_init_tmp(&tmp);
+            enum class Strand { f, r };
+            std::map<Strand, int> st_freq_all;
+            std::map<Strand, int> st_freq_Mut;
+            st_freq_all[Strand::f] = 0;  // store frequencies of forward and reverse reads
+            st_freq_all[Strand::r] = 0;
+            st_freq_Mut[Strand::f] = 0;
+            st_freq_Mut[Strand::r] = 0;
+
+    
+            
+            
             tmp.nuc = var;
 #if 1
             // as seen in htslib/hts.c:hts_parse_reg
@@ -272,10 +189,97 @@ int main(int argc, char* argv[])
                 int n_plp, tid, p_pos;
                 const bam_pileup1_t *plp;
                 while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
+//                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
+//                        static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
                     if (p_pos == tmp.pos) { // only pay attention to pileups in out target position
-                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
-                        break;
+                        for (int i = 0; i < n_plp; i++)  // take each read in turn
+                        {
+                            char c;
+                            const bam_pileup1_t* p = plp + i;
+                            if (p->indel == 0 and p->is_del != 1)
+                                // based on samtools/bam.h
+                                c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
+                            else if (p->is_del == 1)
+                                c = '-';
+                            else
+                                c = '*';
+                            if (bam_is_rev(p->b) == 0)  // forward read
+                                st_freq_all[Strand::f]++;
+                            else
+                                st_freq_all[Strand::r]++;  // reverse read
+                            if (c == tmp.nuc) {     // base is variant
+                                if (bam_is_rev(p->b) == 0) {
+                                    st_freq_Mut[Strand::f]++;  // forward read
+                                } else
+                                    st_freq_Mut[Strand::r]++;  // reverse read
+                            }
+                        }
+                        //break;
                     }
+                }
+            }
+
+            /*
+             * Phase 3 : do stats on the counts
+             */
+            
+            // re-init sane defaults 
+            tmp.forwM = tmp.revM = tmp.forwT = tmp.revT = 0;
+            tmp.pval = 1.;
+
+            {
+//                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
+//                        static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
+                double mean = (double)st_freq_all[Strand::f] /
+                            (st_freq_all[Strand::f] +
+                            st_freq_all[Strand::r]);  // forward read ratio, all reads at this position
+                double fr =
+                    (double)st_freq_Mut[Strand::f] /
+                    (st_freq_Mut[Strand::f] +
+                    st_freq_Mut[Strand::r]);  // forward read ratio, only reads with variant at this position
+                double alpha;
+                double beta;
+                double sigma = tmp.sig;
+                double prMut;
+                int m = st_freq_Mut[Strand::f] + st_freq_Mut[Strand::r];  // total reads with variant
+                int k;
+                double tail = 0.0;
+                alpha = mean / sigma;  // alpha and beta for beta binomial
+                beta = (1 - mean) / sigma;
+                
+                if (alpha < 1E-6 and beta < 1E-6) {
+                    std::cerr << "No reads found ?!?" << std::endl;
+                } else if (alpha < 1E-6 or beta < 1E-6) {
+                    std::cerr << "All reads in the same orientation?" << std::endl;
+                } else {
+                    if (fr < mean) {
+                        for (k = 0; k <= st_freq_Mut[Strand::f]; k++) {
+                            tail += gsl_sf_exp((
+                                gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
+                                gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
+                                gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
+                                gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
+                                gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
+                                gsl_sf_lngamma((double)m + (1 / sigma))));  // calculate cumulative distribution
+                        }
+                    } else {
+                        for (k = st_freq_Mut[Strand::f]; k <= m; k++) {
+                            tail += gsl_sf_exp(
+                                (gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
+                                gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
+                                gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
+                                gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
+                                gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
+                                gsl_sf_lngamma((double)m + (1 / sigma))));  // the other tail, if required
+                        }
+                    }
+                    tmp.forwM = st_freq_Mut[Strand::f];
+                    tmp.revM = st_freq_Mut[Strand::r];
+                    tmp.forwT = st_freq_all[Strand::f];
+                    tmp.revT = st_freq_all[Strand::r];
+                    prMut = tail * 2;  // two sided test
+                    if (prMut > 1) prMut = 1;
+                    tmp.pval = prMut;  // p value
                 }
             }
 
