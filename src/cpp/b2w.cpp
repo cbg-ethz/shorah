@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
 
     paramstruct_t param = {  // data for callback functions
         // based on default from cli.py and shotgun.py
-        .win = 201,   // window size
-        .inc = 201/3, // incr = size / shifts
-        .min_overlap = (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
-        .max = 10000 / 201 // max_c = max_coverage / size
+        201,   // window size
+        201/3, // incr = size / shifts
+        (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
+        10000 / 201 // max_c = max_coverage / size
     };
 
     char help_string[] =

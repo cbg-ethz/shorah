@@ -27,7 +27,7 @@ b2w_SOURCES = \
 	src/cpp/b2w.cpp
 b2w_CXXFLAGS = $(PTHREAD_CFLAGS)
 b2w_CPPFLAGS = $(HTSLIB_CFLAGS)
-b2w_LDADD = $(HTSLIB_LIBS)  $(ZLIB_LIBS) $(PTHREAD_LIBS)
+b2w_LDADD = $(HTSLIB_LIBS) $(ZLIB_LIBS) $(PTHREAD_LIBS)
 
 fil_SOURCES = \
 	src/cpp/fil.cpp

@@ -46,7 +46,7 @@ typedef struct {
 // main
 int main(int argc, char* argv[])
 {
-    paramstruct_t params = { .maxdepth = 10000, .sig = 0.01 }; // cli.py's defaults
+    paramstruct_t params = { 10000, 0.01 }; // cli.py's defaults
     int c = 0;
     hts_idx_t* idx = NULL;
     int amplicon = 0;
