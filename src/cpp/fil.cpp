@@ -36,21 +36,17 @@ adapted from samtools/calDep.c
 
 #define UNUSED(expr) (void)(expr)
 
-typedef struct
-{
-    int pos, pos1, SNP, forwM, revM, forwT, revT, maxdepth;
-    double sig, pval;
-    char nuc; // nucleotide that we're looking for in this SNP
-} tmpstruct_t;
-
+typedef struct {
+    int maxdepth;
+    double sig;
+} paramstruct_t;
 
 
 
 // main
 int main(int argc, char* argv[])
 {
-    tmpstruct_t tmp;
-    tmp.maxdepth = 10000; tmp.sig = 0.01; // cli.py's defaults
+    paramstruct_t params = { .maxdepth = 10000, .sig = 0.01 }; // cli.py's defaults
     int c = 0;
     hts_idx_t* idx = NULL;
     int amplicon = 0;
@@ -63,10 +59,10 @@ int main(int argc, char* argv[])
                  // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI
                 break;
             case 'v':
-                tmp.sig = atof(optarg);
+                params.sig = atof(optarg);
                 break;
             case 'x':
-                tmp.maxdepth = atoi(optarg);
+                params.maxdepth = atoi(optarg);
                 break;
             case 'a':
                 amplicon = 1;
@@ -82,7 +78,7 @@ int main(int argc, char* argv[])
         return 2;
     }
     bam_plp_t plp_iter = bam_plp_init(0, 0);
-    bam_plp_set_maxcnt(plp_iter, tmp.maxdepth);
+    bam_plp_set_maxcnt(plp_iter, params.maxdepth);
     std::ifstream fl ("SNV.txt", std::ios_base::in);
     if (fl.fail()) {
         std::cerr << "Failed to open SNV file." << std::endl;
@@ -91,7 +87,7 @@ int main(int argc, char* argv[])
     std::string str_buf;
 
     std::ostringstream oss_fn;
-    oss_fn << "SNVs_" << std::fixed << std::setprecision(6) << tmp.sig << ".txt";
+    oss_fn << "SNVs_" << std::fixed << std::setprecision(6) << params.sig << ".txt";
     std::string filename = oss_fn.str();
     std::ofstream snpsOut;
     snpsOut.open(filename, std::ios::out);
@@ -105,9 +101,9 @@ int main(int argc, char* argv[])
          * push them on a pileup, and finally read the pileup.
          */
 
-        std::string chr; // chr:   target chromosone in text form
-        int name, pos;   // name : target (as header's numeric form)  pos: 1-based position of SNV
-        char ref, var;   // reference and variant for this SNV
+        std::string chr;   // chr:   target chromosone in text form
+        int targetid, pos; // targetid : target (as header's numeric form)  pos: 1-based position of SNV
+        char ref, var;     // reference and variant nucleotide for this SNV
         std::istringstream iss(str_buf);
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1
         UNUSED(amplicon);
@@ -128,30 +124,18 @@ int main(int argc, char* argv[])
             enum class Strand { f, r };
             std::map<Strand, int> st_freq_all;
             std::map<Strand, int> st_freq_Mut;
+            // init sane defaults
             st_freq_all[Strand::f] = 0;  // store frequencies of forward and reverse reads
             st_freq_all[Strand::r] = 0;
             st_freq_Mut[Strand::f] = 0;
             st_freq_Mut[Strand::r] = 0;
 
-    
-            
-            
-            tmp.nuc = var;
-#if 1
+
             // as seen in htslib/hts.c:hts_parse_reg
-            tmp.pos = pos - 1;  // begin is 0-based (so position-1)
-            tmp.pos1 = pos;     // end is 1-based (so straight position)
-#else       // alternative : based on samtools/bam_aux.c:bam_parse_region
-            {
-                char* reg = NULL;
-                tmp.pos = 0; tmp.pos1 = std::numeric_limits<typeof(tmp.pos1)>::max();
-                asprintf(&reg, ":%d-%d", pos, pos);
-                hts_parse_reg(reg, &tmp.pos, &tmp.pos1);
-                free(reg);
-            }
-#endif
+            const int pos_begin = pos - 1,  // begin is 0-based (so position-1)
+                      pos_end = pos;        // end is 1-based (so straight position)
             // based on samtools/bam_aux.c:bam_parse_region
-            if ((name = bam_name2id(header, chr.c_str())) < 0) {
+            if ((targetid = bam_name2id(header, chr.c_str())) < 0) {
                 std::cerr << "Invalid region " << chr << std::endl;
                 return 4;
             }
@@ -159,13 +143,13 @@ int main(int argc, char* argv[])
             /*
              * Phase 1:
              *
-             * Get all the reads that cover the interesting region (on chromosomes/target "name", position "pos"
+             * Get all the reads that cover the interesting region (on chromosomes/target "targetid", position "pos"
              * And store them on a pileup
              */
             // based on samtools/bam.c:bam_fetch
             // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
-            hts_itr_t* iter = bam_itr_queryi(idx, name, tmp.pos, tmp.pos1);
+            hts_itr_t* iter = bam_itr_queryi(idx, targetid, pos_begin, pos_end);
             while (hts_itr_next(inFile->fp.bgzf, iter, b, 0) >= 0) {
                 // callback for bam_fetch()
                 // based on samtools/bam_plbuf.c
@@ -189,9 +173,7 @@ int main(int argc, char* argv[])
                 int n_plp, tid, p_pos;
                 const bam_pileup1_t *plp;
                 while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
-//                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
-//                        static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
-                    if (p_pos == tmp.pos) { // only pay attention to pileups in out target position
+                    if (p_pos == pos_begin) { // only pay attention to pileups in out target position
                         for (int i = 0; i < n_plp; i++)  // take each read in turn
                         {
                             char c;
@@ -201,13 +183,14 @@ int main(int argc, char* argv[])
                                 c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
                             else if (p->is_del == 1)
                                 c = '-';
+                            // NOTE b2w (and the samtools pileup mode without a ref) do not behave this way, they do not ignore bases that are shifted by indel.    e.g.: samtools 'C-6NNNNNN' is considered as 'C' by b2w see BUG below
                             else
-                                c = '*';
+                                c = '*'; // NOTE samtools pileup mode with a ref behaves exactly this way   e.g.: samtools 'C-6NNNNNN' is considered as '*' by fil
                             if (bam_is_rev(p->b) == 0)  // forward read
                                 st_freq_all[Strand::f]++;
                             else
                                 st_freq_all[Strand::r]++;  // reverse read
-                            if (c == tmp.nuc) {     // base is variant
+                            if (c == var) {     // base is variant nucleotide ?
                                 if (bam_is_rev(p->b) == 0) {
                                     st_freq_Mut[Strand::f]++;  // forward read
                                 } else
@@ -220,16 +203,20 @@ int main(int argc, char* argv[])
             }
 
             /*
-             * Phase 3 : do stats on the counts
+             * Phase 3:
+             *
+             * Do stats on the counts - is there a strand bias ?
              */
             
-            // re-init sane defaults 
-            tmp.forwM = tmp.revM = tmp.forwT = tmp.revT = 0;
-            tmp.pval = 1.;
+            // init sane defaults
+            double pval = 1.;
 
-            {
-//                        pileup_func(tid, p_pos, n_plp, plp, &tmp);
-//                        static int pileup_func(uint32_t, uint32_t pos, int n, const bam_pileup1_t* pl, void* data)
+            if (st_freq_all[Strand::f] == 0 and st_freq_all[Strand::r] == 0) {
+                // BUG this can still happen due to B2W and FIL counting indels in different way. See NOTE above
+                std::cerr << "Bug: No reads found at position " << pos <<" ?!?" << std::endl;
+            } else if (st_freq_Mut[Strand::f] == 0 and st_freq_Mut[Strand::r] == 0) {
+                std::cerr << "Critical: No mutations found at position " << pos <<" ?!?" << std::endl;
+            } else {
                 double mean = (double)st_freq_all[Strand::f] /
                             (st_freq_all[Strand::f] +
                             st_freq_all[Strand::r]);  // forward read ratio, all reads at this position
@@ -239,7 +226,7 @@ int main(int argc, char* argv[])
                     st_freq_Mut[Strand::r]);  // forward read ratio, only reads with variant at this position
                 double alpha;
                 double beta;
-                double sigma = tmp.sig;
+                double sigma = params.sig;
                 double prMut;
                 int m = st_freq_Mut[Strand::f] + st_freq_Mut[Strand::r];  // total reads with variant
                 int k;
@@ -247,10 +234,9 @@ int main(int argc, char* argv[])
                 alpha = mean / sigma;  // alpha and beta for beta binomial
                 beta = (1 - mean) / sigma;
                 
-                if (alpha < 1E-6 and beta < 1E-6) {
-                    std::cerr << "No reads found ?!?" << std::endl;
-                } else if (alpha < 1E-6 or beta < 1E-6) {
-                    std::cerr << "All reads in the same orientation?" << std::endl;
+                if (alpha < 1E-6 or beta < 1E-6) {
+                    // ...at that point it's not even bias, it's a monopoly ! ;-)
+                    std::cerr << "Warning: All reads at position " << pos <<" in the same " << ((alpha < 1E-6) ? "reverse" : "forward") << " orientation ?" << std::endl;
                 } else {
                     if (fr < mean) {
                         for (k = 0; k <= st_freq_Mut[Strand::f]; k++) {
@@ -273,13 +259,9 @@ int main(int argc, char* argv[])
                                 gsl_sf_lngamma((double)m + (1 / sigma))));  // the other tail, if required
                         }
                     }
-                    tmp.forwM = st_freq_Mut[Strand::f];
-                    tmp.revM = st_freq_Mut[Strand::r];
-                    tmp.forwT = st_freq_all[Strand::f];
-                    tmp.revT = st_freq_all[Strand::r];
                     prMut = tail * 2;  // two sided test
                     if (prMut > 1) prMut = 1;
-                    tmp.pval = prMut;  // p value
+                    pval = prMut;  // p value
                 }
             }
 
@@ -295,8 +277,8 @@ int main(int argc, char* argv[])
             //      << fr1 << '\t' << fr2 << '\t' << fr3 << '\t'
             //      << p1 << '\t' << p2 << '\t' << p3 << '\t'
 
-                    << tmp.forwM << '\t' << tmp.revM << '\t'
-                    << tmp.forwT << '\t' << tmp.revT << '\t' << tmp.pval << '\n';
+                    << st_freq_Mut[Strand::f] << '\t' << st_freq_Mut[Strand::r] << '\t'
+                    << st_freq_all[Strand::f] << '\t' << st_freq_all[Strand::r] << '\t' << pval << '\n';
         }
     }
     snpsOut.close();

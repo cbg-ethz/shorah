@@ -35,6 +35,7 @@ adapted from samtools/calDep.c
 #include <map>
 #include <string>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <cstdio>
 #include <cstring>
@@ -77,6 +78,8 @@ static int pileup_func(const uint32_t win_b, const uint32_t win_e, const uint32_
             // based on samtools/bam.h
             *mm = seq_nt16_str[bam_seqi(bam_get_seq(pl->b), pl->qpos)];
         }
+        // NOTE samtools pileup mode without a ref behave this way, they do not ignore bases that are shifted by indel  e.g.: samtools 'C-6NNNNNN' is considered as 'C' by b2w
+        // NOTE fil (and samtools pileup mode with a ref) do not behaves exactly this way, they do ignore bases that are shifted by indel   e.g.: samtools 'C-6NNNNNN' is considered as '*' by fil. This can cause a BUG in fil.
     }
     return 0;
 }
@@ -92,7 +95,13 @@ int main(int argc, char* argv[])
     std::ofstream reads;
     std::ofstream covOut;  // stores window coverages
 
-    paramstruct_t param;  // data for callback functions
+    paramstruct_t param = {  // data for callback functions
+        // based on default from cli.py and shotgun.py
+        .win = 201,   // window size
+        .inc = 201/3, // incr = size / shifts
+        .min_overlap = (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
+        .max = 10000 / 201 // max_c = max_coverage / size
+    };
 
     char help_string[] =
         "\nUsage: b2w [options] <in.bam> <in.fasta> region\n\nOptions:\n\t-w: window length "
