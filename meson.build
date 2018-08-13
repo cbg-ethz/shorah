@@ -1,12 +1,14 @@
-project('shorah',
-  ['c', 'cpp'],
+project(
+  'shorah',
+  'cpp',
   version : '1.9.95',
   default_options : [
     'buildtype=release',
-    'default_library=shared',
+    'cpp_std=c++11',
     'warning_level=3',
     'b_ndebug=if-release'],
-  license : 'GPL-2+')
+  license : 'GPL-2+',
+  meson_version : '>= 0.46.0')
 
 # info
 as_version = meson.project_version()

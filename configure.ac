@@ -33,7 +33,7 @@ dnl ============================================================================
 dnl Check whether we want to set defaults for CFLAGS, CXXFLAGS, CPPFLAGS and LDFLAGS
 dnl ================================================================================
 AC_MSG_CHECKING([whether configure should try to set CXXFLAGS/CPPFLAGS/LDFLAGS])
-AS_IF([test "x${CFLAGS+set}" = "xset" || test "x${CXXFLAGS+set}" = "xset" || test "x${CPPFLAGS+set}" = "xset" || test "x${LDFLAGS+set}" = "xset"],
+AS_IF([test "x${CXXFLAGS+set}" = "xset" || test "x${CPPFLAGS+set}" = "xset" || test "x${LDFLAGS+set}" = "xset"],
 	[enable_flags_setting=no],
 	[enable_flags_setting=yes]
 )
@@ -42,7 +42,7 @@ AC_MSG_RESULT([${enable_flags_setting}])
 AX_CHECK_ENABLE_DEBUG
 AS_IF([test "x${enable_debug}" = "xno"],
 	[
-		cflags_test="-ffast-math -O3"
+		cxxflags_test="-ffast-math -O3"
 		cppflags_test=""
 
 		AC_CANONICAL_HOST
@@ -61,20 +61,14 @@ dnl =======================================
 dnl Check for standard headers and programs
 dnl =======================================
 AC_PROG_SED
-AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_RANLIB
 AM_PROG_AR
 
-AC_LANG([C])
 AX_COMPILER_VENDOR
 AX_COMPILER_VERSION
 
-AC_LANG([C++])
-AX_COMPILER_VENDOR
-AX_COMPILER_VERSION
-
-dnl required by samtools on linux
+dnl required by HTSlib on linux
 AX_PTHREAD
 
 
@@ -83,12 +77,7 @@ dnl ==================================
 dnl Set CXXFLAGS, CPPFLAGS and LDFLAGS
 dnl ==================================
 AS_IF([test "x${enable_flags_setting}" = "xyes" && test "x${enable_debug}" = "xno"], [
-	AC_LANG([C])
-	AX_APPEND_COMPILE_FLAGS([${cflags_test}], [CFLAGS])
-	CFLAGS=$( echo ${CFLAGS} | $SED -e 's/^ *//' -e 's/ *$//' )
-
-	AC_LANG([C++])
-	AX_APPEND_COMPILE_FLAGS([${cflags_test}], [CXXFLAGS])
+	AX_APPEND_COMPILE_FLAGS([-Wall -Wextra ${cxxflags_test}], [CXXFLAGS])
 	CXXFLAGS=$( echo ${CXXFLAGS} | $SED -e 's/^ *//' -e 's/ *$//' )
 
 	AX_APPEND_COMPILE_FLAGS([${cppflags_test}], [CPPFLAGS])
@@ -103,7 +92,6 @@ AC_ARG_ENABLE([popcnt],
 
 dnl Check for popcount intrinsics
 AS_IF([test "x$enable_popcnt" != "xno"], [
-	AC_LANG([C++])
 	AX_APPEND_COMPILE_FLAGS([-mpopcnt], [CXXFLAGS])
 
 	AC_MSG_CHECKING([whether configure can enable POPCNT for Hamming distances])
@@ -124,11 +112,19 @@ AS_IF([test "x$enable_popcnt" != "xno"], [
 
 
 
-dnl =================
-dnl Find zlib and gsl
-dnl =================
+dnl ==========
+dnl Find C++11
+dnl ==========
+AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
+
+
+
+dnl =========================
+dnl Find zlib, gsl and HTSlib
+dnl =========================
 PKG_CHECK_MODULES([ZLIB], [zlib])
 PKG_CHECK_MODULES([GSL], [gsl])
+PKG_CHECK_MODULES([HTSLIB], [htslib])
 
 
 
@@ -161,14 +157,14 @@ dnl ============================
 AC_MSG_RESULT([
 	${PACKAGE_NAME} ${VERSION}
 
-	CC : ...................... ${CC} (${ax_cv_c_compiler_vendor}, ${ax_cv_c_compiler_version})
-	CFLAGS : .................. ${CFLAGS}
-
 	CXX : ..................... ${CXX} (${ax_cv_cxx_compiler_vendor}, ${ax_cv_cxx_compiler_version})
 	CXXFLAGS : ................ ${CXXFLAGS}
 
 	CPPFLAGS : ................ ${CPPFLAGS}
 	LDFLAGS : ................. ${LDFLAGS}
+
+	HTSlib_CFLAGS : ........... ${HTSLIB_CFLAGS}
+	HTSlib_LIBS : ............. ${HTSLIB_LIBS}
 
 	PYTHON : .................. ${PYTHON}
 	Python version : .......... ${PYTHON_VERSION}
