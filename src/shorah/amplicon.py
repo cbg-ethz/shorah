@@ -329,6 +329,7 @@ def main(args):
     sigma = args.sigma
     diversity = args.diversity
     min_overlap = args.min_overlap
+    ignore_indels = args.ignore_indels;
 
     logging.info(' '.join(sys.argv))
     # info on reference and region if given, or discover high entropy one
@@ -351,10 +352,11 @@ def main(args):
     logging.info('analysing region from %d to %d', reg_start, reg_stop)
 
     # output the reads, aligned to the amplicon
+    d = ' -d' if ignore_indels else ''
 
-    b2w_args = ' -i 0 -w %d -m %d -x %d %s %s %s' % \
+    b2w_args = ' -i 0 -w %d -m %d -x %d%s %s %s %s' % \
         (ref_length, int(min_overlap * ref_length),
-         max_coverage, in_bam, in_fasta, region)
+         max_coverage, d, in_bam, in_fasta, region)
     ret_b2w = run_child(shlex.quote(b2w_exe), b2w_args)
     logging.debug('b2w returned %d', ret_b2w)
 

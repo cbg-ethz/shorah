@@ -39,6 +39,7 @@ adapted from samtools/calDep.c
 typedef struct {
     int maxdepth;
     double sig;
+    bool skip_indel;
 } paramstruct_t;
 
 
@@ -46,12 +47,13 @@ typedef struct {
 // main
 int main(int argc, char* argv[])
 {
-    paramstruct_t params = { 10000, 0.01 }; // cli.py's defaults
+    paramstruct_t params = { 10000, 0.01, // cli.py's defaults
+            false }; // mimics b2w's behaviour (historically fil used to do the other way around, leading to contradictions in results).
     int c = 0;
     hts_idx_t* idx = NULL;
     int amplicon = 0;
     htsFile* inFile = NULL;
-    while ((c = getopt(argc, argv, "b:v:x:a")) != EOF) {
+    while ((c = getopt(argc, argv, "b:v:x:ad")) != EOF) {
         switch (c) {
             case 'b':
                 inFile = hts_open(optarg, "r");
@@ -66,6 +68,10 @@ int main(int argc, char* argv[])
                 break;
             case 'a':
                 amplicon = 1;
+                break;
+            case 'd':
+                params.skip_indel = true; // this will bring the old historical behaviour of fil
+                break;
         }
     }
     if (inFile == NULL) {
@@ -178,14 +184,17 @@ int main(int argc, char* argv[])
                         {
                             char c;
                             const bam_pileup1_t* p = plp + i;
-                            if (p->indel == 0 and p->is_del != 1)
+                            // for the exact signification of "is_del" and "indel", see https://www.biostars.org/p/104301/#104311
+                            const bool skip = (params.skip_indel && (p->indel != 0));
+                            if ((! skip) and p->is_del != 1)
                                 // based on samtools/bam.h
                                 c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
                             else if (p->is_del == 1)
                                 c = '-';
-                            // NOTE b2w (and the samtools pileup mode without a ref) do not behave this way, they do not ignore bases that are shifted by indel.    e.g.: samtools 'C-6NNNNNN' is considered as 'C' by b2w see BUG below
                             else
-                                c = '*'; // NOTE samtools pileup mode with a ref behaves exactly this way   e.g.: samtools 'C-6NNNNNN' is considered as '*' by fil
+                                c = '*';
+                                // NOTE historically, fil used to ignore SNVs nearby insertions/deletions, leading to disagreeing with B2W and causing bugs.
+                                // Now there's a switch for that. Either both always keep SNVs (default behaviour and old b2w behaviour) or both ignore them when nearby insertions (old fil's behaviour)
                             if (bam_is_rev(p->b) == 0)  // forward read
                                 st_freq_all[Strand::f]++;
                             else
@@ -212,7 +221,7 @@ int main(int argc, char* argv[])
             double pval = 1.;
 
             if (st_freq_all[Strand::f] == 0 and st_freq_all[Strand::r] == 0) {
-                // BUG this can still happen due to B2W and FIL counting indels in different way. See NOTE above
+                // historically this could happen due to B2W and FIL counting indels in different way.
                 std::cerr << "Bug: No reads found at position " << pos <<" ?!?" << std::endl;
             } else if (st_freq_Mut[Strand::f] == 0 and st_freq_Mut[Strand::r] == 0) {
                 std::cerr << "Critical: No mutations found at position " << pos <<" ?!?" << std::endl;

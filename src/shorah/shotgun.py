@@ -145,12 +145,13 @@ def windows(run_settings):
     """run b2w to make windows from bam
     """
     import subprocess
-    bam, fasta, w, i, m, x, reg = run_settings
+    bam, fasta, w, i, m, x, reg, ignore_indels = run_settings
+    d = ' -d' if ignore_indels else ''
     #dn = sys.path[0]
     my_prog = shlex.quote(b2w_exe)  # os.path.join(dn, 'b2w')
 
-    my_arg = ' -w %i -i %i -m %i -x %i %s %s %s' % \
-        (w, i, m, x, bam, fasta, reg)
+    my_arg = ' -w %i -i %i -m %i -x %i%s %s %s %s' % \
+        (w, i, m, x, d, bam, fasta, reg)
 
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
@@ -396,6 +397,7 @@ def main(args):
     alpha = args.a
     keep_files = args.keep_files
     seed = args.seed
+    ignore_indels = args.ignore_indels;
 
     logging.info(' '.join(sys.argv))
 
@@ -419,7 +421,7 @@ def main(args):
 
     # run b2w
     retcode = windows((in_bam, in_fasta, win_length, incr,
-                       win_min_ext * win_length, max_c, region))
+                       win_min_ext * win_length, max_c, region, ignore_indels))
     if retcode is not 0:
         sys.exit('b2w run not successful')
 

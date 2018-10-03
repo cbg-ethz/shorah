@@ -52,6 +52,7 @@ adapted from samtools/calDep.c
 typedef struct
 {
     int win, inc, min_overlap, max;
+    bool skip_indel;
 } paramstruct_t;
 
 // to consider, based on samtools/sam.c
@@ -63,11 +64,12 @@ typedef struct
 
 
 // callback for bam_plbuf_init() (for making windows)
-static int pileup_func(const uint32_t win_b, const uint32_t win_e, const uint32_t pos, const bam_pileup1_t* pl, char* rd)
+static int pileup_func(const uint32_t win_b, const uint32_t win_e, const uint32_t pos, const bam_pileup1_t* pl, char* rd, const bool skip_indel = false)
 {
     const int i = pos - win_b;     // base position within window
     char* mm = rd + i;             // location of base
     if (pos >= win_b && pos <= win_e) {  // make sure read position within window
+        // for the exact signification of "is_del" and "indel", see https://www.biostars.org/p/104301/#104311
         if (pl->is_del == 1) {                 // remove deletions, replacing with reference
             // char *rb;
             // int td;
@@ -75,11 +77,10 @@ static int pileup_func(const uint32_t win_b, const uint32_t win_e, const uint32_
             // rb = fai_fetch(tmp->fai, tmp->in->header->target_name[td], &tmp->len);
             *mm = '-';
         } else {  // replace 'N' in rd with current read base
-            // based on samtools/bam.h
-            *mm = seq_nt16_str[bam_seqi(bam_get_seq(pl->b), pl->qpos)];
+            if ( (! skip_indel) || (pl->indel == 0))
+                // based on samtools/bam.h
+                *mm = seq_nt16_str[bam_seqi(bam_get_seq(pl->b), pl->qpos)];
         }
-        // NOTE samtools pileup mode without a ref behave this way, they do not ignore bases that are shifted by indel  e.g.: samtools 'C-6NNNNNN' is considered as 'C' by b2w
-        // NOTE fil (and samtools pileup mode with a ref) do not behaves exactly this way, they do ignore bases that are shifted by indel   e.g.: samtools 'C-6NNNNNN' is considered as '*' by fil. This can cause a BUG in fil.
     }
     return 0;
 }
@@ -100,15 +101,16 @@ int main(int argc, char* argv[])
         201,   // window size
         201/3, // incr = size / shifts
         (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
-        10000 / 201 // max_c = max_coverage / size
+        10000 / 201, // max_c = max_coverage / size
+        false   // (historically default behaviour of shorah is to never skip insertions)
     };
 
     char help_string[] =
         "\nUsage: b2w [options] <in.bam> <in.fasta> region\n\nOptions:\n\t-w: window length "
         "(INT)\n\t-i: increment (INT)\n\t-m: minimum overlap (INT)\n\t-x: max reads starting at a "
-        "position (INT)\n\t-h: show this help\n\n";
+        "position (INT)\n\t-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n\t-h: show this help\n\n";
 
-    while ((c = getopt(argc, argv, "w:i:m:x:h")) != EOF) {
+    while ((c = getopt(argc, argv, "w:i:m:x:dh")) != EOF) {
         switch (c) {
             case 'w':
                 param.win = atof(optarg);
@@ -122,6 +124,10 @@ int main(int argc, char* argv[])
             case 'x':
                 param.max = atof(optarg);
                 break;
+            case 'd':
+                // brings fil's weird behaviour into b2w
+                param.skip_indel = true;
+                break;
             case 'h':
                 std::fprintf(stdout, "%s", help_string);
                 exit(EXIT_SUCCESS);
@@ -130,8 +136,8 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
         }
     }
-    if (argc < 11 || argc > 12) {
-        std::fprintf(stderr, "%s", help_string);
+    if ((argc - optind) < 2 or (argc - optind) > 3) {
+        std::fprintf(stderr, "%d parameters left, %s", argc - optind, help_string);
         return 1;
     }
 
@@ -210,7 +216,7 @@ int main(int argc, char* argv[])
                         if (0 <= bam_plp_push(plp_iter, b)) {
                             bam_plp_push(plp_iter, 0);
                             while ((plp = bam_plp_next(plp_iter, &tid, &pos, &n_plp)) != 0)
-                                pileup_func(Rstart, Rend, pos, plp, rd.data());
+                                pileup_func(Rstart, Rend, pos, plp, rd.data(), param.skip_indel);
                         } // TODO trap errors
                     }
                     bam_plp_reset(plp_iter);
@@ -273,7 +279,7 @@ int main(int argc, char* argv[])
                                     cov += 1;                 // increment window coverage
                                     bam_plp_push(plp_iter, 0); // but make sure only 1 read at a time
                                     while ((plp = bam_plp_next(plp_iter, &tid, &pos, &n_plp)) != 0)
-                                        pileup_func(win_b, win_e, pos, plp, rd);
+                                        pileup_func(win_b, win_e, pos, plp, rd, param.skip_indel);
                                 } // TODO trap errors
                             }
                             bam_plp_reset(plp_iter);
