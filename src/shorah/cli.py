@@ -105,6 +105,9 @@ def main():
     parser.add_argument("-S", "--sigma", metavar='FLOAT', default=0.01, type=float,
                         dest="sigma", help="sigma value to use when calling SNVs")
 
+    parser.add_argument("-I", "--ignore_indels", action="store_true", default=False,
+                        dest="ignore_indels", help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
+
     subparsers = parser.add_subparsers(help='available sub-commands')
 
     # create the parser for command "shotgun"

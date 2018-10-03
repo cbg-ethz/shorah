@@ -313,13 +313,13 @@ def printRaw(snpD2, incr):
     out1.close()
 
 
-def sb_filter(in_bam, sigma, amplimode="", max_coverage=100000):
+def sb_filter(in_bam, sigma, amplimode="", drop_indels="", max_coverage=100000):
     """run strand bias filter calling the external program 'fil'
     """
     import subprocess
     # dn = sys.path[0]
     my_prog = shlex.quote(fil_exe)  # os.path.join(dn, 'fil')
-    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + ' -x ' \
+    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + drop_indels + ' -x ' \
              + str(max_coverage)
     logging.debug('running %s%s', my_prog, my_arg)
     retcode = subprocess.call(my_prog + my_arg, shell=True)
@@ -348,7 +348,7 @@ def BH(p_vals, n):
     return q_vals_l
 
 
-def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
+def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000, ignore_indels=False):
     '''main code
     '''
     from Bio import SeqIO
@@ -372,12 +372,11 @@ def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000):
         logging.debug('snv/SNV.txt found, moving to ./')
         shutil.move('snv/SNV.txt', './')
 
+    d = ' -d' if ignore_indels else ''
+    a = ' -a' if increment == 1 else ''
     # run strand bias filter, output in SNVs_%sigma.txt
-    if increment == 1:
-        retcode_m = sb_filter(bam_file, sigma, amplimode=" -a",
-                              max_coverage=max_coverage)
-    else:
-        retcode_m = sb_filter(bam_file, sigma, max_coverage=max_coverage)
+    retcode_m = sb_filter(bam_file, sigma, amplimode=a, drop_indels=d,
+                            max_coverage=max_coverage)
     if retcode_m is not 0:
         logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
