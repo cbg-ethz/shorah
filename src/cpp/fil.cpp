@@ -296,4 +296,5 @@ int main(int argc, char* argv[])
     bam_hdr_destroy(header);
     hts_idx_destroy(idx);
     hts_close(inFile);
+    exit(EXIT_SUCCESS);
 }
