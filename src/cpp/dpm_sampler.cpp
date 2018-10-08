@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 #include <algorithm>
+#include <numeric>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
@@ -50,6 +51,37 @@
 #include <random>
 #include <boost/random/beta_distribution.hpp>
 std::mt19937 rg;
+
+
+
+// Simple naive implementation of a discrete distribution, using cumulated weights.
+// For generating a single number, that's enough.
+//
+// (as opposed to gsl's, STL's and boost's implementations that all allocate and compute extra look-up tables
+// to further accelerate multiple futur calls to generator, see:
+//  - https://www.gnu.org/software/gsl/manual/html_node/General-Discrete-Distributions.html
+//  - https://stats.stackexchange.com/a/26868 )
+template<typename UNS, typename CDF_type> inline UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
+    std::partial_sum(wa, wa+n, cdf.begin()); // this usually can be SIMD-parallelized by the compiler
+    std::uniform_real_distribution<double> wdist(0.0, cdf[n-1]);
+    return std::upper_bound(cdf.begin(), cdf.begin() + n, wdist(rg)) - cdf.begin(); // usually a binary search
+}
+
+// for classes, as their number varies.
+static std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
+static inline long unsigned one_shot_discrete(const unsigned n, const double* wa) {
+    if (n <= cdf_128.capacity())
+        cdf_128.reserve(n + 128);
+    return one_shot_discrete_cdf<long unsigned>(cdf_128, n, wa);
+}
+
+// for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
+static inline short unsigned one_shot_discrete_B(const double* wa) {
+    std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
+    return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
+}
+
+
 
 #define PROPHISTSIZE 100
 int main(int argc, char** argv)
@@ -973,8 +1005,7 @@ double sample_ref()
                     }
                 }
 
-                std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
-                h[j] = discrete(rg);
+                h[j] = one_shot_discrete_B(pbase);
             } else {  // gamma == 1.0
                 max_cbase = cbase[0];
                 for (i = 1; i < B; i++) {
@@ -989,8 +1020,7 @@ double sample_ref()
                         pbase[i] = 0.0;
                     }
                 }
-                std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
-                h[j] = discrete(rg);
+                h[j] = one_shot_discrete_B(pbase);
             }
         } else {  // K1 == 0, that is all N's
             h[j] = B;
@@ -1074,8 +1104,7 @@ void sample_hap(cnode* cn)
                 }
             }
 
-            std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
-            cn->h[j] = discrete(rg);
+            cn->h[j] = one_shot_discrete_B(pbase);
         } else {                  // theta == 1.0
             if (tot_reads > 0) {  // base not N: sample from reads in cluster.
                 max_cbase = cbase[0];
@@ -1493,8 +1522,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     for (j = 0; j <= st; j++)
         printf("with P[%i] = %e to class %p\n", j, P[j], (void *)cl_ptr[j]);
 #endif
-    std::discrete_distribution<decltype(this_class)> discrete ((const decltype(P))P, (const decltype(P))P+st+1);
-    this_class = discrete(rg);
+    this_class = one_shot_discrete(st + 1, P);
 
 #ifndef NDEBUG
     printf("extracted class is = %lu\n", this_class);
