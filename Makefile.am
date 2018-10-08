@@ -20,8 +20,7 @@ diri_sampler_SOURCES = \
 	src/cpp/data_structures.hpp \
 	src/cpp/dpm_sampler.hpp \
 	src/cpp/dpm_sampler.cpp
-diri_sampler_CPPFLAGS = $(GSL_CFLAGS)
-diri_sampler_LDADD = $(GSL_LIBS)
+diri_sampler_CPPFLAGS = $(BOOST_CPPFLAGS)
 
 b2w_SOURCES = \
 	src/cpp/b2w.cpp

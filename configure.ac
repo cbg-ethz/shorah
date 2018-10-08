@@ -128,6 +128,16 @@ PKG_CHECK_MODULES([HTSLIB], [htslib])
 
 
 
+dnl ======================
+dnl Special find for Boost
+dnl ======================
+dnl Boost still doesn't have a .pc in 2018
+
+AX_BOOST_BASE([1.56],, [AC_MSG_ERROR([Shorah needs Boost >= 1.56 headers, but they were not found in your system])])
+dnl we only use headers (beta distribution is in 1.35), no AX_BOOST_{lib} (boost::random is templates only)
+
+
+
 dnl ===================
 dnl Initialise Automake
 dnl ===================
@@ -162,6 +172,8 @@ AC_MSG_RESULT([
 
 	CPPFLAGS : ................ ${CPPFLAGS}
 	LDFLAGS : ................. ${LDFLAGS}
+
+	Boost_CPPFLAGS : .......... ${BOOST_CPPFLAGS}
 
 	HTSlib_CFLAGS : ........... ${HTSLIB_CFLAGS}
 	HTSlib_LIBS : ............. ${HTSLIB_LIBS}
