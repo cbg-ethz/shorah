@@ -70,8 +70,8 @@ int main(int argc, char** argv)
     FILE* iterfile;
     float alpha2;
 
-    double_threshold_min = gsl_sf_log(DBL_MIN);
-    double_threshold_max = gsl_sf_log(DBL_MAX);
+    double_threshold_min = std::log(DBL_MIN);
+    double_threshold_max = std::log(DBL_MAX);
     parsecommandline(argc, argv);
 
     std::string instr = filein;
@@ -955,7 +955,7 @@ double sample_ref()
             if (b1 != 1.0) {
 
                 for (i = 0; i < B; i++) {
-                    log_pbase[i] = cbase[i] * gsl_sf_log(b1) + (K1 - cbase[i]) * gsl_sf_log(b2);
+                    log_pbase[i] = cbase[i] * std::log(b1) + (K1 - cbase[i]) * std::log(b2);
                 }
                 max_log_pbase = log_pbase[0];
                 base_id = 0;
@@ -975,7 +975,7 @@ double sample_ref()
                         if (log_pbase[i] < double_threshold_min) {
                             pbase[i] = 0.0;
                         } else {
-                            pbase[i] = gsl_sf_exp(log_pbase[i]);
+                            pbase[i] = std::exp(log_pbase[i]);
                         }
                     }
                 }
@@ -1057,10 +1057,10 @@ void sample_hap(cnode* cn)
             for (i = 0; i < B; i++) {
                 if (tot_reads > 0) {  // base is not N: sample from reads in the cluster
                     log_pbase[i] =
-                        cbase[i] * gsl_sf_log(b1) + (tot_reads - cbase[i]) * gsl_sf_log(b2);
+                        cbase[i] * std::log(b1) + (tot_reads - cbase[i]) * std::log(b2);
                 } else  // base is N: sample from all reads
-                    log_pbase[i] = ftable[j][i] * gsl_sf_log(b1) +
-                                   (ftable_sum[j] - ftable[j][i]) * gsl_sf_log(b2);
+                    log_pbase[i] = ftable[j][i] * std::log(b1) +
+                                   (ftable_sum[j] - ftable[j][i]) * std::log(b2);
             }
             max_log_pbase = log_pbase[0];
             base_id = 0;
@@ -1079,7 +1079,7 @@ void sample_hap(cnode* cn)
                         pbase[i] = 0.0;
                     } else {
                         // std::cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<std::endl;
-                        pbase[i] = gsl_sf_exp(log_pbase[i]);
+                        pbase[i] = std::exp(log_pbase[i]);
                     }
                 }
             }
@@ -1427,16 +1427,16 @@ ssret* sample_class(unsigned int i, unsigned int step)
             nodist = cn->rd1[i];
 
             if (b1 != 1.0) {  // theta < 1.0
-                log_P[st] = gsl_sf_log((double)tw);
-                log_P[st] += nodist * gsl_sf_log(b1);
-                log_P[st] += dist * gsl_sf_log(b2);
+                log_P[st] = std::log((double)tw);
+                log_P[st] += nodist * std::log(b1);
+                log_P[st] += dist * std::log(b2);
                 P[st] = 1.0;  // all probabilities, which should change afterwards, set to 1
             } else {          // theta == 1.0, not needed
                 if (dist != 0) {
                     log_P[st] = double_threshold_min - 1.0;
                     P[st] = 0.0;
                 } else {
-                    log_P[st] = gsl_sf_log((double)tw);
+                    log_P[st] = std::log((double)tw);
                     P[st] = 1.0;  // same as above, P != 0 later
                 }
             }
@@ -1457,19 +1457,19 @@ ssret* sample_class(unsigned int i, unsigned int step)
     nodist = p.second;
 
     b1 = (theta * gam) + (1. - gam) * (1. - theta) / ((double)B - 1.);
-    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (gsl_sf_pow_int((double)B - 1., 2));
+    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (std::pow((double)B - 1., 2));
 
     if ((theta == 1.0) && (gam == 1.0)) {
         if (dist == 0) {
-            log_P[st] = gsl_sf_log(alpha);
+            log_P[st] = std::log(alpha);
             P[st] = 1.0;
         } else {
             log_P[st] = double_threshold_min - 1.0;
             P[st] = 0.0;
         }
     } else {
-        log_P[st] = gsl_sf_log(alpha) + gsl_sf_log((double)(readtable2[i]->weight)) +
-                    nodist * gsl_sf_log(b1) + dist * gsl_sf_log(b2);
+        log_P[st] = std::log(alpha) + std::log((double)(readtable2[i]->weight)) +
+                    nodist * std::log(b1) + dist * std::log(b2);
         P[st] = 1.0;
     }
     cl_ptr[st] = NULL;
@@ -1496,7 +1496,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
             else if (log_P[ll] > double_threshold_max)
                 P[ll] = DBL_MAX;
             else {
-                P[ll] = gsl_sf_exp(log_P[ll]);
+                P[ll] = std::exp(log_P[ll]);
             }
         }  // else P[i] = 0, from above
     }
@@ -1805,6 +1805,8 @@ void cleanup()
     free(c_ptr);
     free(pbase);
     free(cbase);
+    free(res_dist);
+    free(res);
     free(log_pbase);
     free(h);
 
