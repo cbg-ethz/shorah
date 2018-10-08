@@ -12,6 +12,7 @@ else
     extra_cpp_args = []
 endif
 
+boost_dep = dependency('boost', version : '>=1.56' ) # we only use headers : boost::random is templates-only
 gsl_dep = dependency('gsl')
 thread_dep = dependency('threads')
 htslib_dep = dependency('htslib', version : '>=1.7')
@@ -23,7 +24,7 @@ dpm_exe = executable(
     'dpm_sampler.cpp']),
   dependencies : [
     thread_dep,
-    gsl_dep],
+    boost_dep],
   cpp_args : extra_cpp_args,
   install : true)
 
