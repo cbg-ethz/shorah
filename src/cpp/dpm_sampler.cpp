@@ -67,6 +67,18 @@ template<typename UNS, typename CDF_type> inline UNS one_shot_discrete_cdf(CDF_t
     return std::upper_bound(cdf.begin(), cdf.begin() + n, wdist(rg)) - cdf.begin(); // usually a binary search
 }
 
+template<typename UNS> inline UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
+    std::uniform_real_distribution<double> wdist(0.0, std::accumulate(wa, wa+n, 0.));
+    double random = wdist(rg);
+    UNS i;
+    for(i = 0; i < n; i++) {
+        random -= wa[i];
+        if (random < 0.)
+            break;
+    }
+    return i;
+}
+
 // for classes, as their number varies.
 static std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
 static inline long unsigned one_shot_discrete(const unsigned n, const double* wa) {
@@ -77,8 +89,11 @@ static inline long unsigned one_shot_discrete(const unsigned n, const double* wa
 
 // for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
 static inline short unsigned one_shot_discrete_B(const double* wa) {
+/*
     std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
     return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
+*/
+    return one_shot_discrete_stupid<short unsigned>(B, wa); // compiler efficiently unrolls everything
 }
 
 
