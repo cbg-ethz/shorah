@@ -115,9 +115,6 @@ double double_threshold_max;  // will be set to = gsl_sf_log(DBL_MAX);
 // needed for omitting underflow-errors of gsl-functions
 
 // random number generator via gsl
-const gsl_rng_type* T;
-const gsl_rng* rg;          /* gsl, global generator */
-const gsl_rng* urg;         /* gsl, global generator for uniform */
 unsigned long randseed = 0; /* random seed, if no command line parameter
                    -R given, set to current time */
 

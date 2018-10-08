@@ -44,14 +44,12 @@
 #include <nmmintrin.h>
 #endif
 
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_sf_exp.h>
-#include <gsl/gsl_sf_log.h>
-#include <gsl/gsl_sf_pow_int.h>
-
 #include "data_structures.hpp"
 #include "dpm_sampler.hpp"
+
+#include <random>
+#include <boost/random/beta_distribution.hpp>
+std::mt19937 rg;
 
 #define PROPHISTSIZE 100
 int main(int argc, char** argv)
@@ -97,10 +95,7 @@ int main(int argc, char** argv)
     stat_file << "# randseed = " << randseed << std::endl;
 
     // random number generator via gsl
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    rg = gsl_rng_alloc(T);
-    gsl_rng_set(rg, randseed);
+    rg.seed(randseed);
 
     res_dist = (int*)calloc(2, sizeof(int));
     if (res_dist == NULL) exit(EXIT_FAILURE);
@@ -390,7 +385,8 @@ int main(int argc, char** argv)
         b_alpha = dt + (eps1 * eps2 * totbases);
         b_beta = (totbases - dt) + eps2 * totbases * (1 - eps1);
 
-        theta = gsl_ran_beta(rg, b_alpha, b_beta);
+        boost::random::beta_distribution<decltype(theta)> beta(b_alpha, b_beta);
+        theta = beta(rg);
         // theta = dt/(q * J) + gsl_ran_gaussian(rg, g_noise);
         // theta = dt/totbases + gsl_ran_gaussian(rg, g_noise);
         // theta = (totbases - dt)/totbases + gsl_ran_gaussian(rg, g_noise);
@@ -713,7 +709,6 @@ void build_assignment(std::ofstream& out_file)
     std::pair<int, int> p;
     double* p_k;
     // double* p_q;
-    gsl_ran_discrete_t* g;
 
     out_file << "# Building assignment" << std::endl;
     h = (short unsigned int*)calloc(J, sizeof(unsigned int));
@@ -750,11 +745,11 @@ void build_assignment(std::ofstream& out_file)
         p_k[i] = 1.;
         // p_q[i] = 1;
     }
-    g = gsl_ran_discrete_preproc(K, p_k);
+    std::discrete_distribution<decltype(ci)> discrete ((const decltype(p_k))p_k, (const decltype(p_k))p_k+K);
 
     // assign reads to initial clusters randomly
     for (m = 0; m < q; m++) {
-        ci = gsl_ran_discrete(rg, g);
+        ci = discrete(rg);
         cn = mxt;
         while (cn != NULL) {
             if (ci == cn->ci) {
@@ -765,7 +760,6 @@ void build_assignment(std::ofstream& out_file)
             cn = cn->next;
         }
     }
-    gsl_ran_discrete_free(g);
     free(p_k);
     // free(p_q);
 
@@ -906,7 +900,6 @@ double sample_ref()
     unsigned int i, j;
     double b1, b2;
     unsigned int K1 = 0;
-    gsl_ran_discrete_t* g;
     std::ofstream err_file("error_ref.log");
     double max_log_pbase;
     int max_cbase;
@@ -980,9 +973,8 @@ double sample_ref()
                     }
                 }
 
-                g = gsl_ran_discrete_preproc(B, pbase);
-                h[j] = gsl_ran_discrete(rg, g);
-                gsl_ran_discrete_free(g);
+                std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
+                h[j] = discrete(rg);
             } else {  // gamma == 1.0
                 max_cbase = cbase[0];
                 for (i = 1; i < B; i++) {
@@ -997,9 +989,8 @@ double sample_ref()
                         pbase[i] = 0.0;
                     }
                 }
-                g = gsl_ran_discrete_preproc(B, pbase);
-                h[j] = gsl_ran_discrete(rg, g);
-                gsl_ran_discrete_free(g);
+                std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
+                h[j] = discrete(rg);
             }
         } else {  // K1 == 0, that is all N's
             h[j] = B;
@@ -1014,7 +1005,6 @@ void sample_hap(cnode* cn)
 
     rnode* tr;
     unsigned int i, j, tot_reads;
-    gsl_ran_discrete_t* g;
     double b1, b2;
 
     double max_log_pbase;
@@ -1084,9 +1074,8 @@ void sample_hap(cnode* cn)
                 }
             }
 
-            g = gsl_ran_discrete_preproc(B, pbase);
-            cn->h[j] = gsl_ran_discrete(rg, g);
-            gsl_ran_discrete_free(g);
+            std::discrete_distribution<short unsigned int> discrete ((const decltype(pbase))pbase, (const decltype(pbase))pbase+B);
+            cn->h[j] = discrete(rg);
         } else {                  // theta == 1.0
             if (tot_reads > 0) {  // base not N: sample from reads in cluster.
                 max_cbase = cbase[0];
@@ -1295,7 +1284,6 @@ ssret* sample_class(unsigned int i, unsigned int step)
     cnode* to_class;
     cnode* from_class;
     size_t st = 0, this_class;
-    gsl_ran_discrete_t* g;
     cnode* cn;
     rnode* rn = NULL;
     double max_log_P, delta_log;
@@ -1505,10 +1493,8 @@ ssret* sample_class(unsigned int i, unsigned int step)
     for (j = 0; j <= st; j++)
         printf("with P[%i] = %e to class %p\n", j, P[j], (void *)cl_ptr[j]);
 #endif
-
-    g = gsl_ran_discrete_preproc(st + 1, P);
-    this_class = gsl_ran_discrete(rg, g);
-    gsl_ran_discrete_free(g);
+    std::discrete_distribution<decltype(this_class)> discrete ((const decltype(P))P, (const decltype(P))P+st+1);
+    this_class = discrete(rg);
 
 #ifndef NDEBUG
     printf("extracted class is = %lu\n", this_class);
