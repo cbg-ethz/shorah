@@ -59,7 +59,8 @@ if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
-        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        logging.error(
+            'Executables b2w and diri_sampler not found, compile first.')
         sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 win_min_ext = 0.95
@@ -79,7 +80,8 @@ def run_child(exe_name, arg_string):
         retcode = subprocess.call(exe_name + arg_string, shell=True)
         if retcode > 0:
             logging.error(exe_name + arg_string)
-            logging.error("Child %s terminated by signal %s", exe_name, retcode)
+            logging.error("Child %s terminated by signal %s",
+                          exe_name, retcode)
         else:
             logging.debug("Child %s returned %i", exe_name, retcode)
     except OSError as ee:
@@ -93,7 +95,8 @@ def run_diagnostics(window_file, reads):
     """
     import warnings
 
-    stem = re.match(r'^(?P<stem>.*).reads', window_file).group('stem')  # greedy re match to handle situation where '.reads' appears in the ID
+    # greedy re match to handle situation where '.reads' appears in the ID
+    stem = re.match(r'^(?P<stem>.*).reads', window_file).group('stem')
     smp_file = stem + '.smp'
     dbg_file = stem + '.dbg'
     del stem
@@ -195,6 +198,7 @@ def plot_entropy(pos_ent, pos_coords, ave_ent, win_coords):
     plt.title('chosen entropy window is %d-%d' % (high_start, high_stop))
     plt.savefig('entropy.pdf')
     del fig
+
 
 def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     """Parse reads to have their length distribution and compute the
@@ -313,7 +317,7 @@ def highest_entropy(bam_file, fasta_file, ent_sel='relative'):
     return high_ent_start, high_ent_stop
 
 
-#def main(in_bam, in_fasta, min_overlap=0.95, max_coverage=50000,
+# def main(in_bam, in_fasta, min_overlap=0.95, max_coverage=50000,
 #         alpha=0.5, s=0.01, region='', diversity=False):
 def main(args):
     """
@@ -329,15 +333,17 @@ def main(args):
     sigma = args.sigma
     diversity = args.diversity
     min_overlap = args.min_overlap
-    ignore_indels = args.ignore_indels;
+    ignore_indels = args.ignore_indels
 
     logging.info(' '.join(sys.argv))
     # info on reference and region if given, or discover high entropy one
     ref_seq = list(SeqIO.parse(in_fasta, 'fasta'))[0]
     ref_name = ref_seq.id
     if region:
-        reg_bound = re.search(r':(?P<start>\d+)-(?P<stop>\d+)$', region)  # handles situation where ':' or '-' appears in the ID
-        reg_start, reg_stop = int(reg_bound.group('start')), int(reg_bound.group('stop'))
+        # handles situation where ':' or '-' appears in the ID
+        reg_bound = re.search(r':(?P<start>\d+)-(?P<stop>\d+)$', region)
+        reg_start, reg_stop = int(reg_bound.group(
+            'start')), int(reg_bound.group('stop'))
         ref_length = reg_stop - reg_start + 1
         del reg_bound
     elif region == '' and diversity:
@@ -363,7 +369,8 @@ def main(args):
     # run diri_sampler on the aligned reads
     win_file = 'w-%s-%u-%u.reads.fas' % (ref_name, reg_start, reg_stop)
     # TODO clean ref_name of special caracters - that would be an alternative to processing everything with regex down the line
-    # BUG the solution currently used by ShoRAH can still fail when path '/' (or on windows '\\' and ':') characters are present in the ref_seq.id
+    # BUG the solution currently used by ShoRAH can still fail when path '/'
+    # (or on windows '\\' and ':') characters are present in the ref_seq.id
     h = list(open('coverage.txt'))[0]
     n_reads = int(h.split()[-1])
     assert os.path.exists(win_file), 'window file %s not found' % win_file
@@ -377,4 +384,5 @@ def main(args):
     run_diagnostics(win_file, n_reads)
 
     # run snv.py to parse single nucleotide variants
-    shorah_snv.main(reference=in_fasta, bam_file=in_bam, sigma=sigma, increment=1)
+    args.increment = 1
+    shorah_snv.main(args)

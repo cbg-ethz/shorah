@@ -58,7 +58,8 @@ if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
-        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        logging.error(
+            'Executables b2w and diri_sampler not found, compile first.')
         sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 #################################################
@@ -176,7 +177,8 @@ def run_dpm(run_setting):
     filein, j, a, seed = run_setting
 
     # if cor.fas.gz exists, skip
-    stem = re.match(r'^(?P<stem>.*).reads', filein).group('stem')  # greedy re match to handle situation where '.reads' appears in the ID
+    # greedy re match to handle situation where '.reads' appears in the ID
+    stem = re.match(r'^(?P<stem>.*).reads', filein).group('stem')
     corgz = 'corrected/%s.reads-cor.fas.gz' % stem
     if os.path.exists(corgz):
         logging.debug('file %s already analysed, skipping', filein)
@@ -374,7 +376,7 @@ def merge_corrected_reads(aligned_read):
     return(ID, merged_corrected_read)
 
 
-#def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
+# def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
 #         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
 def main(args):
     """
@@ -397,7 +399,7 @@ def main(args):
     alpha = args.a
     keep_files = args.keep_files
     seed = args.seed
-    ignore_indels = args.ignore_indels;
+    ignore_indels = args.ignore_indels
 
     logging.info(' '.join(sys.argv))
 
@@ -462,7 +464,10 @@ def main(args):
         winFile, j, a, s = i
         del a  # in future alpha might be different on each window
         del s
-        parts = re.match(r'^w-(?P<chrom>.*)-(?P<beg>\d+)-(?P<end>\d+).reads', winFile)  # greedy re match to handle situation where '.' or '-' appears in the ID
+        # greedy re match to handle situation where '.' or '-' appears in the
+        # ID
+        parts = re.match(
+            r'^w-(?P<chrom>.*)-(?P<beg>\d+)-(?P<end>\d+).reads', winFile)
         chrom = parts.group('chrom')
         beg = int(parts.group('beg'))
         end = int(parts.group('end'))
@@ -577,7 +582,8 @@ def main(args):
     logging.info('All corrected reads have been merged')
 
     ccx = {}
-    cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1]) # handle case where bamfile has no dots in name
+    # handle case where bamfile has no dots in name
+    cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
     logging.debug('writing to file %s.cor.fas', cin_stem)
     for ID, seq_list in to_correct:
@@ -613,8 +619,8 @@ def main(args):
     ph.close()
 
     logging.info('running snv.py')
-    shorah_snv.main(reference=in_fasta, bam_file=in_bam,
-                    increment=win_length // win_shifts, max_coverage=max_coverage)
+    args.increment = win_length // win_shifts
+    shorah_snv.main(args)
 
     # tidy snvs
     try:

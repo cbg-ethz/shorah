@@ -348,12 +348,19 @@ def BH(p_vals, n):
     return q_vals_l
 
 
-def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000, ignore_indels=False):
+def main(args):
     '''main code
     '''
     from Bio import SeqIO
     import csv
     import inspect
+
+    reference = args.f
+    bam_file = args.b
+    sigma = args.sigma
+    increment = args.increment
+    max_coverage = args.max_coverage
+    ignore_indels = args.ignore_indels
 
     logging.info(str(inspect.getfullargspec(main)))
     ref_m = dict([[s.id, str(s.seq).upper()]
@@ -376,7 +383,7 @@ def main(reference, bam_file, sigma=0.01, increment=1, max_coverage=100000, igno
     a = ' -a' if increment == 1 else ''
     # run strand bias filter, output in SNVs_%sigma.txt
     retcode_m = sb_filter(bam_file, sigma, amplimode=a, drop_indels=d,
-                            max_coverage=max_coverage)
+                          max_coverage=max_coverage)
     if retcode_m is not 0:
         logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
