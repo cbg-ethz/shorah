@@ -331,6 +331,7 @@ def main(args):
     alpha = args.a
     seed = args.seed
     sigma = args.sigma
+    cov_thrd = args.cov_thrd
     diversity = args.diversity
     min_overlap = args.min_overlap
     ignore_indels = args.ignore_indels
@@ -360,9 +361,8 @@ def main(args):
     # output the reads, aligned to the amplicon
     d = ' -d' if ignore_indels else ''
 
-    b2w_args = ' -i 0 -w %d -m %d -x %d%s %s %s %s' % \
-        (ref_length, int(min_overlap * ref_length),
-         max_coverage, d, in_bam, in_fasta, region)
+    b2w_args = ' -i 0 -w %d -m %d -x %d -c %i%s %s %s %s' % (ref_length, int(
+        min_overlap * ref_length), max_coverage, cov_thrd, d, in_bam, in_fasta, region)
     ret_b2w = run_child(shlex.quote(b2w_exe), b2w_args)
     logging.debug('b2w returned %d', ret_b2w)
 

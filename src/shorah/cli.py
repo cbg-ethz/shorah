@@ -118,6 +118,8 @@ def main():
     parent_parser.add_argument("-S", "--sigma", metavar='FLOAT', default=0.01,
                                type=float, dest="sigma", help="sigma value to use when calling SNVs")
 
+    parent_parser.add_argument("-c", "--win_coverage", metavar='INT', default=0, type=int,
+                               dest='cov_thrd', help='coverage threshold. Omit windows with low coverage')
     parent_parser.add_argument("-I", "--ignore_indels", action="store_true", default=False, dest="ignore_indels",
                                help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
 
@@ -158,7 +160,7 @@ def main():
         'snv', help='run single-nucleotide-variant calling', parents=[parent_parser, version_parser])
 
     parser_snv.add_argument("-i", "--increment", metavar='INT', default=1, type=int, required=False,
-                            dest="increment", help="value of increment to use when calling\nSNVs (1 used by amplian.py)")
+                            dest="increment", help="value of increment to use when calling\nSNVs (1 used in  amplicon mode)")
 
     parser_snv.set_defaults(func=snv_run)
 
