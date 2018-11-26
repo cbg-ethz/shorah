@@ -51,7 +51,7 @@ adapted from samtools/calDep.c
 // data for fetch_func and pileup_func
 typedef struct
 {
-    int win, inc, min_overlap, max;
+    int win, inc, min_overlap, max, cov_thrd;
     bool skip_indel;
 } paramstruct_t;
 
@@ -102,15 +102,17 @@ int main(int argc, char* argv[])
         201/3, // incr = size / shifts
         (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
         10000 / 201, // max_c = max_coverage / size
+        0,  // coverage threshold
         false   // (historically default behaviour of shorah is to never skip insertions)
     };
 
     char help_string[] =
         "\nUsage: b2w [options] <in.bam> <in.fasta> region\n\nOptions:\n\t-w: window length "
         "(INT)\n\t-i: increment (INT)\n\t-m: minimum overlap (INT)\n\t-x: max reads starting at a "
-        "position (INT)\n\t-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n\t-h: show this help\n\n";
+        "position (INT)\n\t-c: coverage threshold. Omit windows with low coverage (INT)\n\t"
+        "-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n\t-h: show this help\n\n";
 
-    while ((c = getopt(argc, argv, "w:i:m:x:dh")) != EOF) {
+    while ((c = getopt(argc, argv, "w:i:m:x:c:dh")) != EOF) {
         switch (c) {
             case 'w':
                 param.win = atof(optarg);
@@ -123,6 +125,9 @@ int main(int argc, char* argv[])
                 break;
             case 'x':
                 param.max = atof(optarg);
+                break;
+            case 'c':
+                param.cov_thrd = atof(optarg);
                 break;
             case 'd':
                 // brings fil's weird behaviour into b2w
@@ -297,7 +302,7 @@ int main(int argc, char* argv[])
             }
             outFile.close();
 
-            if (cov > 0) {             // ignore empty windows
+            if (cov > param.cov_thrd) {     // ignore windows with low-coverage
                 covOut << filename << "\t"  // write out coverage information
                         << header->target_name[tid] << "\t" << win_b + 1 << "\t"
                         << win_e + 1 << "\t" << cov << "\n";

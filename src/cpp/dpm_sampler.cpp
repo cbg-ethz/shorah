@@ -558,7 +558,7 @@ void read_data(char* filename, std::ofstream& out_file)
     fclose(data);
 
     if (n == 1) {
-        out_file << "Nothing to do, have only one read... (n == 1)\n";
+        out_file << "Nothing to do, have only one read... (n == 1)" << std::endl;
         exit(0);
     }
 

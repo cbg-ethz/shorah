@@ -58,7 +58,8 @@ if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
-        logging.error('Executables b2w and diri_sampler not found, compile first.')
+        logging.error(
+            'Executables b2w and diri_sampler not found, compile first.')
         sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 #################################################
@@ -145,13 +146,13 @@ def windows(run_settings):
     """run b2w to make windows from bam
     """
     import subprocess
-    bam, fasta, w, i, m, x, reg, ignore_indels = run_settings
+    bam, fasta, w, i, m, x, c, reg, ignore_indels = run_settings
     d = ' -d' if ignore_indels else ''
     #dn = sys.path[0]
     my_prog = shlex.quote(b2w_exe)  # os.path.join(dn, 'b2w')
 
-    my_arg = ' -w %i -i %i -m %i -x %i%s %s %s %s' % \
-        (w, i, m, x, d, bam, fasta, reg)
+    my_arg = ' -w %i -i %i -m %i -x %i -c %i%s %s %s %s' % \
+        (w, i, m, x, c, d, bam, fasta, reg)
 
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
@@ -176,7 +177,8 @@ def run_dpm(run_setting):
     filein, j, a, seed = run_setting
 
     # if cor.fas.gz exists, skip
-    stem = re.match(r'^(?P<stem>.*).reads', filein).group('stem')  # greedy re match to handle situation where '.reads' appears in the ID
+    # greedy re match to handle situation where '.reads' appears in the ID
+    stem = re.match(r'^(?P<stem>.*).reads', filein).group('stem')
     corgz = 'corrected/%s.reads-cor.fas.gz' % stem
     if os.path.exists(corgz):
         logging.debug('file %s already analysed, skipping', filein)
@@ -279,6 +281,7 @@ def get_prop(filename):
     else:
         return 'not found'
 
+    prop = 0
     for l in h:
         if l.startswith('#made'):
             prop = int(l.split()[1])
@@ -374,7 +377,7 @@ def merge_corrected_reads(aligned_read):
     return(ID, merged_corrected_read)
 
 
-#def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
+# def main(in_bam, in_fasta, win_length=201, win_shifts=3, region='',
 #         max_coverage=10000, alpha=0.1, keep_files=True, seed=None):
 def main(args):
     """
@@ -395,9 +398,10 @@ def main(args):
     region = args.r
     max_coverage = args.max_coverage
     alpha = args.a
+    cov_thrd = args.cov_thrd
     keep_files = args.keep_files
     seed = args.seed
-    ignore_indels = args.ignore_indels;
+    ignore_indels = args.ignore_indels
 
     logging.info(' '.join(sys.argv))
 
@@ -420,8 +424,8 @@ def main(args):
     keep_all_files = keep_files
 
     # run b2w
-    retcode = windows((in_bam, in_fasta, win_length, incr,
-                       win_min_ext * win_length, max_c, region, ignore_indels))
+    retcode = windows((in_bam, in_fasta, win_length, incr, win_min_ext *
+                       win_length, max_c, cov_thrd, region, ignore_indels))
     if retcode is not 0:
         sys.exit('b2w run not successful')
 
@@ -462,7 +466,10 @@ def main(args):
         winFile, j, a, s = i
         del a  # in future alpha might be different on each window
         del s
-        parts = re.match(r'^w-(?P<chrom>.*)-(?P<beg>\d+)-(?P<end>\d+).reads', winFile)  # greedy re match to handle situation where '.' or '-' appears in the ID
+        # greedy re match to handle situation where '.' or '-' appears in the
+        # ID
+        parts = re.match(
+            r'^w-(?P<chrom>.*)-(?P<beg>\d+)-(?P<end>\d+).reads', winFile)
         chrom = parts.group('chrom')
         beg = int(parts.group('beg'))
         end = int(parts.group('end'))
@@ -577,7 +584,8 @@ def main(args):
     logging.info('All corrected reads have been merged')
 
     ccx = {}
-    cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1]) # handle case where bamfile has no dots in name
+    # handle case where bamfile has no dots in name
+    cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1])
     fch = open('%s.cor.fas' % cin_stem, 'w')
     logging.debug('writing to file %s.cor.fas', cin_stem)
     for ID, seq_list in to_correct:
@@ -613,8 +621,8 @@ def main(args):
     ph.close()
 
     logging.info('running snv.py')
-    shorah_snv.main(reference=in_fasta, bam_file=in_bam,
-                    increment=win_length // win_shifts, max_coverage=max_coverage)
+    args.increment = win_length // win_shifts
+    shorah_snv.main(args)
 
     # tidy snvs
     try:
