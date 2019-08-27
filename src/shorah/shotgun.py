@@ -281,7 +281,7 @@ def get_prop(filename):
     else:
         return 'not found'
 
-    prop = 0
+    prop = 'not found'
     for l in h:
         if l.startswith('#made'):
             prop = int(l.split()[1])
@@ -334,6 +334,9 @@ def win_to_run(alpha_w, seed):
 
 
 def merge_corrected_reads(aligned_read):
+    if aligned_read is None:
+        print("empty window found", file=sys.stderr)
+        return (None, [])
 
     ID = aligned_read[0]
     seq = aligned_read[1][4]
@@ -615,7 +618,7 @@ def main(args):
     ph = open('proposed.dat', 'w')
     ph.write('#base\tproposed_per_step\n')
     for kp in sorted(proposed):
-        if proposed[kp] != 'not found':
+        if proposed[kp] != 'not found' and 'not found' not in proposed[kp]:
             ph.write('%s\t%f\n' %
                      (kp, proposed[kp][0] / proposed[kp][1]))
     ph.close()

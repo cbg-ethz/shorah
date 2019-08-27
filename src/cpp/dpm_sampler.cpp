@@ -1321,11 +1321,13 @@ ssret* sample_class(unsigned int i, unsigned int step)
     // if it's in the head
     if (c_ptr[i] == NULL && mxt->size == 1) {
 
-        rn = mxt->next->rlist;
+        if (mxt->next != NULL) {
+                rn = mxt->next->rlist;
 
-        while (rn != NULL) {
-            c_ptr[rn->ri] = NULL;
-            rn = rn->next;
+                while (rn != NULL) {
+                        c_ptr[rn->ri] = NULL;
+                        rn = rn->next;
+                }
         }
 
         remove_comp(&mxt);
