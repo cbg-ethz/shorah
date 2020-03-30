@@ -34,6 +34,7 @@ import os.path
 import sys
 import shlex
 import re
+import shutil
 
 import logging
 import logging.handlers
@@ -55,7 +56,6 @@ diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
 
 if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
-    import shutil
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
