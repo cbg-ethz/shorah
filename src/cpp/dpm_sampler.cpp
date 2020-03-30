@@ -50,50 +50,51 @@
 
 #include <random>
 #include <boost/random/beta_distribution.hpp>
-std::mt19937 rg;
 
+namespace {
+    std::mt19937 rg;
 
-
-// Simple naive implementation of a discrete distribution, using cumulated weights.
-// For generating a single number, that's enough.
-//
-// (as opposed to gsl's, STL's and boost's implementations that all allocate and compute extra look-up tables
-// to further accelerate multiple futur calls to generator, see:
-//  - https://www.gnu.org/software/gsl/manual/html_node/General-Discrete-Distributions.html
-//  - https://stats.stackexchange.com/a/26868 )
-template<typename UNS, typename CDF_type> inline UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
-    std::partial_sum(wa, wa+n, cdf.begin()); // this usually can be SIMD-parallelized by the compiler
-    std::uniform_real_distribution<double> wdist(0.0, cdf[n-1]);
-    return std::upper_bound(cdf.begin(), cdf.begin() + n, wdist(rg)) - cdf.begin(); // usually a binary search
-}
-
-template<typename UNS> inline UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
-    std::uniform_real_distribution<double> wdist(0.0, std::accumulate(wa, wa+n, 0.));
-    double random = wdist(rg);
-    UNS i;
-    for(i = 0; i < n; i++) {
-        random -= wa[i];
-        if (random < 0.)
-            break;
+    // Simple naive implementation of a discrete distribution, using cumulated weights.
+    // For generating a single number, that's enough.
+    //
+    // (as opposed to gsl's, STL's and boost's implementations that all allocate and compute extra look-up tables
+    // to further accelerate multiple futur calls to generator, see:
+    //  - https://www.gnu.org/software/gsl/manual/html_node/General-Discrete-Distributions.html
+    //  - https://stats.stackexchange.com/a/26868 )
+    template<typename UNS, typename CDF_type> inline UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
+        std::partial_sum(wa, wa+n, cdf.begin()); // this usually can be SIMD-parallelized by the compiler
+        std::uniform_real_distribution<double> wdist(0.0, cdf[n-1]);
+        return std::upper_bound(cdf.cbegin(), cdf.cbegin() + n, wdist(rg)) - cdf.cbegin(); // usually a binary search
     }
-    return i;
-}
 
-// for classes, as their number varies.
-static std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
-static inline long unsigned one_shot_discrete(const unsigned n, const double* wa) {
-    if (n <= cdf_128.capacity())
-        cdf_128.reserve(n + 128);
-    return one_shot_discrete_cdf<long unsigned>(cdf_128, n, wa);
-}
+    template<typename UNS> inline UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
+        std::uniform_real_distribution<double> wdist(0.0, std::accumulate(wa, wa+n, 0.));
+        double random = wdist(rg);
+        UNS i;
+        for(i = 0; i < n; ++i) {
+            random -= wa[i];
+            if (random < 0.)
+                break;
+        }
+        return i;
+    }
 
-// for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
-static inline short unsigned one_shot_discrete_B(const double* wa) {
+    // for classes, as their number varies.
+    std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
+    inline long unsigned one_shot_discrete(const unsigned n, const double* wa) {
+        if (n <= cdf_128.capacity())
+            cdf_128.reserve(n + 128);
+        return one_shot_discrete_cdf<long unsigned>(cdf_128, n, wa);
+    }
+
+    // for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
+    inline short unsigned one_shot_discrete_B(const double* wa) {
 /*
-    std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
-    return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
+        std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
+        return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
 */
-    return one_shot_discrete_stupid<short unsigned>(B, wa); // compiler efficiently unrolls everything
+        return one_shot_discrete_stupid<short unsigned>(B, wa); // compiler efficiently unrolls everything
+    }
 }
 
 
@@ -432,7 +433,7 @@ int main(int argc, char** argv)
         b_alpha = dt + (eps1 * eps2 * totbases);
         b_beta = (totbases - dt) + eps2 * totbases * (1 - eps1);
 
-        boost::random::beta_distribution<decltype(theta)> beta(b_alpha, b_beta);
+        boost::random::beta_distribution<double> beta(b_alpha, b_beta);
         theta = beta(rg);
         // theta = dt/(q * J) + gsl_ran_gaussian(rg, g_noise);
         // theta = dt/totbases + gsl_ran_gaussian(rg, g_noise);
@@ -792,7 +793,7 @@ void build_assignment(std::ofstream& out_file)
         p_k[i] = 1.;
         // p_q[i] = 1;
     }
-    std::discrete_distribution<decltype(ci)> discrete ((const decltype(p_k))p_k, (const decltype(p_k))p_k+K);
+    std::discrete_distribution<unsigned int> discrete (p_k, p_k+K);
 
     // assign reads to initial clusters randomly
     for (m = 0; m < q; m++) {
@@ -1459,7 +1460,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
             nodist = cn->rd1[i];
 
             if (b1 != 1.0) {  // theta < 1.0
-                log_P[st] = std::log((double)tw);
+                log_P[st] = std::log(static_cast<double>(tw));
                 log_P[st] += nodist * std::log(b1);
                 log_P[st] += dist * std::log(b2);
                 P[st] = 1.0;  // all probabilities, which should change afterwards, set to 1
@@ -1468,7 +1469,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
                     log_P[st] = double_threshold_min - 1.0;
                     P[st] = 0.0;
                 } else {
-                    log_P[st] = std::log((double)tw);
+                    log_P[st] = std::log(static_cast<double>(tw));
                     P[st] = 1.0;  // same as above, P != 0 later
                 }
             }
@@ -1489,7 +1490,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     nodist = p.second;
 
     b1 = (theta * gam) + (1. - gam) * (1. - theta) / ((double)B - 1.);
-    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (std::pow((double)B - 1., 2));
+    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (std::pow(B - 1., 2));
 
     if ((theta == 1.0) && (gam == 1.0)) {
         if (dist == 0) {
