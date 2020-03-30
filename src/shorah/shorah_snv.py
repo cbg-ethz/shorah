@@ -37,6 +37,7 @@ from __future__ import division
 import glob
 import gzip
 import os
+import shutil
 import sys
 import warnings
 import shlex
@@ -45,8 +46,8 @@ import logging
 
 from pkg_resources import resource_filename
 fil_exe = resource_filename(__name__, 'bin/fil')
+
 if not os.path.exists(fil_exe):
-    import shutil
     fil_exe = shutil.which('fil')
     if not fil_exe:
         logging.error('Executable fil not found, compile first.')
@@ -352,8 +353,10 @@ def main(args):
     '''main code
     '''
     from Bio import SeqIO
+    from math import log10
     import csv
     import inspect
+    from datetime import date
 
     reference = args.f
     bam_file = args.b
@@ -400,12 +403,16 @@ def main(args):
         write_list.append(s.rstrip().split('\t'))
         x += 1
 
-    # sort p values, correct with Benjamini Hochberg and write to file
+    # sort p values, correct with Benjamini Hochberg and append to output
     p_vals_m.sort()
     q_vals = BH(p_vals_m, len(p_vals_m))
-    csv_file = '.'.join(snpFile.split('.')[:-1]) + '_final.csv'
-    with open(csv_file, 'w') as cf:
-        writer = csv.writer(cf)
+    for q, i3 in q_vals:
+        write_list[i3].append(q)
+
+
+    # Write ShoRAH csv output file
+    if 'csv' in args.format:
+        csv_file = '{}_final.csv'.format(os.path.splitext(snpFile)[0])
         if increment == 1:
             header_row = ['Chromosome', 'Pos', 'Ref', 'Var', 'Freq', 'Post',
                           'Fvar', 'Rvar', 'Ftot', 'Rtot', 'Pval', 'Qval']
@@ -413,10 +420,65 @@ def main(args):
             header_row = ['Chromosome', 'Pos', 'Ref', 'Var', 'Frq1', 'Frq2',
                           'Frq3', 'Pst1', 'Pst2', 'Pst3', 'Fvar', 'Rvar',
                           'Ftot', 'Rtot', 'Pval', 'Qval']
-        writer.writerow(header_row)
-        for q, i3 in q_vals:
-            write_list[i3].append(q)
-        # only print when q >= 5%
-        for wl in write_list:
-            if wl[-1] >= 0.05:
-                writer.writerow(wl)
+        with open(csv_file, 'w') as cf:
+            writer = csv.writer(cf)
+            writer.writerow(header_row)
+            # only print when q >= 5%
+            for wl in write_list:
+                if wl[-1] >= 0.05:
+                    writer.writerow(wl)
+
+    # Write VCF output file
+    if 'VCF' in args.format:
+        VCF_file = '{}_final.vcf'.format(os.path.splitext(snpFile)[0])
+        VCF_meta = [
+            '##fileformat=VCFv4.2',
+            '##fileDate={:%Y%m%d}'.format(date.today()),
+            '##source=ShoRAH_{}'.format(args.version),
+            '##reference={}'.format(args.f),
+            '##INFO=<ID=Frq<X>,Number=1,Type=Float,Description="Frequency of the variant in window <X>">',
+            '##INFO=<ID=Post<X>,Number=1,Type=Float,Description="Posterior probability of the variant in window <X>">',
+            '##INFO=<ID=Fvar,Number=1,Type=Integer,Description="Number of forward reads with variant">',
+            '##INFO=<ID=Rvar,Number=1,Type=Integer,Description="Number of reverse reads with variant">',
+            '##INFO=<ID=Ftot,Number=1,Type=Integer,Description="Total number of forward reads">',
+            '##INFO=<ID=Rtot,Number=1,Type=Integer,Description="total number of reverse reads">',
+            '##INFO=<ID=Pval,Number=1,Type=Float,Description="P-value for strand bias">',
+            '##INFO=<ID=Qval,Number=1,Type=Float,Description="Q-value for strand bias">',
+        ]
+
+        with open(VCF_file, 'w') as vcf:
+            vcf.write('\n'.join(VCF_meta))
+            # VCFv4.2 HEADER line
+            vcf.write('\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
+            # Iterate over single SNV lines and write them to output file
+            for wl in write_list:
+                # only print when q >= 5%
+                if wl[-1] >= 0.05:
+                    info = 'Fvar={};Rvar={};Ftot={};Rtot={};Pval={};Qval={}' \
+                        .format(*wl[-6:])
+                    if increment == 1:
+                        post_avg = min([1, float(wl[5])])
+                        info = 'Freq={};Post={};'.format(*wl[4:6]) + info
+                    else:
+                        info = 'Freq1={};Freq2={};Freq3={};Post1={};Post2={};Post3={};' \
+                                .format(*wl[4:10]) \
+                            + info
+                        post_all = []
+                        for freq, post in zip(wl[4:7], wl[7:10]):
+                            if freq == '*':
+                                pass
+                            elif freq == '-':
+                                post_all.append(0)
+                            else:
+                                post_all.append(min([1, float(post)]))
+                        # Calculate posterior average
+                        post_avg = sum(post_all) / len(post_all)
+                    # Calcualte a Phred quality score where the base calling 
+                    # error probabilities is set to (1 - posterior avg). 
+                    # Maximum is set to 100.
+                    try:
+                        qual_norm = -10 * log10(1 - post_avg)
+                    except ValueError:
+                        qual_norm = 100
+                    snv = wl[:4] + [qual_norm, info]
+                    vcf.write('\n{}\t{}\t.\t{}\t{}\t{}\tPASS\t{}'.format(*snv))

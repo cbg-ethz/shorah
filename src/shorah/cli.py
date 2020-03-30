@@ -121,6 +121,11 @@ def main():
     parent_parser.add_argument("-I", "--ignore_indels", action="store_true", default=False, dest="ignore_indels",
                                help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
 
+    parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
+                               default=['csv', 'VCF'], nargs='+',
+                               choices=['csv', 'VCF'],
+                               help='output format of called SNVs')
+
     coverage_parser = argparse.ArgumentParser(add_help=False)
 
     coverage_parser.add_argument("-c", "--win_coverage", metavar='INT', default=0, type=int,
@@ -183,6 +188,8 @@ def main():
     logging.info('shorah version:%s', __version__)
     # parse the args
     args = parser.parse_args()
+    # Add version to argparser to add as meta in VCF output
+    args.version = __version__
     args.func(args)
 
 
