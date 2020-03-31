@@ -443,15 +443,27 @@ def main(args):
             f'##fileDate={date.today():%Y%m%d}',
             f'##source=ShoRAH_{args.version}',
             f'##reference={args.f}',
-            '##INFO=<ID=Frq<X>,Number=1,Type=Float,Description="Frequency of the variant in window <X>">',
-            '##INFO=<ID=Post<X>,Number=1,Type=Float,Description="Posterior probability of the variant in window <X>">',
             '##INFO=<ID=Fvar,Number=1,Type=Integer,Description="Number of forward reads with variant">',
             '##INFO=<ID=Rvar,Number=1,Type=Integer,Description="Number of reverse reads with variant">',
             '##INFO=<ID=Ftot,Number=1,Type=Integer,Description="Total number of forward reads">',
-            '##INFO=<ID=Rtot,Number=1,Type=Integer,Description="total number of reverse reads">',
+            '##INFO=<ID=Rtot,Number=1,Type=Integer,Description="Total number of reverse reads">',
             '##INFO=<ID=Pval,Number=1,Type=Float,Description="P-value for strand bias">',
             '##INFO=<ID=Qval,Number=1,Type=Float,Description="Q-value for strand bias">',
         ]
+        if increment == 1:
+            VCF_meta.extend([
+                '##INFO=<ID=Freq<X>,Number=1,Type=Float,Description="Frequency of the variant">',
+                '##INFO=<ID=Post<X>,Number=1,Type=Float,Description="Posterior probability of the variant">',
+            ])
+        else:
+            VCF_meta.extend([
+                '##INFO=<ID=Freq1,Number=1,Type=Float,Description="Frequency of the variant in window 1">',
+                '##INFO=<ID=Freq2,Number=1,Type=Float,Description="Frequency of the variant in window 2">',
+                '##INFO=<ID=Freq3,Number=1,Type=Float,Description="Frequency of the variant in window 3">',
+                '##INFO=<ID=Post1,Number=1,Type=Float,Description="Posterior probability of the variant in window 1">',
+                '##INFO=<ID=Post2,Number=1,Type=Float,Description="Posterior probability of the variant in window 2">',
+                '##INFO=<ID=Post3,Number=1,Type=Float,Description="Posterior probability of the variant in window 3">',
+            ])
 
         with open(VCF_file, 'w') as vcf:
             vcf.write('\n'.join(VCF_meta))
