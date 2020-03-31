@@ -429,7 +429,7 @@ def main(args):
                     writer.writerow(wl)
 
     # Write VCF output file
-    if 'VCF' in args.format:
+    if 'vcf' in args.format:
         VCF_file = '{}_final.vcf'.format(os.path.splitext(snpFile)[0])
         VCF_meta = [
             '##fileformat=VCFv4.2',

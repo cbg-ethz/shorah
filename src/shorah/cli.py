@@ -122,8 +122,8 @@ def main():
                                help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
 
     parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
-                               default=['csv', 'VCF'], nargs='+',
-                               choices=['csv', 'VCF'],
+                               default=['csv', 'vcf'], nargs='+',
+                               choices=['csv', 'vcf'],
                                help='output format of called SNVs')
 
     coverage_parser = argparse.ArgumentParser(add_help=False)
