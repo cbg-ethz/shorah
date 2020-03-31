@@ -43,15 +43,18 @@ import sys
 
 from pkg_resources import (get_distribution, DistributionNotFound)
 
+all_dirs = os.path.abspath(__file__).split(os.sep)
+base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+
 try:
     __version__ = get_distribution('shorah').version
 except DistributionNotFound:
     # probably installed using Autotools
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.version'), 'r') as version_file:
+    with open(os.path.join(base_dir, '.version'), 'r') as version_file:
         __version__ = version_file.read()
 
 # manipulate path to import functions
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+parent_dir = os.path.join(base_dir, 'src')
 if __name__ == '__main__':
     if __package__ is None:
         os.sys.path.insert(1, parent_dir)

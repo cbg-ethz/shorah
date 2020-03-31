@@ -45,13 +45,20 @@ import shlex
 import logging
 
 from pkg_resources import resource_filename
-fil_exe = resource_filename(__name__, 'bin/fil')
 
+# Try fetching fil exe with pkg resources
+fil_exe = resource_filename(__name__, 'bin/fil')
+# Try fetching fil exe with bash 'which'
 if not os.path.exists(fil_exe):
     fil_exe = shutil.which('fil')
     if not fil_exe:
-        logging.error('Executable fil not found, compile first.')
-        sys.exit('Executable fil not found, compile first.')
+        # Try fetching fil exe based on directory structure
+        all_dirs = os.path.abspath(__file__).split(os.sep)
+        base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+        fil_exe = os.path.join(base_dir, 'bin', 'fil')
+        if not os.path.exists(fil_exe):
+            logging.error('Executable fil not found, compile first.')
+            sys.exit('Executable fil not found, compile first.')
 
 # used to parse variants from support files
 posterior_thresh = 0.9
@@ -473,7 +480,7 @@ def main(args):
                                 post_all.append(min([1, float(post)]))
                         # Calculate posterior average
                         post_avg = sum(post_all) / len(post_all)
-                    # Calcualte a Phred quality score where the base calling 
+                    # Calculate a Phred quality score where the base calling 
                     # error probabilities is set to (1 - posterior avg). 
                     # Maximum is set to 100.
                     try:
