@@ -437,12 +437,12 @@ def main(args):
 
     # Write VCF output file
     if 'vcf' in args.format:
-        VCF_file = '{}_final.vcf'.format(os.path.splitext(snpFile)[0])
+        VCF_file = f'{os.path.splitext(snpFile)[0]}_final.vcf'
         VCF_meta = [
             '##fileformat=VCFv4.2',
-            '##fileDate={:%Y%m%d}'.format(date.today()),
-            '##source=ShoRAH_{}'.format(args.version),
-            '##reference={}'.format(args.f),
+            f'##fileDate={date.today():%Y%m%d}',
+            f'##source=ShoRAH_{args.version}',
+            f'##reference={args.f}',
             '##INFO=<ID=Frq<X>,Number=1,Type=Float,Description="Frequency of the variant in window <X>">',
             '##INFO=<ID=Post<X>,Number=1,Type=Float,Description="Posterior probability of the variant in window <X>">',
             '##INFO=<ID=Fvar,Number=1,Type=Integer,Description="Number of forward reads with variant">',
@@ -461,14 +461,14 @@ def main(args):
             for wl in write_list:
                 # only print when q >= 5%
                 if wl[-1] >= 0.05:
-                    info = 'Fvar={};Rvar={};Ftot={};Rtot={};Pval={};Qval={}' \
-                        .format(*wl[-6:])
+                    info = f'Fvar={wl[-6]};Rvar={wl[-5]};Ftot={wl[-4]};' \
+                        f'Rtot={wl[-3]};Pval={wl[-2]};Qval={wl[-1]}'
                     if increment == 1:
                         post_avg = min([1, float(wl[5])])
-                        info = 'Freq={};Post={};'.format(*wl[4:6]) + info
+                        info = f'Freq={wl[4]};Post={wl[5]};' + info
                     else:
-                        info = 'Freq1={};Freq2={};Freq3={};Post1={};Post2={};Post3={};' \
-                                .format(*wl[4:10]) \
+                        info = f'Freq1={wl[4]};Freq2={wl[5]};Freq3={wl[6]};' \
+                            f'Post1={wl[7]};Post2={wl[8]};Post3={wl[9]};' \
                             + info
                         post_all = []
                         for freq, post in zip(wl[4:7], wl[7:10]):
@@ -488,4 +488,5 @@ def main(args):
                     except ValueError:
                         qual_norm = 100
                     snv = wl[:4] + [qual_norm, info]
-                    vcf.write('\n{}\t{}\t.\t{}\t{}\t{}\tPASS\t{}'.format(*snv))
+                    vcf.write(f'\n{wl[0]}\t{wl[1]}\t.\t{wl[2]}\t{wl[3]}' \
+                        f'\t{qual_norm}\tPASS\t{info}')

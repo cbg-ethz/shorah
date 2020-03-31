@@ -192,7 +192,7 @@ def main():
     # parse the args
     args = parser.parse_args()
     # Add version to argparser to add as meta in VCF output
-    args.version = __version__
+    args.version = __version__.strip()
     args.func(args)
 
 
