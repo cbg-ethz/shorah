@@ -52,16 +52,24 @@ if __name__ == '__main__':
 else:
     from . import shorah_snv
 
+# Try fetching diri and b2w exe with pkg resources
 diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
-
+# Try fetching diri and b2w exe with bash 'which'
 if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
-        logging.error(
-            'Executables b2w and diri_sampler not found, compile first.')
-        sys.exit('Executables b2w and diri_sampler not found, compile first.')
+        # Try fetching diri and b2w exe based on directory structure
+        all_dirs = os.path.abspath(__file__).split(os.sep)
+        base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+        diri_exe = os.path.join(base_dir, 'bin', 'diri_sampler')
+        b2w_exe = os.path.join(base_dir, 'bin', 'b2w')
+        if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
+            logging.error(
+                'Executables b2w and diri_sampler not found, compile first.')
+            sys.exit('Executables b2w and diri_sampler not found, compile first.')
+
 
 win_min_ext = 0.95
 cutoff_depth = 10000

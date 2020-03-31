@@ -37,6 +37,7 @@ import shlex
 import logging
 from pkg_resources import resource_filename
 import re
+import shutil
 
 import numpy as np
 
@@ -50,17 +51,23 @@ if __name__ == '__main__':
 else:
     from . import shorah_snv
 
+# Try fetching diri and b2w exe with pkg resources
 diri_exe = resource_filename(__name__, 'bin/diri_sampler')
 b2w_exe = resource_filename(__name__, 'bin/b2w')
-
+# Try fetching diri and b2w exe with bash 'which'
 if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
-    import shutil
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):
-        logging.error(
-            'Executables b2w and diri_sampler not found, compile first.')
-        sys.exit('Executables b2w and diri_sampler not found, compile first.')
+        # Try fetching diri and b2w exe based on directory structure
+        all_dirs = os.path.abspath(__file__).split(os.sep)
+        base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+        diri_exe = os.path.join(base_dir, 'bin', 'diri_sampler')
+        b2w_exe = os.path.join(base_dir, 'bin', 'b2w')
+        if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
+            logging.error(
+                'Executables b2w and diri_sampler not found, compile first.')
+            sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 #################################################
 # a common user should not edit above this line #
@@ -170,8 +177,6 @@ def windows(run_settings):
 def run_dpm(run_setting):
     """run the dirichlet process clustering
     """
-
-    import shutil
     import subprocess
 
     filein, j, a, seed = run_setting
@@ -389,7 +394,6 @@ def main(args):
     """
     from multiprocessing import Pool, cpu_count
     import glob
-    import shutil
     import time
 
     #import shorah_snv
@@ -589,30 +593,28 @@ def main(args):
     ccx = {}
     # handle case where bamfile has no dots in name
     cin_stem = re.sub(r'\.[^.]+$', r'', os.path.split(in_bam)[1])
-    fch = open('%s.cor.fas' % cin_stem, 'w')
     logging.debug('writing to file %s.cor.fas', cin_stem)
-    for ID, seq_list in to_correct:
-        cor_read = ''.join(seq_list)
-        init_x = len(cor_read.lstrip('-')) - len(cor_read.lstrip('-X'))
-        fin_x = len(cor_read.rstrip('-')) - len(cor_read.rstrip('-X'))
-        cx = seq_list.count('X') - init_x - fin_x
-        ccx[cx] = ccx.get(cx, 0) + 1
-        if cx <= min_x_thresh and cor_read.lstrip('-X') != '':
-            fch.write('>%s %d\n' % (ID, aligned_reads[ID][2] + init_x
-                                    - aligned_reads[ID][0]))
-            cc = 0
-            for c in cor_read.lstrip('-X'):
-                if c != 'X':
-                    fch.write(str(c))
-                    fch.flush()
-                    cc = cc + 1
-                    if cc % fasta_length == 0:
-                        fch.write('\n')
+    with open('%s.cor.fas' % cin_stem, 'w') as fch:
+        for ID, seq_list in to_correct:
+            cor_read = ''.join(seq_list)
+            init_x = len(cor_read.lstrip('-')) - len(cor_read.lstrip('-X'))
+            fin_x = len(cor_read.rstrip('-')) - len(cor_read.rstrip('-X'))
+            cx = seq_list.count('X') - init_x - fin_x
+            ccx[cx] = ccx.get(cx, 0) + 1
+            if cx <= min_x_thresh and cor_read.lstrip('-X') != '':
+                fch.write('>%s %d\n' % (ID, aligned_reads[ID][2] + init_x
+                                        - aligned_reads[ID][0]))
+                cc = 0
+                for c in cor_read.lstrip('-X'):
+                    if c != 'X':
+                        fch.write(str(c))
+                        fch.flush()
+                        cc = cc + 1
+                        if cc % fasta_length == 0:
+                            fch.write('\n')
 
-            if cc % fasta_length != 0:
-                fch.write('\n')
-    print(ccx)
-    fch.close()
+                if cc % fasta_length != 0:
+                    fch.write('\n')
 
     # write proposed_per_step to file
     ph = open('proposed.dat', 'w')
