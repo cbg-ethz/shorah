@@ -479,9 +479,11 @@ def main(args):
                         post_avg = min([1, float(wl[5])])
                         info = f'Freq={wl[4]};Post={wl[5]};' + info
                     else:
-                        info = f'Freq1={wl[4]};Freq2={wl[5]};Freq3={wl[6]};' \
-                            f'Post1={wl[7]};Post2={wl[8]};Post3={wl[9]};' \
-                            + info
+                        freq_str = ';'.join([f'Freq{i+1}={j}' \
+                            for i, j in enumerate(wl[4:7]) if j != '*'])
+                        post_str = ';'.join([f'Post{i+1}={j}' \
+                            for i, j in enumerate(wl[7:10]) if j != '*'])
+                        info = f'{freq_str};{post_str};{info}'.replace('-', '0')
                         post_all = []
                         for freq, post in zip(wl[4:7], wl[7:10]):
                             if freq == '*':
@@ -499,6 +501,7 @@ def main(args):
                         qual_norm = -10 * log10(1 - post_avg)
                     except ValueError:
                         qual_norm = 100
+
                     snv = wl[:4] + [qual_norm, info]
                     vcf.write(f'\n{wl[0]}\t{wl[1]}\t.\t{wl[2]}\t{wl[3]}' \
                         f'\t{qual_norm}\tPASS\t{info}')
