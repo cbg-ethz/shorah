@@ -61,13 +61,13 @@ namespace {
     // to further accelerate multiple futur calls to generator, see:
     //  - https://www.gnu.org/software/gsl/manual/html_node/General-Discrete-Distributions.html
     //  - https://stats.stackexchange.com/a/26868 )
-    template<typename UNS, typename CDF_type> inline UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
+    template<typename UNS, typename CDF_type> UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
         std::partial_sum(wa, wa+n, cdf.begin()); // this usually can be SIMD-parallelized by the compiler
         std::uniform_real_distribution<double> wdist(0.0, cdf[n-1]);
         return std::upper_bound(cdf.cbegin(), cdf.cbegin() + n, wdist(rg)) - cdf.cbegin(); // usually a binary search
     }
 
-    template<typename UNS> inline UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
+    template<typename UNS> UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
         std::uniform_real_distribution<double> wdist(0.0, std::accumulate(wa, wa+n, 0.));
         double random = wdist(rg);
         UNS i;
@@ -81,14 +81,14 @@ namespace {
 
     // for classes, as their number varies.
     std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
-    inline long unsigned one_shot_discrete(const unsigned n, const double* wa) {
+    long unsigned one_shot_discrete(const unsigned n, const double* wa) {
         if (n <= cdf_128.capacity())
             cdf_128.reserve(n + 128);
         return one_shot_discrete_cdf<long unsigned>(cdf_128, n, wa);
     }
 
     // for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
-    inline short unsigned one_shot_discrete_B(const double* wa) {
+    short unsigned one_shot_discrete_B(const double* wa) {
 /*
         std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
         return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
