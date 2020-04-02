@@ -442,14 +442,19 @@ def main(args):
             '##fileformat=VCFv4.2',
             f'##fileDate={date.today():%Y%m%d}',
             f'##source=ShoRAH_{args.version}',
-            f'##reference={args.f}',
+            f'##reference={args.f}'
+        ]
+        for ref_name, ref_seq in ref_m.items():
+            VCF_meta.append(f'##contig=<ID={ref_name},length={len(ref_seq)}>',)
+        VCF_meta.extend([
             '##INFO=<ID=Fvar,Number=1,Type=Integer,Description="Number of forward reads with variant">',
             '##INFO=<ID=Rvar,Number=1,Type=Integer,Description="Number of reverse reads with variant">',
             '##INFO=<ID=Ftot,Number=1,Type=Integer,Description="Total number of forward reads">',
             '##INFO=<ID=Rtot,Number=1,Type=Integer,Description="Total number of reverse reads">',
             '##INFO=<ID=Pval,Number=1,Type=Float,Description="P-value for strand bias">',
-            '##INFO=<ID=Qval,Number=1,Type=Float,Description="Q-value for strand bias">',
-        ]
+            '##INFO=<ID=Qval,Number=1,Type=Float,Description="Q-value for strand bias">'
+        ])
+
         if increment == 1:
             VCF_meta.extend([
                 '##INFO=<ID=Freq<X>,Number=1,Type=Float,Description="Frequency of the variant">',
