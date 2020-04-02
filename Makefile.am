@@ -4,6 +4,7 @@ bin_SCRIPTS = \
 CLEANFILES = $(bin_SCRIPTS)
 EXTRA_DIST = \
 	.version \
+	LICENSE \
 	meson.build \
 	setup.py \
 	src/meson.build \
