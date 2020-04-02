@@ -44,7 +44,8 @@ import sys
 from pkg_resources import (get_distribution, DistributionNotFound)
 
 all_dirs = os.path.abspath(__file__).split(os.sep)
-base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+base_dir_idx = [i for i, j in enumerate(all_dirs) if j == 'shorah'][-2]
+base_dir = os.sep.join(all_dirs[:base_dir_idx + 1])
 
 try:
     __version__ = get_distribution('shorah').version

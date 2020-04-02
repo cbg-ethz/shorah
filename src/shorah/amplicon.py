@@ -62,7 +62,8 @@ if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     if not (diri_exe and b2w_exe):
         # Try fetching diri and b2w exe based on directory structure
         all_dirs = os.path.abspath(__file__).split(os.sep)
-        base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+        base_dir_idx = [i for i, j in enumerate(all_dirs) if j == 'shorah'][-2]
+        base_dir = os.sep.join(all_dirs[:base_dir_idx + 1])
         diri_exe = os.path.join(base_dir, 'bin', 'diri_sampler')
         b2w_exe = os.path.join(base_dir, 'bin', 'b2w')
         if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
