@@ -107,10 +107,12 @@ int main(int argc, char* argv[])
     };
 
     char help_string[] =
-        "\nUsage: b2w [options] <in.bam> <in.fasta> region\n\nOptions:\n\t-w: window length "
+        "\nUsage: b2w [options] <in.bam> <in.fasta> [region]\n\nOptions:\n\t-w: window length "
         "(INT)\n\t-i: increment (INT)\n\t-m: minimum overlap (INT)\n\t-x: max reads starting at a "
         "position (INT)\n\t-c: coverage threshold. Omit windows with low coverage (INT)\n\t"
         "-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n\t-h: show this help\n\n";
+
+    const char* bamname = nullptr, * fastaname = nullptr, * regionname = nullptr;
 
     while ((c = getopt(argc, argv, "w:i:m:x:c:dh")) != EOF) {
         switch (c) {
@@ -141,30 +143,34 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
         }
     }
+    // remaining parameters: <in.bam> <in.fasta> region
     if ((argc - optind) < 2 or (argc - optind) > 3) {
         std::fprintf(stderr, "%d parameters left, %s", argc - optind, help_string);
         return 1;
     }
+    bamname=argv[optind];
+    fastaname=argv[optind + 1];
+    regionname=(argc == optind + 3) ? argv[optind + 2] : nullptr;
 
-    if (NULL == (inFile = hts_open(argv[optind], "r"))) {  // open bam file
-        std::fprintf(stderr, "Failed to open BAM file %s\n", argv[optind]);
+    if (NULL == (inFile = hts_open(bamname, "r"))) {  // open bam file
+        std::fprintf(stderr, "Failed to open BAM file %s\n", bamname);
         return 2;
     }
 
-    if (fai_build(argv[optind + 1])) {  // generate reference index
-        std::fprintf(stderr, "Failed to index FASTA file %s\n", argv[optind + 1]);
+    if (fai_build(fastaname)) {  // generate reference index
+        std::fprintf(stderr, "Failed to index FASTA file %s\n", fastaname);
         return 3;
     }
-    if (NULL == (fai = fai_load(argv[optind + 1]))) {
-        std::fprintf(stderr, "Failed to load FASTA file %s\n", argv[optind + 1]);
+    if (NULL == (fai = fai_load(fastaname))) {
+        std::fprintf(stderr, "Failed to load FASTA file %s\n", fastaname);
         return 2;
     }
 
     const int idx_min_shift = 0; // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI [default idx_min_shift = 14]
-    int iBuild = bam_index_build(argv[optind], idx_min_shift);  // generate bam index
+    int iBuild = bam_index_build(bamname, idx_min_shift);  // generate bam index
     UNUSED(iBuild);
     hts_idx_t* idx;
-    if (NULL == (idx = hts_idx_load(argv[optind], idx_min_shift ? HTS_FMT_CSI : HTS_FMT_BAI))) {  // load bam index
+    if (NULL == (idx = hts_idx_load(bamname, idx_min_shift ? HTS_FMT_CSI : HTS_FMT_BAI))) {  // load bam index
         std::fprintf(stderr, "BAM indexing file is not available.\n");
         return 3;
     }
@@ -198,6 +204,8 @@ int main(int argc, char* argv[])
 
         {
             std::vector<int> rLen(lnth, 0);  // list for read start coverage
+            std::vector<char> rd;
+            rd.reserve(301);  // reasonable initial buffer size to avoid frequent re-allocation. Most HTS tend to use protocols that yield between 100 and 250 bp
             // based on samtools/bam.c:bam_fetch
             // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
@@ -212,8 +220,8 @@ int main(int argc, char* argv[])
                 int* cv = rLen.data() + Rstart;
                 *cv += 1;
                 if ((*cv < param.max) && (readLen >= param.min_overlap)) {
-                    std::vector<char> rd(readLen + 1, 'N');
-                    rd.back() = '\0';
+                    rd.assign(readLen,'N');
+                    rd.push_back('\0');
                     // based on samtools/bam_plbuf.c
                     {
                         int n_plp, tid, pos;
@@ -316,7 +324,7 @@ int main(int argc, char* argv[])
         delete [] rd;
     };
 
-    if (argc == optind + 2) {          // region not specified
+    if (nullptr == regionname) {          // region not specified
         for (int i = 0; i < n; i++)
             process_ROI(i,  // take each chromosome in turn
                     0,      // region of interest's start coordinate, 0-based
@@ -324,7 +332,7 @@ int main(int argc, char* argv[])
     } else {  // parse specific region
         // based on samtools/bam_aux.c:bam_parse_region
         int ref_id = -1, roi_b = 0, roi_e = std::numeric_limits<decltype(roi_e)>::max();
-        const char* roi_str = argv[optind + 2];
+        const char* roi_str = regionname;
         {
             const char* name_lim = hts_parse_reg(roi_str, &roi_b, &roi_e);
             if (name_lim) { // valid name ?

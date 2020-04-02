@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 #include <algorithm>
+#include <numeric>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
@@ -44,14 +45,59 @@
 #include <nmmintrin.h>
 #endif
 
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_sf_exp.h>
-#include <gsl/gsl_sf_log.h>
-#include <gsl/gsl_sf_pow_int.h>
-
 #include "data_structures.hpp"
 #include "dpm_sampler.hpp"
+
+#include <random>
+#include <boost/random/beta_distribution.hpp>
+
+namespace {
+    std::mt19937 rg;
+
+    // Simple naive implementation of a discrete distribution, using cumulated weights.
+    // For generating a single number, that's enough.
+    //
+    // (as opposed to gsl's, STL's and boost's implementations that all allocate and compute extra look-up tables
+    // to further accelerate multiple futur calls to generator, see:
+    //  - https://www.gnu.org/software/gsl/manual/html_node/General-Discrete-Distributions.html
+    //  - https://stats.stackexchange.com/a/26868 )
+    template<typename UNS, typename CDF_type> UNS one_shot_discrete_cdf(CDF_type& cdf, const unsigned n, const double* wa) {
+        std::partial_sum(wa, wa+n, cdf.begin()); // this usually can be SIMD-parallelized by the compiler
+        std::uniform_real_distribution<double> wdist(0.0, cdf[n-1]);
+        return std::upper_bound(cdf.cbegin(), cdf.cbegin() + n, wdist(rg)) - cdf.cbegin(); // usually a binary search
+    }
+
+    template<typename UNS> UNS one_shot_discrete_stupid(const unsigned n, const double* wa) {
+        std::uniform_real_distribution<double> wdist(0.0, std::accumulate(wa, wa+n, 0.));
+        double random = wdist(rg);
+        UNS i;
+        for(i = 0; i < n; ++i) {
+            random -= wa[i];
+            if (random < 0.)
+                break;
+        }
+        return i;
+    }
+
+    // for classes, as their number varies.
+    std::vector<double> cdf_128(128); // static to try reuse memory and reduce mallocs - intial allocation of 1KiB
+    long unsigned one_shot_discrete(const unsigned n, const double* wa) {
+        if (n <= cdf_128.capacity())
+            cdf_128.reserve(n + 128);
+        return one_shot_discrete_cdf<long unsigned>(cdf_128, n, wa);
+    }
+
+    // for bases, because they are compile time fixed to 5 (A,T,C,G and '-' deletion) in dpm_sampler.hpp:32
+    short unsigned one_shot_discrete_B(const double* wa) {
+/*
+        std::array<double, B> cdf_B; // just a (const-) B-sized array, no malloc at all
+        return one_shot_discrete_cdf<short unsigned>(cdf_B, B, wa); // in that case, the compiler will fully unroll the partial sums.
+*/
+        return one_shot_discrete_stupid<short unsigned>(B, wa); // compiler efficiently unrolls everything
+    }
+}
+
+
 
 #define PROPHISTSIZE 100
 int main(int argc, char** argv)
@@ -70,8 +116,8 @@ int main(int argc, char** argv)
     FILE* iterfile;
     float alpha2;
 
-    double_threshold_min = gsl_sf_log(DBL_MIN);
-    double_threshold_max = gsl_sf_log(DBL_MAX);
+    double_threshold_min = std::log(DBL_MIN);
+    double_threshold_max = std::log(DBL_MAX);
     parsecommandline(argc, argv);
 
     std::string instr = filein;
@@ -97,10 +143,7 @@ int main(int argc, char** argv)
     stat_file << "# randseed = " << randseed << std::endl;
 
     // random number generator via gsl
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    rg = gsl_rng_alloc(T);
-    gsl_rng_set(rg, randseed);
+    rg.seed(randseed);
 
     res_dist = (int*)calloc(2, sizeof(int));
     if (res_dist == NULL) exit(EXIT_FAILURE);
@@ -390,7 +433,8 @@ int main(int argc, char** argv)
         b_alpha = dt + (eps1 * eps2 * totbases);
         b_beta = (totbases - dt) + eps2 * totbases * (1 - eps1);
 
-        theta = gsl_ran_beta(rg, b_alpha, b_beta);
+        boost::random::beta_distribution<double> beta(b_alpha, b_beta);
+        theta = beta(rg);
         // theta = dt/(q * J) + gsl_ran_gaussian(rg, g_noise);
         // theta = dt/totbases + gsl_ran_gaussian(rg, g_noise);
         // theta = (totbases - dt)/totbases + gsl_ran_gaussian(rg, g_noise);
@@ -713,7 +757,6 @@ void build_assignment(std::ofstream& out_file)
     std::pair<int, int> p;
     double* p_k;
     // double* p_q;
-    gsl_ran_discrete_t* g;
 
     out_file << "# Building assignment" << std::endl;
     h = (short unsigned int*)calloc(J, sizeof(unsigned int));
@@ -750,11 +793,11 @@ void build_assignment(std::ofstream& out_file)
         p_k[i] = 1.;
         // p_q[i] = 1;
     }
-    g = gsl_ran_discrete_preproc(K, p_k);
+    std::discrete_distribution<unsigned int> discrete (p_k, p_k+K);
 
     // assign reads to initial clusters randomly
     for (m = 0; m < q; m++) {
-        ci = gsl_ran_discrete(rg, g);
+        ci = discrete(rg);
         cn = mxt;
         while (cn != NULL) {
             if (ci == cn->ci) {
@@ -765,7 +808,6 @@ void build_assignment(std::ofstream& out_file)
             cn = cn->next;
         }
     }
-    gsl_ran_discrete_free(g);
     free(p_k);
     // free(p_q);
 
@@ -906,7 +948,6 @@ double sample_ref()
     unsigned int i, j;
     double b1, b2;
     unsigned int K1 = 0;
-    gsl_ran_discrete_t* g;
     std::ofstream err_file("error_ref.log");
     double max_log_pbase;
     int max_cbase;
@@ -955,7 +996,7 @@ double sample_ref()
             if (b1 != 1.0) {
 
                 for (i = 0; i < B; i++) {
-                    log_pbase[i] = cbase[i] * gsl_sf_log(b1) + (K1 - cbase[i]) * gsl_sf_log(b2);
+                    log_pbase[i] = cbase[i] * std::log(b1) + (K1 - cbase[i]) * std::log(b2);
                 }
                 max_log_pbase = log_pbase[0];
                 base_id = 0;
@@ -975,14 +1016,12 @@ double sample_ref()
                         if (log_pbase[i] < double_threshold_min) {
                             pbase[i] = 0.0;
                         } else {
-                            pbase[i] = gsl_sf_exp(log_pbase[i]);
+                            pbase[i] = std::exp(log_pbase[i]);
                         }
                     }
                 }
 
-                g = gsl_ran_discrete_preproc(B, pbase);
-                h[j] = gsl_ran_discrete(rg, g);
-                gsl_ran_discrete_free(g);
+                h[j] = one_shot_discrete_B(pbase);
             } else {  // gamma == 1.0
                 max_cbase = cbase[0];
                 for (i = 1; i < B; i++) {
@@ -997,9 +1036,7 @@ double sample_ref()
                         pbase[i] = 0.0;
                     }
                 }
-                g = gsl_ran_discrete_preproc(B, pbase);
-                h[j] = gsl_ran_discrete(rg, g);
-                gsl_ran_discrete_free(g);
+                h[j] = one_shot_discrete_B(pbase);
             }
         } else {  // K1 == 0, that is all N's
             h[j] = B;
@@ -1014,7 +1051,6 @@ void sample_hap(cnode* cn)
 
     rnode* tr;
     unsigned int i, j, tot_reads;
-    gsl_ran_discrete_t* g;
     double b1, b2;
 
     double max_log_pbase;
@@ -1057,10 +1093,10 @@ void sample_hap(cnode* cn)
             for (i = 0; i < B; i++) {
                 if (tot_reads > 0) {  // base is not N: sample from reads in the cluster
                     log_pbase[i] =
-                        cbase[i] * gsl_sf_log(b1) + (tot_reads - cbase[i]) * gsl_sf_log(b2);
+                        cbase[i] * std::log(b1) + (tot_reads - cbase[i]) * std::log(b2);
                 } else  // base is N: sample from all reads
-                    log_pbase[i] = ftable[j][i] * gsl_sf_log(b1) +
-                                   (ftable_sum[j] - ftable[j][i]) * gsl_sf_log(b2);
+                    log_pbase[i] = ftable[j][i] * std::log(b1) +
+                                   (ftable_sum[j] - ftable[j][i]) * std::log(b2);
             }
             max_log_pbase = log_pbase[0];
             base_id = 0;
@@ -1079,14 +1115,12 @@ void sample_hap(cnode* cn)
                         pbase[i] = 0.0;
                     } else {
                         // std::cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<std::endl;
-                        pbase[i] = gsl_sf_exp(log_pbase[i]);
+                        pbase[i] = std::exp(log_pbase[i]);
                     }
                 }
             }
 
-            g = gsl_ran_discrete_preproc(B, pbase);
-            cn->h[j] = gsl_ran_discrete(rg, g);
-            gsl_ran_discrete_free(g);
+            cn->h[j] = one_shot_discrete_B(pbase);
         } else {                  // theta == 1.0
             if (tot_reads > 0) {  // base not N: sample from reads in cluster.
                 max_cbase = cbase[0];
@@ -1295,7 +1329,6 @@ ssret* sample_class(unsigned int i, unsigned int step)
     cnode* to_class;
     cnode* from_class;
     size_t st = 0, this_class;
-    gsl_ran_discrete_t* g;
     cnode* cn;
     rnode* rn = NULL;
     double max_log_P, delta_log;
@@ -1427,16 +1460,16 @@ ssret* sample_class(unsigned int i, unsigned int step)
             nodist = cn->rd1[i];
 
             if (b1 != 1.0) {  // theta < 1.0
-                log_P[st] = gsl_sf_log((double)tw);
-                log_P[st] += nodist * gsl_sf_log(b1);
-                log_P[st] += dist * gsl_sf_log(b2);
+                log_P[st] = std::log(static_cast<double>(tw));
+                log_P[st] += nodist * std::log(b1);
+                log_P[st] += dist * std::log(b2);
                 P[st] = 1.0;  // all probabilities, which should change afterwards, set to 1
             } else {          // theta == 1.0, not needed
                 if (dist != 0) {
                     log_P[st] = double_threshold_min - 1.0;
                     P[st] = 0.0;
                 } else {
-                    log_P[st] = gsl_sf_log((double)tw);
+                    log_P[st] = std::log(static_cast<double>(tw));
                     P[st] = 1.0;  // same as above, P != 0 later
                 }
             }
@@ -1457,19 +1490,19 @@ ssret* sample_class(unsigned int i, unsigned int step)
     nodist = p.second;
 
     b1 = (theta * gam) + (1. - gam) * (1. - theta) / ((double)B - 1.);
-    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (gsl_sf_pow_int((double)B - 1., 2));
+    b2 = (theta + gam + B * (1. - gam * theta) - 2.) / (std::pow(B - 1., 2));
 
     if ((theta == 1.0) && (gam == 1.0)) {
         if (dist == 0) {
-            log_P[st] = gsl_sf_log(alpha);
+            log_P[st] = std::log(alpha);
             P[st] = 1.0;
         } else {
             log_P[st] = double_threshold_min - 1.0;
             P[st] = 0.0;
         }
     } else {
-        log_P[st] = gsl_sf_log(alpha) + gsl_sf_log((double)(readtable2[i]->weight)) +
-                    nodist * gsl_sf_log(b1) + dist * gsl_sf_log(b2);
+        log_P[st] = std::log(alpha) + std::log((double)(readtable2[i]->weight)) +
+                    nodist * std::log(b1) + dist * std::log(b2);
         P[st] = 1.0;
     }
     cl_ptr[st] = NULL;
@@ -1496,7 +1529,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
             else if (log_P[ll] > double_threshold_max)
                 P[ll] = DBL_MAX;
             else {
-                P[ll] = gsl_sf_exp(log_P[ll]);
+                P[ll] = std::exp(log_P[ll]);
             }
         }  // else P[i] = 0, from above
     }
@@ -1505,10 +1538,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
     for (j = 0; j <= st; j++)
         printf("with P[%i] = %e to class %p\n", j, P[j], (void *)cl_ptr[j]);
 #endif
-
-    g = gsl_ran_discrete_preproc(st + 1, P);
-    this_class = gsl_ran_discrete(rg, g);
-    gsl_ran_discrete_free(g);
+    this_class = one_shot_discrete(st + 1, P);
 
 #ifndef NDEBUG
     printf("extracted class is = %lu\n", this_class);
@@ -1805,6 +1835,8 @@ void cleanup()
     free(c_ptr);
     free(pbase);
     free(cbase);
+    free(res_dist);
+    free(res);
     free(log_pbase);
     free(h);
 
