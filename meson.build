@@ -1,7 +1,7 @@
 project(
   'shorah',
   'cpp',
-  version : '1.9.95',
+  version : '1.99.1',
   default_options : [
     'buildtype=release',
     'cpp_std=c++11',
