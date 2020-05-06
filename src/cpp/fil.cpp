@@ -30,7 +30,9 @@ adapted from samtools/calDep.c
 #include <map>
 #include <string>
 
-#include <gsl/gsl_sf.h>
+#include <cmath>
+#include <cfenv>
+#include <boost/math/special_functions/gamma.hpp>
 #include <htslib/sam.h>
 #include <htslib/faidx.h>
 
@@ -156,7 +158,7 @@ int main(int argc, char* argv[])
             // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
             hts_itr_t* iter = bam_itr_queryi(idx, targetid, pos_begin, pos_end);
-            while (hts_itr_next(inFile->fp.bgzf, iter, b, 0) >= 0) {
+            while (hts_itr_next(inFile->fp.bgzf, iter, b, nullptr) >= 0) {
                 // callback for bam_fetch()
                 // based on samtools/bam_plbuf.c
                 if (bam_plp_push(plp_iter, b) < 0) {
@@ -247,26 +249,43 @@ int main(int argc, char* argv[])
                     // ...at that point it's not even bias, it's a monopoly ! ;-)
                     std::cerr << "Warning: All reads at position " << pos <<" in the same " << ((alpha < 1E-6) ? "reverse" : "forward") << " orientation ?" << std::endl;
                 } else {
+
+
+                    /*!
+                        @abstract P(X[ib] == x) with X ~ BetaBinom(n[ib], mean, sigma) -- formula 4 from doi:10.1186/1471-2164-14-501
+
+                        NOTE as of Boost 1.73, there is still no beta-binomial distribution yet
+                        see: https://www.boost.org/doc/libs/1_73_0/libs/math/doc/html/math_toolkit/issues.html#math_toolkit.issues.feature_requests
+
+                        NOTE boost::math::lgamma selected as it has a well documented precision and boost is already used in ShoRAH for dpm_sampler anyway
+                        see: https://www.boost.org/doc/libs/release/libs/math/doc/html/math_toolkit/sf_gamma/lgamma.html
+                      */
+                    auto pdfbetabinom = [&](const double x, const double n, const double mean, const double sigma) -> double {
+                        return std::exp(
+                            boost::math::lgamma(n + 1.)
+                            - boost::math::lgamma(x + 1.) - boost::math::lgamma(n - x + 1.)
+
+                            + boost::math::lgamma(1. / sigma)
+                            + boost::math::lgamma(x + (mean * (1. / sigma)))
+                            + boost::math::lgamma(n + ((1. - mean) / sigma) - x)
+                            - boost::math::lgamma(n + (1. / sigma))
+                            - boost::math::lgamma(mean * (1. / sigma))
+                            - boost::math::lgamma((1. - mean) / sigma)
+                        );
+                    };
+                    std::feclearexcept(FE_ALL_EXCEPT);
                     if (fr < mean) {
-                        for (k = 0; k <= st_freq_Mut[Strand::f]; k++) {
-                            tail += gsl_sf_exp((
-                                gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
-                                gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
-                                gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
-                                gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
-                                gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
-                                gsl_sf_lngamma((double)m + (1 / sigma))));  // calculate cumulative distribution
-                        }
+                        for (k = 0; k <= st_freq_Mut[Strand::f]; k++)
+                            tail += pdfbetabinom (k, m, mean, sigma);
+                            // calculate cumulative distribution
                     } else {
-                        for (k = st_freq_Mut[Strand::f]; k <= m; k++) {
-                            tail += gsl_sf_exp(
-                                (gsl_sf_lngamma((double)m + 1) - gsl_sf_lngamma((double)k + 1) -
-                                gsl_sf_lngamma((double)m - (double)k + 1) + gsl_sf_lngamma(1 / sigma) +
-                                gsl_sf_lngamma((double)k + (mean * (1 / sigma))) +
-                                gsl_sf_lngamma((double)m + ((1 - mean) / sigma) - (double)k) -
-                                gsl_sf_lngamma(mean * (1 / sigma)) - gsl_sf_lngamma((1 - mean) / sigma) -
-                                gsl_sf_lngamma((double)m + (1 / sigma))));  // the other tail, if required
-                        }
+                        for (k = st_freq_Mut[Strand::f]; k <= m; k++)
+                            tail += pdfbetabinom (k, m, mean, sigma);
+                            // the other tail, if required
+                    }
+                    if(std::fetestexcept(FE_UNDERFLOW)) {
+                        // catch exception
+                        std::cerr << "Warning: at position " << pos << " -- underflow while computing CDF BetaBinom(n=" << m << ", mu=" << mean << ", sigma=" << sigma << ")" << std::endl;
                     }
                     prMut = tail * 2;  // two sided test
                     if (prMut > 1) prMut = 1;

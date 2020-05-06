@@ -91,6 +91,7 @@ AC_ARG_ENABLE([popcnt],
 	AS_HELP_STRING([--disable-popcnt], [Disable using POPCNT for Hamming distances]))
 
 dnl Check for popcount intrinsics
+AC_LANG(C++)
 AS_IF([test "x$enable_popcnt" != "xno"], [
 	AX_APPEND_COMPILE_FLAGS([-mpopcnt], [CXXFLAGS])
 
@@ -119,11 +120,10 @@ AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
 
 
-dnl =========================
-dnl Find zlib, gsl and HTSlib
-dnl =========================
+dnl ====================
+dnl Find zlib and HTSlib
+dnl ====================
 PKG_CHECK_MODULES([ZLIB], [zlib])
-PKG_CHECK_MODULES([GSL], [gsl])
 PKG_CHECK_MODULES([HTSLIB], [htslib])
 
 
@@ -131,7 +131,7 @@ PKG_CHECK_MODULES([HTSLIB], [htslib])
 dnl ======================
 dnl Special find for Boost
 dnl ======================
-dnl Boost still doesn't have a .pc in 2018
+dnl Boost still doesn't have a .pc in 2020
 
 AX_BOOST_BASE([1.56],, [AC_MSG_ERROR([Shorah needs Boost >= 1.56 headers, but they were not found in your system])])
 dnl we only use headers (beta distribution is in 1.35), no AX_BOOST_{lib} (boost::random is templates only)
