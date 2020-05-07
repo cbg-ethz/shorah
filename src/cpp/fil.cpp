@@ -55,6 +55,15 @@ int main(int argc, char* argv[])
     hts_idx_t* idx = NULL;
     int amplicon = 0;
     htsFile* inFile = NULL;
+
+    char help_string[] =
+        "\nUsage: fil [options] -b <in.bam>\n\nOptions:\n"
+        "\t-v: sigma (FLOAT) [default: 0.01]\n"
+        "\t-x: maxdepth (INT) [default: 10000]\n"
+        "\t-a: amplicon mode [default: shotgun]\n"
+        "\t-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n"
+        "\t-h: show this help\n\n";
+
     while ((c = getopt(argc, argv, "b:v:x:ad")) != EOF) {
         switch (c) {
             case 'b':
@@ -74,6 +83,12 @@ int main(int argc, char* argv[])
             case 'd':
                 params.skip_indel = true; // this will bring the old historical behaviour of fil
                 break;
+            case 'h':
+                std::fprintf(stdout, "%s", help_string);
+                exit(EXIT_SUCCESS);
+            default:
+                std::fprintf(stderr, "%s", help_string);
+                exit(EXIT_FAILURE);
         }
     }
     if (inFile == NULL) {
