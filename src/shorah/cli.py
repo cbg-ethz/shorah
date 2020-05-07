@@ -153,6 +153,9 @@ def main():
     parser_shotgun.add_argument("-k", "--keep_files", required=False, action='store_true',
                                 default=True, dest="keep_files", help="keep all intermediate files")
 
+    parser_shotgun.add_argument("-t", "--threads", metavar='INT', required=False,
+                               type=int, dest="maxthreads", default=0, help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
+
     parser_shotgun.set_defaults(func=shotgun_run)
 
     parser_amplicon = subparsers.add_parser(

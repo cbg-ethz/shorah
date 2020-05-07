@@ -409,6 +409,7 @@ def main(args):
     keep_files = args.keep_files
     seed = args.seed
     ignore_indels = args.ignore_indels
+    maxthreads = args.maxthreads
 
     logging.info(' '.join(sys.argv))
 
@@ -453,6 +454,9 @@ def main(args):
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
+    if maxthreads:
+        max_proc = min(max_proc, maxthreads)
+    logging.info('CPU(s) count %u, max thread limit %u, will run %u parallel dpm_sampler', cpu_count(), maxthreads, max_proc)
     pool = Pool(processes=max_proc)
     pool.map(run_dpm, runlist)
     pool.close()
