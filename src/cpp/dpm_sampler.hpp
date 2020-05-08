@@ -63,11 +63,11 @@ unsigned int K = 0;  // initial number of clusters
 double avgNK = 0.0;  // average #reads in each startcluster, avgNK = n/K
 double default_avgNK = 10.0;
 unsigned int HISTORY = 100;
-double theta = 0.90;
+double theta = 0.90; // error rate
 double eps1 = 0.985;
 double eps2 = 0.001;
-double gam = 0.90;
-double alpha = 0.01;
+double gam = 0.90; // mutation rate
+double alpha = 0.01; // probability of creating new classes
 double g_noise = 0.0001;
 // unsigned int* c; // c[i] = k -> read i in class k
 double* P;
