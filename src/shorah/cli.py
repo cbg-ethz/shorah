@@ -107,7 +107,7 @@ def main():
                           type=str, dest="f", help="reference genome in fasta format")
 
     parent_parser.add_argument("-a", "--alpha", metavar='FLOAT', required=False,
-                               type=float, dest="a", default=0.1, help="alpha in dpm sampling")
+                               type=float, dest="a", default=0.1, help="alpha in dpm sampling (controls the probability of creating new classes)")
 
     parent_parser.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str,
                                dest="r", default='', help="region in format 'chr:start-stop', e.g. 'chrm:1000-3000'")
