@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cfloat>
+#include <cfenv>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -50,6 +51,7 @@
 
 #include <random>
 #include <boost/random/beta_distribution.hpp>
+#include <boost/random/normal_distribution.hpp>
 
 namespace {
     std::mt19937 rg;
@@ -345,6 +347,7 @@ int main(int argc, char** argv)
     int* temp;
     temp = new int[J / 10 + 1];
 
+    boost::random::normal_distribution<double> gaussian(0, g_noise);
     for (k = 0; k <= iter; k++) {
 #ifndef NDEBUG
         printf("-----------------------------------------------\n");
@@ -436,13 +439,15 @@ int main(int argc, char** argv)
         boost::random::beta_distribution<double> beta(b_alpha, b_beta);
         theta = beta(rg);
         // theta = dt/(q * J) + gsl_ran_gaussian(rg, g_noise);
+//         theta = dt/(q * J) + gaussian(rg);
         // theta = dt/totbases + gsl_ran_gaussian(rg, g_noise);
         // theta = (totbases - dt)/totbases + gsl_ran_gaussian(rg, g_noise);
         gam = (double)dk1 / hapbases;
 
         // HACK!!! theta=1 gives undesired behaviour; not elegant, but effective
-        if (theta >= 1.0) theta = 0.9999;
-        if (theta <= 0.0) theta = 0.0001;
+//         if (theta >= 1.0) theta = 0.9999;
+//         if (theta <= 0.0) theta = 0.0001;
+        theta = std::max(std::min(theta, 0.9999), 0.0001);
 // sample_ref();    // sampling the reference every step gives strange behaviour...
 
 #ifndef NDEBUG
@@ -1013,11 +1018,11 @@ double sample_ref()
                     if (i == base_id) {
                         pbase[i] = 1.0;
                     } else {
-                        if (log_pbase[i] < double_threshold_min) {
-                            pbase[i] = 0.0;
-                        } else {
-                            pbase[i] = std::exp(log_pbase[i]);
-                        }
+//                        std::feclearexcept(FE_ALL_EXCEPT);
+                        pbase[i] = std::exp(log_pbase[i]);
+//                        if(std::fetestexcept(FE_UNDERFLOW)) {
+//                            std::cerr << "Warning: underflow while sampling ref" << std::endl;
+//                        }
                     }
                 }
 
@@ -1111,12 +1116,11 @@ void sample_hap(cnode* cn)
                     pbase[i] = 1.0;
                 } else {
                     log_pbase[i] -= max_log_pbase;
-                    if (log_pbase[i] < double_threshold_min) {
-                        pbase[i] = 0.0;
-                    } else {
-                        // std::cout<<"log_pbase["<<i<<"] = "<<log_pbase[i]<<std::endl;
-                        pbase[i] = std::exp(log_pbase[i]);
-                    }
+//                    std::feclearexcept(FE_ALL_EXCEPT);
+                    pbase[i] = std::exp(log_pbase[i]);
+//                    if(std::fetestexcept(FE_UNDERFLOW)) {
+//                       std::cerr << "Warning: underflow while sampling hap" << std::endl;
+//                    }
                 }
             }
 
@@ -1523,15 +1527,29 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
     for (ll = 0; ll <= st; ll++) {
         if (P[ll] > 0.0) {
-            log_P[ll] += delta_log;
-            if (log_P[ll] < double_threshold_min)
-                P[ll] = DBL_MIN;
-            else if (log_P[ll] > double_threshold_max)
-                P[ll] = DBL_MAX;
-            else {
-                P[ll] = std::exp(log_P[ll]);
-            }
-        }  // else P[i] = 0, from above
+           log_P[ll] += delta_log;
+//            if (log_P[ll] < double_threshold_min)
+//                P[ll] = DBL_MIN;
+//            else if (log_P[ll] > double_threshold_max)
+//                P[ll] = DBL_MAX;
+//            else {
+//                P[ll] = std::exp(log_P[ll]);
+//            }
+//            std::feclearexcept(FE_ALL_EXCEPT);
+           P[ll] = std::exp(log_P[ll]);
+           // NOTE one_shot_discrete_cdf can handle +0.0 and +inf: they'll just never or always get picked up respectively.
+           // so no need to catch any exceptions
+//            // catch exception
+//            if(std::fetestexcept(FE_UNDERFLOW)) {
+//            //if(P[ll] < DBL_MIN) {
+//                 P[ll] = DBL_MIN; // instead of: +0.0
+//                 std::cerr << "Warning: underflow while sampling class for " << i << "th read, step " << step << std::endl;
+//            } else if (std::fetestexcept(FE_OVERFLOW)) {
+//            //} else if (P[ll] > DBL_MAX) {
+//                 P[ll] = DBL_MAX; // instead of: +inf
+//                 std::cerr << "Warning: overflow while sampling class for " << i << "th read, step " << step << std::endl;
+//            }
+         }  // else P[i] = 0, from above
     }
 
 #ifndef NDEBUG
