@@ -60,9 +60,6 @@ if not os.path.exists(fil_exe):
             logging.error('Executable fil not found, compile first.')
             sys.exit('Executable fil not found, compile first.')
 
-# used to parse variants from support files
-posterior_thresh = 0.9
-
 
 def segments(incr):
     """How many times is a window segment covered?
@@ -90,7 +87,7 @@ def segments(incr):
     return segCov1
 
 
-def parseWindow(line, ref1):
+def parseWindow(line, ref1, threshold = 0.9 ):
     """SNVs from individual support files, getSNV will build
         the consensus SNVs
         It returns a dictionary called snp with the following structure
@@ -141,7 +138,7 @@ def parseWindow(line, ref1):
         if post > 1.0:
             warnings.warn('posterior = %4.3f > 1' % post)
             logging.warning('posterior = %4.3f > 1' % post)
-        if post >= posterior_thresh:
+        if post >= threshold:
             reads += av
             pos = beg
             tot_snv = 0
@@ -167,7 +164,7 @@ def parseWindow(line, ref1):
     return snp
 
 
-def getSNV(ref, segCov, incr):
+def getSNV(ref, segCov, incr, window_thresh = 0.9):
     """Parses SNV from all windows and output the dictionary with all the
     information
     """
@@ -181,7 +178,7 @@ def getSNV(ref, segCov, incr):
 
     # cycle over all windows reported in coverage.txt
     for f in cov_file:
-        snp = parseWindow(f, ref)  # snvs found on corresponding support file
+        snp = parseWindow(f, ref, window_thresh)  # snvs found on corresponding support file
         beg = int(f.split('\t')[2])
         end = int(f.split('\t')[3])
         if incr == 1:
@@ -371,6 +368,7 @@ def main(args):
     increment = args.increment
     max_coverage = args.max_coverage
     ignore_indels = args.ignore_indels
+    posterior_thresh = args.posterior_thresh;
 
     logging.info(str(inspect.getfullargspec(main)))
     ref_m = dict([[s.id, str(s.seq).upper()]
@@ -383,7 +381,7 @@ def main(args):
     # snpD_m is the file with the 'consensus' SNVs (from different windows)
     logging.debug('now parsing SNVs')
     if not os.path.isfile('snv/SNV.txt'):
-        snpD_m = getSNV(ref_m, segCov_m, increment)
+        snpD_m = getSNV(ref_m, segCov_m, increment, posterior_thresh)
         printRaw(snpD_m, increment)
     else:
         logging.debug('snv/SNV.txt found, moving to ./')

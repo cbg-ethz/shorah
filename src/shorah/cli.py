@@ -124,6 +124,9 @@ def main():
     parent_parser.add_argument("-I", "--ignore_indels", action="store_true", default=False, dest="ignore_indels",
                                help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
 
+    parent_parser.add_argument("-p", "--treshold", metavar='FLOAT', default=0.9,
+                               type=float, dest="posterior_thresh", help="pos threshold when calling variants from support files")
+
     parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
                                default=['csv', 'vcf'], nargs='+',
                                choices=['csv', 'vcf'],
