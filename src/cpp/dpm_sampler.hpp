@@ -73,10 +73,21 @@ double g_noise = 0.0001;
 double* P;
 double* log_P;
 
+/* Used to avoid double counting resulting in posteriors > 1 by keeping track of
+ * which iteration/step a haplotype-count was last increased in. */
+struct versioned_count {
+    int count;
+    int last_seen_step;
+};
+
 typedef std::pair<std::string, int> sipair;
 // bool comp_values (sipair e1, sipair e2);
 typedef std::map<std::string, int> sup_map;
-sup_map support; /*! How many times the haplotype/read is found in history*/
+/* NOTE: 'sup_map' is used for read2hap, which appears to be used for output only.
+ *       Since read2hap tracks read assignments, which are unique, no double counting
+ *       issues can arise. */
+typedef std::map<std::string, versioned_count> sup_map_versioned;
+sup_map_versioned support; /*! How many times the haplotype/read is found in history*/
 
 typedef std::map<std::string, int*> freq_map;
 freq_map freq; /*! How many reads had the ahplotype assigned in history*/
