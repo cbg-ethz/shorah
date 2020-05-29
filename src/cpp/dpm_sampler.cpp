@@ -1790,7 +1790,13 @@ void record_conf(cnode* tn, unsigned int step)
     std::string h = (std::string)ca;
     free(ca);
     freq_map::iterator freq_iter;
-    ++support[h];  //! support is updated
+
+    // versioned update
+    versioned_count& vcnt = support[h];
+    if (vcnt.last_seen_step < step) {
+        ++vcnt.count;
+        vcnt.last_seen_step = step;
+    }
 
     int tw = weight(tn);
 
@@ -1962,13 +1968,14 @@ void write_posterior_files(std::string instr)
     std::ofstream supp_file(supstr.c_str());
     std::ofstream freq_file(freqstr.c_str());
 
-    sup_map::iterator si;
+    sup_map::const_iterator si;
+    sup_map_versioned::const_iterator svi;
     std::multimap<int, std::string, invcomp>
         rev_sup;  //! use a multimap to sort by value the support map
     std::multimap<int, std::string, invcomp>::iterator ri;
 
-    for (si = support.begin(); si != support.end(); ++si)
-        rev_sup.insert(std::pair<int, std::string>(si->second, si->first));
+    for (svi = support.begin(); svi != support.end(); ++svi)
+        rev_sup.insert(std::pair<int, std::string>(svi->second.count, svi->first));
 
     // header of freq_file
     freq_file << std::setfill('0');
