@@ -54,7 +54,7 @@ if not os.path.exists(fil_exe):
     if not fil_exe:
         # Try fetching fil exe based on directory structure
         all_dirs = os.path.abspath(__file__).split(os.sep)
-        base_dir = os.sep.join(all_dirs[:all_dirs.index('shorah') + 1])
+        base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
         fil_exe = os.path.join(base_dir, 'bin', 'fil')
         if not os.path.exists(fil_exe):
             logging.error('Executable fil not found, compile first.')
@@ -499,8 +499,8 @@ def main(args):
                                 post_all.append(min([1, float(post)]))
                         # Calculate posterior average
                         post_avg = sum(post_all) / len(post_all)
-                    # Calculate a Phred quality score where the base calling 
-                    # error probabilities is set to (1 - posterior avg). 
+                    # Calculate a Phred quality score where the base calling
+                    # error probabilities is set to (1 - posterior avg).
                     # Maximum is set to 100.
                     try:
                         qual_norm = -10 * log10(1 - post_avg)
