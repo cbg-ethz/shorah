@@ -1793,7 +1793,7 @@ void record_conf(cnode* tn, unsigned int step)
 
     // versioned update
     versioned_count& vcnt = support[h];
-    if (vcnt.last_seen_step < step) {
+    if (vcnt.last_seen_step < (int) step) {
         ++vcnt.count;
         vcnt.last_seen_step = step;
     }

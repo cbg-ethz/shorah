@@ -76,6 +76,8 @@ double* log_P;
 /* Used to avoid double counting resulting in posteriors > 1 by keeping track of
  * which iteration/step a haplotype-count was last increased in. */
 struct versioned_count {
+    versioned_count() : count(0), last_seen_step(-1) {}
+
     int count;
     int last_seen_step;
 };
