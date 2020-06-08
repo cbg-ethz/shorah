@@ -1972,6 +1972,7 @@ void write_posterior_files(std::string instr)
     sup_map_versioned::const_iterator svi;
     std::multimap<int, std::string, invcomp>
         rev_sup;  //! use a multimap to sort by value the support map
+        // BUG the order isn't stable -- we should order by posterior AND by sequence
     std::multimap<int, std::string, invcomp>::iterator ri;
 
     for (svi = support.begin(); svi != support.end(); ++svi)
@@ -1985,13 +1986,11 @@ void write_posterior_files(std::string instr)
     freq_file << "\n";
 
     for (ri = rev_sup.begin(); ri != rev_sup.end(); ++ri) {
-        supp_fract = (float)(ri->first) / (float)HISTORY;
+        supp_fract = static_cast<double>(ri->first) / static_cast<double>(HISTORY);
 
         if (supp_fract >= 0.01) {
-            mean_freq = 0;
-            for (unsigned int k = 0; k < HISTORY; k++)
-                mean_freq += freq[ri->second][k];
-            mean_freq /= HISTORY;
+            // NOTE accumulate works in the type of the init. We need to do the accumulation with integers, to avoid numerical error of float on very large coverage with very long histories (and much simpler than a Kahan summation).
+            mean_freq = static_cast<double>(std::accumulate(freq[ri->second],freq[ri->second]+HISTORY, 0UL)) / static_cast<double>(HISTORY);
 
             supp_file << ">hap_" << i << "|"
                       << "posterior=" << supp_fract << " ave_reads=" << mean_freq << "\n";
