@@ -434,10 +434,19 @@ def main(args):
     # run b2w
     retcode = windows((in_bam, in_fasta, win_length, incr, win_min_ext *
                        win_length, max_c, cov_thrd, region, ignore_indels))
-    if retcode is not 0:
+    if retcode != 0:
         sys.exit('b2w run not successful')
 
     aligned_reads = parse_aligned_reads('reads.fas')
+    if len(aligned_reads) == 0:
+        msg = 'No reads found in the requested region %s' % region
+        logging.debug(msg)
+        print(msg, file=sys.stderr)
+        logging.info('shotgun run ends with no processing')
+        # technically it is a success: we did produce what we were asked for.
+        # it just happens that we were asked to produce nothing and thus got nothing to output
+        sys.exit(0)
+
     r = list(aligned_reads.keys())[0]
     gen_length = aligned_reads[r][1] - aligned_reads[r][0]
 

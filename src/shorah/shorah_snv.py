@@ -392,7 +392,7 @@ def main(args):
     # run strand bias filter, output in SNVs_%sigma.txt
     retcode_m = sb_filter(bam_file, sigma, amplimode=a, drop_indels=d,
                           max_coverage=max_coverage)
-    if retcode_m is not 0:
+    if retcode_m != 0:
         logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
 
