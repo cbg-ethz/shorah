@@ -44,14 +44,18 @@ import sys
 
 all_dirs = os.path.abspath(__file__).split(os.sep)
 base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
-
-try:
-    from pkg_resources import get_distribution #(get_distribution, DistributionNotFound)
-    __version__ = get_distribution('shorah').version
-except: #DistributionNotFound:
-    # probably installed using Autotools
-    with open(os.path.join(base_dir, '.version'), 'r') as version_file:
+version_fname = os.path.join(base_dir, '.version')
+if os.path.exists(version_fname):
+    # probably installed using Autotools, e.g: bioconda package - the current recommended way
+    with open(version_fname, 'r') as version_file:
         __version__ = version_file.read()
+else:
+    # probably installed using setup.py
+    from pkg_resources import (get_distribution, DistributionNotFound)
+    try:
+        __version__ = get_distribution('shorah').version
+    except DistributionNotFound:
+        print("your message", file=sys.stderr)
 
 # manipulate path to import functions
 parent_dir = os.path.join(base_dir, 'src')
