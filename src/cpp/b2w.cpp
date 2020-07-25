@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
     int iBuild = bam_index_build(bamname, idx_min_shift);  // generate bam index
     UNUSED(iBuild);
     hts_idx_t* idx;
-    if (NULL == (idx = hts_idx_load(bamname, idx_min_shift ? HTS_FMT_CSI : HTS_FMT_BAI))) {  // load bam index
+    if (NULL == (idx = sam_index_load(inFile, bamname))) {  // load bam index
         std::fprintf(stderr, "BAM indexing file is not available.\n");
         return 3;
     }
@@ -207,10 +207,13 @@ int main(int argc, char* argv[])
             std::vector<char> rd;
             rd.reserve(301);  // reasonable initial buffer size to avoid frequent re-allocation. Most HTS tend to use protocols that yield between 100 and 250 bp
             // based on samtools/bam.c:bam_fetch
-            // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
-            hts_itr_t* iter = bam_itr_queryi(idx, tid, roi_b, roi_e);
-            while (hts_itr_next(inFile->fp.bgzf, iter, b, 0) >= 0) {
+            hts_itr_t* iter = sam_itr_queryi(idx, tid, roi_b, roi_e);
+            if (iter == nullptr) {
+                std::cerr << "error while processing ROI: " << tid << ":" << roi_b << "-" << roi_e << "\n";
+                return;
+            }
+            while (sam_itr_next(inFile, iter, b) >= 0) {
                 // callback two (for printing reads)
                 uint32_t Rstart = b->core.pos;
                 // based on samtools/bam.h:bam_calend
@@ -265,10 +268,13 @@ int main(int argc, char* argv[])
             std::ofstream outFile;  // output file for current window
             outFile.open(filename, std::ios::out);
             {   // based on samtools/bam.c:bam_fetch
-                // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
                 bam1_t *b = bam_init1();
-                hts_itr_t* iter = bam_itr_queryi(idx, tid, win_b, win_e);
-                while (hts_itr_next(inFile->fp.bgzf, iter, b, 0) >= 0) {
+                hts_itr_t* iter = sam_itr_queryi(idx, tid, win_b, win_e);
+                if (iter == nullptr) {
+                    std::cerr << "error while processing WIN: " << tid << ":" << win_b << "-" << win_e << "\n";
+                    return;
+                }
+                while (sam_itr_next(inFile, iter, b) >= 0) {
                     // callback one for bam_fetch() (for making windows)
                     int overlap = 0;        // read overlap with window
                     uint32_t Rstart = b->core.pos, Rend = Rstart;

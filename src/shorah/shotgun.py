@@ -163,7 +163,7 @@ def windows(run_settings):
 
     try:
         retcode = subprocess.call(my_prog + my_arg, shell=True)
-        if retcode > 0:
+        if retcode != 0:
             logging.error('%s %s', my_prog, my_arg)
             logging.error('b2w returned %i', retcode)
         else:

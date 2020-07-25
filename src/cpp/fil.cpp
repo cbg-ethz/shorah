@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
         switch (c) {
             case 'b':
                 inFile = hts_open(optarg, "r");
-                idx = hts_idx_load(optarg, HTS_FMT_BAI);
+                idx = sam_index_load(inFile, optarg);
                  // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI
                 break;
             case 'v':
@@ -170,10 +170,9 @@ int main(int argc, char* argv[])
              * And store them on a pileup
              */
             // based on samtools/bam.c:bam_fetch
-            // TODO These BAM iterator functions work only on BAM files.  To work with either BAM or CRAM files use the sam_index_load() & sam_itr_*() functions.
             bam1_t *b = bam_init1();
-            hts_itr_t* iter = bam_itr_queryi(idx, targetid, pos_begin, pos_end);
-            while (hts_itr_next(inFile->fp.bgzf, iter, b, nullptr) >= 0) {
+            hts_itr_t* iter = sam_itr_queryi(idx, targetid, pos_begin, pos_end);
+            while (sam_itr_next(inFile, iter, b) >= 0) {
                 // callback for bam_fetch()
                 // based on samtools/bam_plbuf.c
                 if (bam_plp_push(plp_iter, b) < 0) {
