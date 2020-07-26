@@ -1,0 +1,22 @@
+#!/bin/bash
+
+interpreter="$1"
+
+test="$2"
+testscript="$(<"${test}")"
+testdir="$(dirname "${test}")"
+testname="$(basename "${testdir}")"
+
+mkdir -p "${testname}"
+cp "${testdir}"/*.*am "${testdir}"/*ref*.fas* "${testname}"/
+cd "${testname}"/
+echo -e "pyton:\t${PYTHONPATH}"
+echo -e "path:\t${PATH}"
+echo -e "test:\t${interpreter} ../${testscript}"
+
+${interpreter} ../${testscript}
+status=$?
+
+echo -e "\nstatus:${status}\nshorah.log:"
+[ -e shorah.log ] && cat shorah.log
+exit ${status}

@@ -55,7 +55,43 @@ dist_ampliconpkgdata_DATA = \
 	examples/amplicon_test/README.md \
 	examples/amplicon_test/ampli_sorted.bam \
 	examples/amplicon_test/amplicon_reads.fastq \
-	examples/amplicon_test/reference.fasta
+	examples/amplicon_test/reference.fasta \
+	examples/amplicon_test/amplicon_test
+
+shotgunpkgdatadir = $(pkgdatadir)/shotgun_test
+dist_shotgunpkgdata_DATA = \
+	examples/shotgun_test/README.md \
+	examples/shotgun_test/test_aln.cram \
+	examples/shotgun_test/test_ref.fasta \
+	examples/shotgun_test/test.csv \
+	examples/shotgun_test/shotgun_test
+
+# tests
+dist_check_DATA = \
+	examples/run_end2end_test \
+	$(dist_ampliconpkgdata_DATA) \
+	$(dist_shotgunpkgdata_DATA)
+
+AM_TESTS_ENVIRONMENT = \
+	export PYTHONPATH='$(realpath $(top_srcdir)/src)'; \
+	export PATH="$(realpath $(builddir)/):$(PATH)";
+
+TESTS = examples/amplicon_test/amplicon_test \
+	examples/shotgun_test/shotgun_test \
+	examples/shotgun_test/test.csv
+
+examples/shotgun_test/test.log: examples/shotgun_test/shotgun_test.log
+
+TEST_EXTENSIONS = .csv
+CSV_LOG_COMPILER = diff
+AM_CSV_LOG_FLAGS = -u $(builddir)/shotgun_test/snv/SNVs_0.010000_final.csv
+# NOTE cheating by considering the data files as test (normally it should be wraping scripts, see next)
+LOG_COMPILER = $(top_srcdir)/examples/run_end2end_test
+AM_LOG_FLAGS = $(PYTHON)
+
+# add test files to cleanup
+clean-local:
+	-rm -rf amplicon_test/ shotgun_test/
 
 # version handling
 $(top_srcdir)/.version:

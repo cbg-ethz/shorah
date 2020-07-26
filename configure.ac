@@ -23,7 +23,7 @@ AC_PREREQ([2.69])
 AC_INIT(
 	[shorah],
 	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
-	[osvaldo.zagordi@gmail.com])
+	[v-pipe@bsse.ethz.ch])
 AC_CONFIG_SRCDIR([src/cpp/dpm_sampler.cpp])
 AC_CONFIG_MACRO_DIR([m4])
 

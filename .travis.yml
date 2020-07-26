@@ -9,9 +9,10 @@ python:
 before_install:
   - sudo apt-get install -y libhts-dev libboost-math-dev libboost-random-dev autoconf automake pkg-config m4
   - source ~/virtualenv/python3.8/bin/activate
+  - pip install Biopython numpy
 
 compiler:
   - gcc
 
-before_script: autoreconf -vif
+before_script: autoreconf -vif -I m4
 script: ./configure && make -j1 distcheck

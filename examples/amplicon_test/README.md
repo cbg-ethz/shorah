@@ -1,4 +1,4 @@
-### Sample files to test `amplian.py`
+### Sample files to test `shorah amplicon`
 
 Use files in this directory to test shorah in amplicon mode.
 The sorted bam file has been obtained from the reads with
@@ -10,8 +10,9 @@ sort the alignment. The commands given are
     [user@host amplicon_test]$ smalt map -f sam -o ampli.sam ref amplicon_reads.fastq
     [user@host amplicon_test]$ samtools view -S -b ampli.sam | samtools sort - ampli_sorted
 
-You can then run `amplian` as follows
-    [user@host amplicon_test]$ amplian.py -b ampli_sorted.bam -f reference.fasta
+You can then run `shorah amplicon` as follows
+
+    [user@host amplicon_test]$ shorah amplicon -b ampli_sorted.bam -f reference.fasta
 
 Some warning will be raised. The output files will be `SNV.txt` and `SNVs_0.010000_final.csv`.
 Only SNVs exceeding the threshold of 5% are returned (see [paper](http://www.biomedcentral.com/1471-2164/14/501)).
@@ -26,5 +27,4 @@ Within tview, press ? for help.
 
 ----
 
-`amplian` is still under development and thus should be considered in
-beta more than the rest of ShoRAH (say, alpha).
+`shorah amplicon` is still under development.

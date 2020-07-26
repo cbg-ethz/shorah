@@ -55,7 +55,8 @@ else:
     try:
         __version__ = get_distribution('shorah').version
     except DistributionNotFound:
-        print("your message", file=sys.stderr)
+        __version__ = 'unknown'
+        print("cannot find version", file=sys.stderr)
 
 # manipulate path to import functions
 parent_dir = os.path.join(base_dir, 'src')
