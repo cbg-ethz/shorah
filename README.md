@@ -20,36 +20,42 @@ several programs, the most imporant of which are:
 
 | Tool           | What it does                                                        |
 | -------------- | ------------------------------------------------------------------- |
-| `amplian.py`   | amplicon based analysis                                             |
-| `dec.py`       | local error correction based on diri_sampler                        |
+| `shorah`       | wrapper for everything                                              |
+|`shorah amplicon`| amplicon based analysis                                            |
+|`shorah shotgun`| shotgun sequencing analysis                                         |
+| `shorah snv`   | detects single nucleotide variants, taking strand bias into account |
+| `b2w`          | splitting shotgun sequencing .BAM into multiple overlapping windows |
 | `diri_sampler` | Gibbs sampling for error correction via Dirichlet process mixture   |
-| `contain`      | removal of redundant reads                                          |
-| `mm.py`        | maximum matching haplotype construction                             |
-| `freqEst`      | EM algorithm for haplotype frequency                                |
-| `snv.py`       | detects single nucleotide variants, taking strand bias into account |
-| `shorah.py`    | wrapper for everything                                              |
+| `fil`          | strand bias test                                                    |
 
 ## Citation
 If you use shorah, please cite the application note paper _Zagordi et al._ on
 [BMC Bioinformatics](http://www.biomedcentral.com/1471-2105/12/119).
 
 ## General usage
+### Pre-built packages
+ShoRAH and its dependencies are all
+[available in bioconda](https://bioconda.github.io/recipes/shorah/README.html).
+We strongly advise you to install this package for a hassle-free experience.
+
+	conda install shorah
+
 ### Dependencies
 shorah requires the following pieces of software:
 
-1. **Python 2 or Python 3**, backward compatibility is provided as some current Linux distributions and OS X systems are still using 2.x as default. The required dependencies are:
+1. **Python 3** The required dependencies are:
 
    a) **Biopython**, and 
    b) **NumPy**.
-   These packages can be downloaded using pip or anaconda
+   These packages can be downloaded using pip or conda
 
-2. **Perl**, for some scripts
+2. **HTSlib** which is used to access bam/cram/sam and fasta files.
 
-3. **zlib**, which is used by the bundled samtools for compressing bam files
+3. **zlib**, which is used by HTSlib for compressing bam files
 
-4. **pkg-config**, for discovering dependencies, which most Unix-like systems include
+3. **pkg-config**, for discovering dependencies, which most Unix-like systems include
 
-5. **GNU scientific library**, for random number generation
+4. **Boost C++ library**, for random number generation
 
 In addition, if you want to bootstrap the git version of shorah instead of using the provided tarballs,
 you will need the GNU Autotools:
@@ -95,44 +101,49 @@ where `4` specifies the number of compilation threads to use. Finally, after com
 
 All the programs should now be located in `/usr/local/shorah/bin`.
 
-### Boostrapping from git
+#### Boostrapping from git
 If you opted to clone the git repository instead of downloading a prepared tarball, you will need to bootstrap
 the configure script:
 
-	autoreconf -vif
+	autoreconf -vif -I m4
 
 After this, you can run the `configure` script as described previously.
 
 
 #### Windows users
-You can install and run `shorah` with [Cygwin](http://www.cygwin.com).
+Since Windows 10, Microsoft provides the 
+[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) 
+which enables a linux environment under Windows.
+
+Users of older versions of Windows can can install and run `shorah` with [Cygwin](http://www.cygwin.com).
 Please see the relevant paragraph on the
 [documentation page](http://cbg-ethz.github.io/shorah/).
 
 ### Run
-The input is a sorted bam file. Analysis can be performed in local or global
-mode.
+The input is a sorted bam file. Analysis can be performed in local mode.
+
+**Note:** Currently in ShoRAH2 global haplotype reconstruction is disabled.
+The last version of ShoRAH1 with global mode is
+[v1.1.3](https://github.com/cbg-ethz/shorah/tree/v1.1.3)
+and can easily be obtained from
+[bioconda](https://bioconda.github.io/recipes/shorah/README.html).
+If you wish to perform global reconstruction, we suggest that you consider the
+[global haplotype options](https://github.com/cbg-ethz/V-pipe/wiki/options#haplotype_reconstruction)
+available in [V-pipe](https://cbg-ethz.github.io/V-pipe/)
 
 #### Local analysis
-The local analysis alone can be run invoking `dec.py` or `amplian.py` (program
+The local analysis alone can be run invoking `shorah shotgun` or `shorah amplicon` (program
 for the amplicon mode). They work by cutting window from the multiple sequence
-alignment, invoking `diri_sampler` on the windows and calling `snv.py` for the
+alignment, invoking `diri_sampler` on the windows and calling `shorah snv` for the
 SNV calling. See the
+[`README`](https://github.com/cbg-ethz/shorah/blob/master/examples/shotgun_test/README.md)
+file in directory
+[`shotgun_test`](https://github.com/cbg-ethz/shorah/blob/master/examples/shotgun_test/)
+and the
 [`README`](https://github.com/cbg-ethz/shorah/blob/master/examples/amplicon_test/README.md)
 file in directory
 [`amplicon_test`](https://github.com/cbg-ethz/shorah/blob/master/examples/amplicon_test/).
 
-#### Global analysis
-The whole global reconstruction consists of the following steps:
-
-1. error correction (*i.e.* local haplotype reconstruction);
-2. SNV calling;
-3. removal of redundant reads;
-4. global haplotype reconstruction;
-5. frequency estimation.
-
-These can be run one after the other, or one can invoke `shorah.py`, that runs
-the whole process from bam file to frequency estimation and SNV calling.
 
 ## Coding style
 All changes to the C++ code in `src/cpp` should always be formatted according to the included `.clang-format` style by doing
@@ -141,4 +152,11 @@ All changes to the C++ code in `src/cpp` should always be formatted according to
 
 in the root of the repository.
 
-All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8). 
+All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
+
+## Contact
+
+ShoRAH is maintained as part of the [V-pipe virus NGS pipeline](https://cbg-ethz.github.io/V-pipe/)
+and you can [easily reach out the developers on its website](https://cbg-ethz.github.io/V-pipe/contact).
+
+You can also report your problems in the [issue tracker on GitHub](https://github.com/cbg-ethz/shorah/issues).
