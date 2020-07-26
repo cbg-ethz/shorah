@@ -109,6 +109,18 @@ the configure script:
 
 After this, you can run the `configure` script as described previously.
 
+#### Meson
+
+For the developers who prefer this, it is alternatively possible to compile the C++ components with Meson and then install ShoRAH with pip in development mode using :
+
+```bash
+mkdir -p build
+cd build
+meson ../
+ninja
+cd ..
+pip3 install -e .
+```
 
 #### Windows users
 Since Windows 10, Microsoft provides the 

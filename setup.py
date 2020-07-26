@@ -70,7 +70,7 @@ setup(
     name='ShoRAH',
     description='SHOrt Reads Assembly into Haplotypes',
     url='http://github.com/cbg-ethz/shorah',
-    packages=find_packages('src'),  # include all packages under src
+    packages=find_packages(where='src'),  # include all packages under src
     package_dir={'': 'src'},  # tell setuptools packages are under src
     entry_points={
         'console_scripts': ['shorah = shorah.cli:main']
