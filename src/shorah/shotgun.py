@@ -35,7 +35,6 @@ import pipes
 import sys
 import shlex
 import logging
-from pkg_resources import resource_filename
 import re
 import shutil
 
@@ -52,10 +51,16 @@ else:
     from . import shorah_snv
 
 # Try fetching diri and b2w exe with pkg resources
-diri_exe = resource_filename(__name__, 'bin/diri_sampler')
-b2w_exe = resource_filename(__name__, 'bin/b2w')
+try:
+    from pkg_resources import resource_filename
+except ModuleNotFoundError:
+    diri_exe = None
+    b2w_exe = None
+else:
+    diri_exe = resource_filename(__name__, 'bin/diri_sampler')
+    b2w_exe = resource_filename(__name__, 'bin/b2w')
 # Try fetching diri and b2w exe with bash 'which'
-if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
+if not (diri_exe and b2w_exe) or not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
     diri_exe = shutil.which('diri_sampler')
     b2w_exe = shutil.which('b2w')
     if not (diri_exe and b2w_exe):

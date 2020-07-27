@@ -44,12 +44,15 @@ import shlex
 
 import logging
 
-from pkg_resources import resource_filename
-
 # Try fetching fil exe with pkg resources
-fil_exe = resource_filename(__name__, 'bin/fil')
+try:
+    from pkg_resources import resource_filename
+except ModuleNotFoundError:
+    fil_exe = None
+else:
+    fil_exe = resource_filename(__name__, 'bin/fil')
 # Try fetching fil exe with bash 'which'
-if not os.path.exists(fil_exe):
+if not fil_exe or not os.path.exists(fil_exe):
     fil_exe = shutil.which('fil')
     if not fil_exe:
         # Try fetching fil exe based on directory structure
