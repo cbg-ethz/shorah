@@ -41,6 +41,7 @@ import shutil
 import sys
 import warnings
 import shlex
+from collections import namedtuple
 
 import logging
 
@@ -101,9 +102,8 @@ def parseWindow(line, ref1, threshold=0.9):
     from Bio import SeqIO
     from re import search
 
-    ind = {'A': '.0', 'T': '.1', 'G': '.2', 'C': '.3',
-           'a': '.0', 't': '.1', 'g': '.2', 'c': '.3', '-': '.4'}
     snp = {}
+    SNP_id = namedtuple('SNP_id', ['pos', 'var'])
     reads = 0.0
     winFile, chrom, beg, end, cov = line.rstrip().split('\t')
     del([winFile, cov])
@@ -145,15 +145,15 @@ def parseWindow(line, ref1, threshold=0.9):
             reads += av
             pos = beg
             tot_snv = 0
-            for i2, v in enumerate(refSlice):  # iterate on the reference
-                if v != seq[i2]:  # SNV detected, save it
+            for idx, v in enumerate(refSlice):  # iterate on the reference
+                if v != seq[idx]:  # SNV detected, save it
                     tot_snv += 1
-                    id2 = float(str(pos) + ind[seq[i2]])
-                    if id2 in snp:
-                        snp[id2][4] += av
-                        snp[id2][5] += post * av
+                    snp_id = SNP_id(pos=pos, var=seq[idx])
+                    if snp_id in snp:
+                        snp[snp_id][4] += av
+                        snp[snp_id][5] += post * av
                     else:
-                        snp[id2] = [chrom, pos, v, seq[i2], av, post * av]
+                        snp[snp_id] = [chrom, pos, v, seq[idx], av, post * av]
                 pos += 1
             if tot_snv > max_snv:
                 max_snv = tot_snv
@@ -188,9 +188,8 @@ def getSNV(ref, segCov, incr, window_thresh=0.9):
             incr = end - beg + 1
             single_window = True
             logging.info('working on single window as invoked by amplian')
-        key = list(snp.keys())
-        key.sort()
-        for k in key:
+
+        for k in sorted(snp.keys()):
             # reference name, position, reference_base, mutated base,
             # average number of reads, posterior times average n of reads
             chrom, p, rf, var, av, post = snp[k]
