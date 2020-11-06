@@ -90,7 +90,7 @@ def segments(incr):
     return segCov1
 
 
-def parseWindow(line, ref1, threshold = 0.9 ):
+def parseWindow(line, ref1, threshold=0.9):
     """SNVs from individual support files, getSNV will build
         the consensus SNVs
         It returns a dictionary called snp with the following structure
@@ -167,7 +167,7 @@ def parseWindow(line, ref1, threshold = 0.9 ):
     return snp
 
 
-def getSNV(ref, segCov, incr, window_thresh = 0.9):
+def getSNV(ref, segCov, incr, window_thresh=0.9):
     """Parses SNV from all windows and output the dictionary with all the
     information
     """
@@ -371,7 +371,7 @@ def main(args):
     increment = args.increment
     max_coverage = args.max_coverage
     ignore_indels = args.ignore_indels
-    posterior_thresh = args.posterior_thresh;
+    posterior_thresh = args.posterior_thresh
 
     logging.info(str(inspect.getfullargspec(main)))
     ref_m = dict([[s.id, str(s.seq).upper()]
@@ -416,7 +416,6 @@ def main(args):
     q_vals = BH(p_vals_m, len(p_vals_m))
     for q, i3 in q_vals:
         write_list[i3].append(q)
-
 
     # Write ShoRAH csv output file
     if 'csv' in args.format:
@@ -485,9 +484,9 @@ def main(args):
                         post_avg = min([1, float(wl[5])])
                         info = f'Freq={wl[4]};Post={wl[5]};' + info
                     else:
-                        freq_str = ';'.join([f'Freq{i+1}={j}' \
+                        freq_str = ';'.join([f'Freq{i+1}={j}'
                             for i, j in enumerate(wl[4:7]) if j != '*'])
-                        post_str = ';'.join([f'Post{i+1}={j}' \
+                        post_str = ';'.join([f'Post{i+1}={j}'
                             for i, j in enumerate(wl[7:10]) if j != '*'])
                         info = f'{freq_str};{post_str};{info}'.replace('-', '0')
                         post_all = []
@@ -508,6 +507,5 @@ def main(args):
                     except ValueError:
                         qual_norm = 100
 
-                    snv = wl[:4] + [qual_norm, info]
-                    vcf.write(f'\n{wl[0]}\t{wl[1]}\t.\t{wl[2]}\t{wl[3]}' \
-                        f'\t{qual_norm}\tPASS\t{info}')
+                    vcf.write(f'\n{wl[0]}\t{wl[1]}\t.\t{wl[2]}\t{wl[3]}'
+                              f'\t{qual_norm}\tPASS\t{info}')
