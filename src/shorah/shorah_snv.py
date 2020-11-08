@@ -91,6 +91,19 @@ def segments(incr):
     return segCov1
 
 
+def deletion_length(seq):
+    """Determines the length of the deletion
+       seq: substring of the reconstructed haplotype
+    """
+    count = 0
+    for c in seq:
+        if c == '-':
+            count += 1
+        else:
+            break
+    return count
+
+
 def parseWindow(line, ref1, threshold=0.9):
     """SNVs from individual support files, getSNV will build
         the consensus SNVs
@@ -145,15 +158,38 @@ def parseWindow(line, ref1, threshold=0.9):
             reads += av
             pos = beg
             tot_snv = 0
+            aux_del = -1
             for idx, v in enumerate(refSlice):  # iterate on the reference
                 if v != seq[idx]:  # SNV detected, save it
-                    tot_snv += 1
-                    snp_id = SNP_id(pos=pos, var=seq[idx])
-                    if snp_id in snp:
-                        snp[snp_id][4] += av
-                        snp[snp_id][5] += post * av
+                    if seq[idx] == '-':
+                        # Avoid counting multiple times a long deletion in the
+                        # same haplotype
+                        if idx > aux_del:
+                            tot_snv += 1
+                            # Check for gap characters and get the deletion
+                            # length
+                            del_len = deletion_length(seq[idx:])
+                            aux_del = idx + del_len
+                            snp_id = SNP_id(pos=pos, var=seq[idx:aux_del])
+
+                            if snp_id in snp:
+                                # Aggregate counts for long deletions which
+                                # are observed in multiple haplotypes
+                                snp[snp_id][4] += av
+                                snp[snp_id][5] += post * av
+                            else:
+                                snp[snp_id] = [
+                                    chrom, pos, v, seq[idx:aux_del], av,
+                                    post * av]
                     else:
-                        snp[snp_id] = [chrom, pos, v, seq[idx], av, post * av]
+                        tot_snv += 1
+                        snp_id = SNP_id(pos=pos, var=seq[idx])
+                        if snp_id in snp:
+                            snp[snp_id][4] += av
+                            snp[snp_id][5] += post * av
+                        else:
+                            snp[snp_id] = [
+                                chrom, pos, v, seq[idx], av, post * av]
                 pos += 1
             if tot_snv > max_snv:
                 max_snv = tot_snv
