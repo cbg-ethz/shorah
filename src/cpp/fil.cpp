@@ -29,6 +29,9 @@ adapted from samtools/calDep.c
 #include <sstream>
 #include <map>
 #include <string>
+#include <set>
+#include <algorithm>
+#include <exception>
 
 #include <cmath>
 #include <cfenv>
@@ -44,7 +47,181 @@ typedef struct {
     bool skip_indel;
 } paramstruct_t;
 
+struct StrandCounts {
+    StrandCounts() : forward(0), reverse(0) {}
 
+    int forward;
+    int reverse;
+};
+
+bam_plp_t _fetch_reads(htsFile* inFile, bam_hdr_t* header, hts_idx_t* idx,
+                       const std::string& chr, size_t pos_begin, size_t length,
+                       const paramstruct_t& params) {
+    // based on samtools/bam_aux.c:bam_parse_region
+    int targetid; // targetid : target (as header's numeric form)
+    if ((targetid = bam_name2id(header, chr.c_str())) < 0) {
+        std::cerr << "Invalid region " << chr << std::endl;
+        throw std::exception();
+    }
+
+    bam_plp_t plp_iter = bam_plp_init(0, 0);
+    bam_plp_set_maxcnt(plp_iter, params.maxdepth);
+
+    /*
+    * Get all the reads that cover the interesting region (on chromosomes/target "targetid", position "pos"
+    * And store them on a pileup
+    */
+    // based on samtools/bam.c:bam_fetch
+    bam1_t *b = bam_init1();
+    // pos_begin is 1-based
+    hts_itr_t* iter = sam_itr_queryi(idx, targetid, pos_begin-1, pos_begin-1+length);
+    while (sam_itr_next(inFile, iter, b) >= 0) {
+        // callback for bam_fetch()
+        // based on samtools/bam_plbuf.c
+        if (bam_plp_push(plp_iter, b) < 0) {
+            // TODO trap errors
+            std::cerr << "!";
+        }
+    }
+    bam_itr_destroy(iter);
+    bam_destroy1(b);
+
+    // based on samtools/bam_plbuf.c
+    bam_plp_push(plp_iter, 0);
+
+    return plp_iter;
+}
+
+void _update_intersection(std::set<std::string>& covering_reads,
+                          std::set<std::string>& covering_reads_pos,
+                          bool first_iteration) {
+    if (first_iteration) {
+        std::swap(covering_reads, covering_reads_pos);
+    } else {
+        // https://stackoverflow.com/a/13448094
+        std::set<std::string> intersection;
+        std::set_intersection(
+            covering_reads.begin(), covering_reads.end(),
+            covering_reads_pos.begin(), covering_reads_pos.end(),
+            std::inserter(intersection, intersection.begin()));
+        covering_reads = intersection;
+    }
+}
+
+StrandCounts _coverage(htsFile* inFile, bam_hdr_t* header, hts_idx_t* idx,
+                       const std::string& chr, size_t pos_begin, size_t length,
+                       const paramstruct_t& params) {
+    bam_plp_t plp_iter = _fetch_reads(inFile, header, idx, chr, pos_begin,
+                                      length, params);
+
+    // NOTE: using read IDs and separate sets for forward and reverse reads,
+    //       since bam1_t* in pileup point to ephemeral memory locations
+    std::set<std::string> covering_reads_forward, covering_reads_reverse;
+    int n_plp, tid, p_pos;
+    const bam_pileup1_t *plp;
+
+    bool first_iteration = true;
+    while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
+        ++p_pos;  // convert 0-based to 1-based indexing
+        if ((p_pos < pos_begin) || (pos_begin + length - 1 < p_pos))
+            continue;
+
+        std::set<std::string> covering_reads_pos_forward, covering_reads_pos_reverse;
+        for (int i = 0; i < n_plp; i++) { // take each read in turn
+            const bam_pileup1_t* p = plp + i;
+            if (bam_is_rev(p->b))
+                covering_reads_pos_reverse.insert(
+                    std::string(bam_get_qname(p->b)));
+            else
+                covering_reads_pos_forward.insert(
+                    std::string(bam_get_qname(p->b)));
+        }
+
+        _update_intersection(covering_reads_forward,
+                             covering_reads_pos_forward, first_iteration);
+        _update_intersection(covering_reads_reverse,
+                             covering_reads_pos_reverse, first_iteration);
+        first_iteration = false;
+    }
+    // bam_plp_reset(plp_iter);
+    bam_plp_destroy(plp_iter);
+
+    StrandCounts counts;
+    counts.forward = covering_reads_forward.size();
+    counts.reverse = covering_reads_reverse.size();
+    return counts;
+}
+
+StrandCounts _count_matching_deletions(htsFile* inFile, bam_hdr_t* header,
+                                       hts_idx_t* idx,
+                                       const std::string& chr, size_t pos_begin,
+                                       size_t deletion_length,
+                                       const paramstruct_t& params) {
+    assert(pos_begin > 1);
+    // bam_pileup1_t stores the length of a deletion in the pileup for the
+    // preceding position
+    size_t pos_prev = pos_begin - 1;
+
+    bam_plp_t plp_iter = _fetch_reads(inFile, header, idx, chr, pos_prev, 1,
+                                      params);
+
+    StrandCounts counts;
+    int n_plp, tid, p_pos;
+    const bam_pileup1_t *plp;
+    while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
+        if (p_pos + 1 == pos_prev) {  // p_pos 0-based
+            for (int i = 0; i < n_plp; i++) { // take each read in turn
+                const bam_pileup1_t* p = plp + i;
+                // for an explanation of "is_del" and "indel", see 
+                // https://www.biostars.org/p/104301/#104311
+                if (-p->indel == deletion_length) {
+                    if (bam_is_rev(p->b))
+                        ++counts.reverse;
+                    else
+                        ++counts.forward;
+                }
+            }
+        }
+    }
+    // bam_plp_reset(plp_iter);
+    bam_plp_destroy(plp_iter);
+
+    return counts;
+}
+
+StrandCounts _count_matching_substitutions(htsFile* inFile, bam_hdr_t* header,
+                                           hts_idx_t* idx, const std::string& chr,
+                                           size_t pos, char var,
+                                           const paramstruct_t& params) {
+    bam_plp_t plp_iter = _fetch_reads(inFile, header, idx, chr, pos, 1,
+                                      params);
+
+    StrandCounts counts;
+    int n_plp, tid, p_pos;
+    const bam_pileup1_t *plp;
+    while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
+        if (p_pos + 1 == pos) {  // p_pos 0-based
+            for (int i = 0; i < n_plp; i++) { // take each read in turn
+                const bam_pileup1_t* p = plp + i;
+                // for an explanation of "is_del" and "indel", see 
+                // https://www.biostars.org/p/104301/#104311
+                if (!p->is_del) {
+                    char c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
+                    if (c == var) {
+                        if (bam_is_rev(p->b))
+                            ++counts.reverse;
+                        else
+                            ++counts.forward;
+                    }
+                }
+            }
+        }
+    }
+    // bam_plp_reset(plp_iter);
+    bam_plp_destroy(plp_iter);
+
+    return counts;
+}
 
 // main
 int main(int argc, char* argv[])
@@ -98,10 +275,9 @@ int main(int argc, char* argv[])
     bam_hdr_t* header = sam_hdr_read(inFile);
     if (idx == NULL) {
         std::cerr << "BAM indexing file is not available." << std::endl;
-        return 2;
+        throw std::exception();
     }
-    bam_plp_t plp_iter = bam_plp_init(0, 0);
-    bam_plp_set_maxcnt(plp_iter, params.maxdepth);
+
     std::ifstream fl ("SNV.txt", std::ios_base::in);
     if (fl.fail()) {
         std::cerr << "Failed to open SNV file." << std::endl;
@@ -125,8 +301,9 @@ int main(int argc, char* argv[])
          */
 
         std::string chr;   // chr:   target chromosone in text form
-        int targetid, pos; // targetid : target (as header's numeric form)  pos: 1-based position of SNV
-        char ref, var;     // reference and variant nucleotide for this SNV
+        int pos; // pos: 1-based position of SNV
+        char ref;     // reference base
+        std::string var;   // variant nucleotide (allow for deletions with variable length)
         std::istringstream iss(str_buf);
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1
         UNUSED(amplicon);
@@ -141,119 +318,50 @@ int main(int argc, char* argv[])
             // for everything else:
             //  >> fr1 >> fr2 >> fr3 >> p1 >> p2 >> p2
 
-            /*
-             * Prepare the data
-             */
-            enum class Strand { f, r };
-            std::map<Strand, int> st_freq_all;
-            std::map<Strand, int> st_freq_Mut;
-            // init sane defaults
-            st_freq_all[Strand::f] = 0;  // store frequencies of forward and reverse reads
-            st_freq_all[Strand::r] = 0;
-            st_freq_Mut[Strand::f] = 0;
-            st_freq_Mut[Strand::r] = 0;
+            StrandCounts st_freq_all;
+            StrandCounts st_freq_Mut;
+            assert(var.size() > 0);
+            if (var[0] == '-') {
+                assert(pos > 0);
 
-
-            // as seen in htslib/hts.c:hts_parse_reg
-            const int pos_begin = pos - 1,  // begin is 0-based (so position-1)
-                      pos_end = pos;        // end is 1-based (so straight position)
-            // based on samtools/bam_aux.c:bam_parse_region
-            if ((targetid = bam_name2id(header, chr.c_str())) < 0) {
-                std::cerr << "Invalid region " << chr << std::endl;
-                return 4;
+                // construct pileup for coverage (pos, pos + del_length)
+                st_freq_all = _coverage(
+                    inFile, header, idx, chr, pos, var.size(), params);
+                st_freq_Mut = _count_matching_deletions(
+                    inFile, header, idx, chr, pos, var.size(), params);
+            } else {
+                // construct pileup at pos
+                st_freq_all = _coverage(
+                    inFile, header, idx, chr, pos, 1, params);
+                st_freq_Mut = _count_matching_substitutions(
+                    inFile, header, idx, chr, pos, var[0], params);
             }
 
             /*
-             * Phase 1:
-             *
-             * Get all the reads that cover the interesting region (on chromosomes/target "targetid", position "pos"
-             * And store them on a pileup
-             */
-            // based on samtools/bam.c:bam_fetch
-            bam1_t *b = bam_init1();
-            hts_itr_t* iter = sam_itr_queryi(idx, targetid, pos_begin, pos_end);
-            while (sam_itr_next(inFile, iter, b) >= 0) {
-                // callback for bam_fetch()
-                // based on samtools/bam_plbuf.c
-                if (bam_plp_push(plp_iter, b) < 0) {
-                    // TODO trap errors
-                    std::cerr << "!";
-                }
-            }
-            bam_itr_destroy(iter);
-            bam_destroy1(b);
-
-            // based on samtools/bam_plbuf.c
-            bam_plp_push(plp_iter, 0);
-            {
-
-            /*
-             * Phase 2:
-             *
-             * Get the whole pileup and look at what's happening at the SNVs site.
-             */
-                int n_plp, tid, p_pos;
-                const bam_pileup1_t *plp;
-                while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
-                    if (p_pos == pos_begin) { // only pay attention to pileups in out target position
-                        for (int i = 0; i < n_plp; i++)  // take each read in turn
-                        {
-                            char c;
-                            const bam_pileup1_t* p = plp + i;
-                            // for the exact signification of "is_del" and "indel", see https://www.biostars.org/p/104301/#104311
-                            const bool skip = (params.skip_indel && (p->indel != 0));
-                            if ((! skip) and p->is_del != 1)
-                                // based on samtools/bam.h
-                                c = seq_nt16_str[bam_seqi(bam_get_seq(p->b), p->qpos)];
-                            else if (p->is_del == 1)
-                                c = '-';
-                            else
-                                c = '*';
-                                // NOTE historically, fil used to ignore SNVs nearby insertions/deletions, leading to disagreeing with B2W and causing bugs.
-                                // Now there's a switch for that. Either both always keep SNVs (default behaviour and old b2w behaviour) or both ignore them when nearby insertions (old fil's behaviour)
-                            if (bam_is_rev(p->b) == 0)  // forward read
-                                st_freq_all[Strand::f]++;
-                            else
-                                st_freq_all[Strand::r]++;  // reverse read
-                            if (c == var) {     // base is variant nucleotide ?
-                                if (bam_is_rev(p->b) == 0) {
-                                    st_freq_Mut[Strand::f]++;  // forward read
-                                } else
-                                    st_freq_Mut[Strand::r]++;  // reverse read
-                            }
-                        }
-                        //break;
-                    }
-                }
-            }
-
-            /*
-             * Phase 3:
-             *
              * Do stats on the counts - is there a strand bias ?
              */
             
             // init sane defaults
             double pval = 1.;
 
-            if (st_freq_all[Strand::f] == 0 and st_freq_all[Strand::r] == 0) {
+            if (st_freq_all.forward == 0 and st_freq_all.reverse == 0) {
                 // historically this could happen due to B2W and FIL counting indels in different way.
                 std::cerr << "Bug: No reads found at position " << pos <<" ?!?" << std::endl;
-            } else if (st_freq_Mut[Strand::f] == 0 and st_freq_Mut[Strand::r] == 0) {
+            } else if (st_freq_Mut.forward == 0 and st_freq_Mut.reverse == 0) {
                 std::cerr << "Critical: No mutations found at position " << pos <<" ?!?" << std::endl;
             } else {
-                double mean = (double)st_freq_all[Strand::f] /
-                            (st_freq_all[Strand::f] +
-                            st_freq_all[Strand::r]);  // forward read ratio, all reads at this position
+                double mean = (double)st_freq_all.forward /
+                            (st_freq_all.forward +
+                            st_freq_all.reverse);  // forward read ratio, all reads at this position
                 double fr =
-                    (double)st_freq_Mut[Strand::f] /
-                    (st_freq_Mut[Strand::f] +
-                    st_freq_Mut[Strand::r]);  // forward read ratio, only reads with variant at this position
+                    (double)st_freq_Mut.forward /
+                    (st_freq_Mut.forward +
+                    st_freq_Mut.reverse);  // forward read ratio, only reads with variant at this position
                 double alpha;
                 double beta;
                 double sigma = params.sig;
                 double prMut;
-                int m = st_freq_Mut[Strand::f] + st_freq_Mut[Strand::r];  // total reads with variant
+                int m = st_freq_Mut.forward + st_freq_Mut.reverse;  // total reads with variant
                 int k;
                 double tail = 0.0;
                 alpha = mean / sigma;  // alpha and beta for beta binomial
@@ -289,11 +397,11 @@ int main(int argc, char* argv[])
                     };
                     std::feclearexcept(FE_ALL_EXCEPT);
                     if (fr < mean) {
-                        for (k = 0; k <= st_freq_Mut[Strand::f]; k++)
+                        for (k = 0; k <= st_freq_Mut.forward; k++)
                             tail += pdfbetabinom (k, m, mean, sigma);
                             // calculate cumulative distribution
                     } else {
-                        for (k = st_freq_Mut[Strand::f]; k <= m; k++)
+                        for (k = st_freq_Mut.forward; k <= m; k++)
                             tail += pdfbetabinom (k, m, mean, sigma);
                             // the other tail, if required
                     }
@@ -308,7 +416,6 @@ int main(int argc, char* argv[])
             }
 
             // write the results add
-            bam_plp_reset(plp_iter);
             snpsOut << str_buf << '\t' // we will simply append the new column instead of re-writing them
 
             //  for amplicons :
@@ -319,13 +426,12 @@ int main(int argc, char* argv[])
             //      << fr1 << '\t' << fr2 << '\t' << fr3 << '\t'
             //      << p1 << '\t' << p2 << '\t' << p3 << '\t'
 
-                    << st_freq_Mut[Strand::f] << '\t' << st_freq_Mut[Strand::r] << '\t'
-                    << st_freq_all[Strand::f] << '\t' << st_freq_all[Strand::r] << '\t' << pval << '\n';
+                    << st_freq_Mut.forward << '\t' << st_freq_Mut.reverse << '\t'
+                    << st_freq_all.forward << '\t' << st_freq_all.reverse << '\t' << pval << '\n';
         }
     }
     snpsOut.close();
     fl.close();
-    bam_plp_destroy(plp_iter);
     bam_hdr_destroy(header);
     hts_idx_destroy(idx);
     hts_close(inFile);
