@@ -41,7 +41,7 @@ def read_counts(chrm, start, end, bamfile):
     return read_count.forward, read_count.reverse
 
 
-def count_matching_variants(chrm, start, length, variant, bamfile):
+def count_matching_variants(chrm, start, length, variant, is_del, bamfile):
     variant_count = StrandCounts()
 
     with pysam.AlignmentFile(bamfile, 'rb') as alnfile:
@@ -55,7 +55,7 @@ def count_matching_variants(chrm, start, length, variant, bamfile):
             # least one read - including positions outside the region of
             # interest, unless 'tuncate=True'
             for read in column.pileups:
-                if variant.startswith('-'):
+                if is_del:
                     # Handle deletions
                     if -read.indel == length:
                         if read.alignment.is_reverse:
@@ -82,31 +82,33 @@ def main(bamfile, snvsfile, outfile):
     df_snvs = pd.read_csv(snvsfile, sep="\t", header=0, compression=None)
     # convert to 0-based
     df_snvs["Pos"] -= 1
-    df_snvs["Pos_end"] = df_snvs["Pos"] + df_snvs["Var"].str.len()
-    del_mask = df_snvs["Var"].str.startswith('-')
+    # Deletion length
+    aux_len = df_snvs["Ref"].str.len() - 1
+    del_mask = aux_len > 0
     df_snvs["Del_len"] = np.nan
-    df_snvs.loc[del_mask, "Del_len"] = df_snvs.loc[del_mask, "Var"].str.len()
-    # Pysam pileup: length of the deletion is recorded in the preceding
-    # position
-    df_snvs.loc[del_mask, "Pos"] -= 1
+    df_snvs.loc[del_mask, "Del_len"] = aux_len[del_mask]
+    df_snvs["Is_del"] = del_mask
 
     df_snvs[["Variant_forward", "Variant_reverse"]] = df_snvs.apply(
         lambda x: count_matching_variants(
-            x["Chromosome"], x["Pos"], x["Del_len"], x["Var"], bamfile),
-        axis=1, result_type="expand")
+            x["Chromosome"], x["Pos"], x["Del_len"], x["Var"], x["Is_del"],
+            bamfile), axis=1, result_type="expand")
 
-    # Revert operations for the reporting position of deletions
+    # Temporarily change to start position for the deletions to count the
+    # number of reads that cover the long deletion in full length
     df_snvs.loc[del_mask, "Pos"] += 1
+    df_snvs.loc[del_mask, "Pos_end"] = df_snvs["Pos"] + aux_len
+    df_snvs.loc[~del_mask, "Pos_end"] = df_snvs["Pos"] + 1
     df_snvs[["Depth_forward", "Depth_reverse"]] = df_snvs.apply(
         lambda x: read_counts(
             x["Chromosome"], x["Pos"], x["Pos_end"], bamfile), axis=1,
         result_type="expand")
 
     # Revert operations for the reporting position
-    df_snvs["Pos"] += 1
+    df_snvs.loc[~del_mask, "Pos"] += 1
 
     # Clean-up for comparison
-    df_snvs = df_snvs.drop(columns=["Pos_end", "Del_len"])
+    df_snvs = df_snvs.drop(columns=["Del_len", "Is_del", "Pos_end"])
 
     # Load output produced by ShoRAH for comparison
     df_out = pd.read_csv(outfile, sep="\t", header=None, compression=None)
