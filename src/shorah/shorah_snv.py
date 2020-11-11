@@ -191,9 +191,16 @@ def parseWindow(line, ref1, threshold=0.9):
                                 snp[snp_id].freq += av
                                 snp[snp_id].support += post * av
                             else:
+                                # Comply with the convention to report deletion
+                                # in VCF format. Position correspond to the
+                                # preceding position w.r.t. the reference
+                                # without a deletion
+                                pos_prev = pos - 1
+                                reference_seq = ref1[chrom][
+                                    (pos_prev - 1):(pos_prev + del_len)]
                                 snp[snp_id] = SNV(
-                                    chrom, pos, v, seq[idx:aux_del], av,
-                                    post * av)
+                                    chrom, pos_prev, reference_seq,
+                                    reference_seq[0], av, post * av)
                     else:
                         tot_snv += 1
                         snp_id = SNP_id(pos=pos, var=seq[idx])
@@ -386,8 +393,8 @@ def sb_filter(in_bam, sigma, amplimode="", drop_indels="",
     import subprocess
     # dn = sys.path[0]
     my_prog = shlex.quote(fil_exe)  # os.path.join(dn, 'fil')
-    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + drop_indels + ' -x ' \
-             + str(max_coverage)
+    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + drop_indels \
+             + ' -x ' + str(max_coverage)
     logging.debug('running %s%s', my_prog, my_arg)
     retcode = subprocess.call(my_prog + my_arg, shell=True)
     return retcode

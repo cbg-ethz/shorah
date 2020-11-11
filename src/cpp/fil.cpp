@@ -157,19 +157,14 @@ StrandCounts _count_matching_deletions(htsFile* inFile, bam_hdr_t* header,
                                        const std::string& chr, size_t pos_begin,
                                        size_t deletion_length,
                                        const paramstruct_t& params) {
-    assert(pos_begin > 1);
-    // bam_pileup1_t stores the length of a deletion in the pileup for the
-    // preceding position
-    size_t pos_prev = pos_begin - 1;
-
-    bam_plp_t plp_iter = _fetch_reads(inFile, header, idx, chr, pos_prev, 1,
+    bam_plp_t plp_iter = _fetch_reads(inFile, header, idx, chr, pos_begin, 1,
                                       params);
 
     StrandCounts counts;
     int n_plp, tid, p_pos;
     const bam_pileup1_t *plp;
     while ((plp = bam_plp_next(plp_iter, &tid, &p_pos, &n_plp)) != 0) {
-        if (p_pos + 1 == pos_prev) {  // p_pos 0-based
+        if (p_pos + 1 == pos_begin) {  // p_pos 0-based
             for (int i = 0; i < n_plp; i++) { // take each read in turn
                 const bam_pileup1_t* p = plp + i;
                 // for an explanation of "is_del" and "indel", see 
@@ -302,8 +297,8 @@ int main(int argc, char* argv[])
 
         std::string chr;   // chr:   target chromosone in text form
         int pos; // pos: 1-based position of SNV
-        char ref;     // reference base
-        std::string var;   // variant nucleotide (allow for deletions with variable length)
+        std::string ref;     // reference base (allow for deletions with variable length)
+        std::string var;   // variant nucleotide (for future insertions)
         std::istringstream iss(str_buf);
         // amplicon only has one window, parses a single frequency and posterior and uses fr1 and p1
         UNUSED(amplicon);
@@ -320,15 +315,20 @@ int main(int argc, char* argv[])
 
             StrandCounts st_freq_all;
             StrandCounts st_freq_Mut;
-            assert(var.size() > 0);
-            if (var[0] == '-') {
+            assert(ref.size() > 0);
+            // A deletion is reported at the preceding position w.r.t the
+            // reference. The reference column 'ref' contains the reference
+            // base followed by the deleted bases.
+            if (ref.size() > 1) {
+                int deletion_length = ref.size() - 1;
                 assert(pos > 0);
 
-                // construct pileup for coverage (pos, pos + del_length)
+                // construct pileup for coverage (pos + 1, pos + 1 + del_length)
                 st_freq_all = _coverage(
-                    inFile, header, idx, chr, pos, var.size(), params);
+                    inFile, header, idx, chr, pos + 1, deletion_length, params);
+                    assert(pos_begin > 1);
                 st_freq_Mut = _count_matching_deletions(
-                    inFile, header, idx, chr, pos, var.size(), params);
+                    inFile, header, idx, chr, pos, deletion_length, params);
             } else {
                 // construct pileup at pos
                 st_freq_all = _coverage(
