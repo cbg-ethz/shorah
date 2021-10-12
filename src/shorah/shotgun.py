@@ -167,6 +167,7 @@ def windows(run_settings):
         (w, i, m, x, c, d, bam, fasta, reg)
 
     try:
+        logging.debug('Running making windows: b2w%s', my_arg)
         retcode = subprocess.call(my_prog + my_arg, shell=True)
         if retcode != 0:
             logging.error('%s %s', my_prog, my_arg)

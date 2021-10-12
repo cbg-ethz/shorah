@@ -42,7 +42,7 @@ import os
 import sys
 
 
-use_pkg_resources = False;
+use_pkg_resources = False
 all_dirs = os.path.abspath(__file__).split(os.sep)
 base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
 version_fname = os.path.join(base_dir, '.version')
@@ -59,7 +59,7 @@ else:
         __version__ = 'unknown'
         print("cannot find version", file=sys.stderr)
     else:
-        use_pkg_resources = True;
+        use_pkg_resources = True
 
 # manipulate path to import functions
 parent_dir = os.path.join(base_dir, 'src')

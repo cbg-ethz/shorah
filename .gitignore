@@ -28,6 +28,7 @@ shorah*.tar.bz2
 
 # executables
 b2w
+!b2w/
 diri_sampler
 fil
 

@@ -7,8 +7,13 @@ RUN apt-get update -y && \
 
 SHELL ["/bin/bash", "-c"]
 
-RUN pip3 install Biopython numpy
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENV PYTHONPATH=/src
+
+RUN ["/entrypoint.sh"]
+
+CMD pip install pytest && cd /tests/b2w && pytest
