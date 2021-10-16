@@ -1,11 +1,20 @@
 import pysam
 
+def _parse_region(region):
+    tmp = region.split(":")
+    reference_name = tmp[0]
+    tmp = tmp[1].split("-")
+    start = int(tmp[0]) 
+    end = int(tmp[1]) 
+    return reference_name, start, end # indexed 1 like samtools
+
 def _write_to_file(lines, file_name):
     with open(file_name, "w") as f:
         f.writelines("%s\n" % l for l in lines)
 
 def _run_one_window(samfile, region_start, reference_name, window_length, 
-        minimum_overlap, maximum_reads):
+        minimum_overlap, maximum_reads, counter):
+
     arr = []
     arr_read_summary = []
 
@@ -15,7 +24,7 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
         region_start + window_length # arg exclusive as per pysam convention
     ) 
 
-    for read in iter:
+    for idx, read in enumerate(iter):
         # For loop limited by maximum_reads 
         # TODO might not be random 
         #if read_idx > maximum_reads: 
@@ -23,32 +32,34 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
 
         first_aligned_pos = read.reference_start
         last_aligned_post = read.reference_end - 1 #reference_end is exclusive
+
+        # 0- vs 1-based correction
+        start_cut_out = region_start - first_aligned_pos - 1
+
+        end_cut_out = start_cut_out + window_length 
+
+        s = slice(max(0, start_cut_out), end_cut_out)
+        full_read = list(read.query_sequence)
+        
+        diff_counter = 0
+        for idx, pair in enumerate(read.get_aligned_pairs()):
+            if pair[0] == None:
+                full_read.insert(idx - diff_counter, "-")
+            if pair[1] == None:
+                full_read.pop(idx - diff_counter)
+                diff_counter = diff_counter + 1
+        
+        full_read = ("".join(full_read))
+        
         if (first_aligned_pos < region_start + window_length - minimum_overlap  
                 and last_aligned_post >= region_start + minimum_overlap - 4): 
                 # TODO justify 4
-            
-            # 0- vs 1-based correction
-            start_cut_out = region_start - first_aligned_pos - 1
 
-            end_cut_out = start_cut_out + window_length 
-            print(f"{start_cut_out} {end_cut_out}")
-            s = slice(max(0, start_cut_out), end_cut_out)
-            cut_out_read = list(read.query_sequence)
-            
-            diff_counter = 0
-            for idx, pair in enumerate(read.get_aligned_pairs()):
-                if pair[0] == None:
-                    cut_out_read.insert(idx - diff_counter, "-")
-                if pair[1] == None:
-                    cut_out_read.pop(idx - diff_counter)
-                    diff_counter = diff_counter + 1
-            
-            cut_out_read = ("".join(cut_out_read))[s]
+            cut_out_read = full_read[s]
 
             # TODO justify 2
             k = (region_start + window_length) - last_aligned_post - 2 
             if k > 0:
-                print(k)
                 cut_out_read = cut_out_read + k * "N" 
             if start_cut_out < 0:
                 cut_out_read = -start_cut_out * "N" + cut_out_read
@@ -60,23 +71,28 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
             arr.append(
                 f'>{read.query_name} {first_aligned_pos}\n{cut_out_read}'
             )
-            arr_read_summary.append((
-                read.query_name, 
-                read.reference_start + 1, # conversion to 1-based
-                read.reference_end, # already 1-based
-                read.query_sequence
-            ))
 
-    return arr, arr_read_summary
+        if read.reference_start >= counter and len(full_read) >= minimum_overlap:
+            arr_read_summary.append( # TODO reads.fas not FASTA conform, +-0/1
+                f'{read.query_name}\t2267\t3914\t{read.reference_start + 1}\t{read.reference_end}\t{full_read}'
+            )
+            counter = read.reference_start
+
+    counter = counter + 1
+    print(f'GLOBAL: {counter}')
+
+    return arr, arr_read_summary, counter
 
 
 def b2w(window_length: int, incr: int, minimum_overlap: int, maximum_reads: int, 
         minimum_reads: int) -> None:
-    """
-    Creates three products:
-    (1) Multiple FASTA files (one for each window position)
-    (2) A coverage file that lists all files in (1)
-    (3) A FASTA file that lists all reads used in (1) #TODO not really FASTA
+    """Summarizes reads aligned to reference into windows. 
+
+    Three products are created:
+
+    #. Multiple FASTA files (one for each window position)
+    #. A coverage file that lists all files in (1)
+    #. A FASTA file that lists all reads used in (1) #TODO not really FASTA
 
     Args:
         window_length: Number of bases considered at once per loop.
@@ -92,26 +108,32 @@ def b2w(window_length: int, incr: int, minimum_overlap: int, maximum_reads: int,
         None.
     """
     alignment_file = "data/test_aln.cram" # TODO
-    reference_name = "HXB2" # TODO
+    region = "HXB2:2469-3713"
+    reference_name, start, end = _parse_region(region)
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(alignment_file, "rc")
 
     window_positions = range(
-        incr-10, # TODO corrected start
-        samfile.get_reference_length(reference_name), 
-        incr
+        start - window_length, # TODO corrected start
+        end + window_length, 
+        incr 
     )
 
+    print(window_positions)
+
     cov_arr = []
+    arr_read_summary_all = []
+    counter = 0
     for region_start in window_positions:
-        arr = _run_one_window(
+        arr, arr_read_summary, counter = _run_one_window(
             samfile, 
             region_start, 
             reference_name, 
             window_length, 
             minimum_overlap,
-            maximum_reads
+            maximum_reads,
+            counter
         )
         region_end = region_start + window_length - 1
         file_name = f'w-{reference_name}-{region_start}-{region_end}.reads.fas'
@@ -125,10 +147,13 @@ def b2w(window_length: int, incr: int, minimum_overlap: int, maximum_reads: int,
                 f'{region_end}\t{len(arr)}'
             )
             cov_arr.append(line)
+
+            arr_read_summary_all.extend(arr_read_summary)
         
     samfile.close()
 
     _write_to_file(cov_arr, "coverage.txt")
+    _write_to_file(arr_read_summary_all, "reads.fas")
 
 
 def main():

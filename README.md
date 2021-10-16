@@ -166,6 +166,12 @@ in the root of the repository.
 
 All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
 
+## Development/CI with Docker
+The following command will run the CI locally within Docker. 
+```bash
+docker run -w="/usr/app" -it $(docker build -q .) bash
+```
+
 ## Contact
 
 ShoRAH is maintained as part of the [V-pipe virus NGS pipeline](https://cbg-ethz.github.io/V-pipe/)

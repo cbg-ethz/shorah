@@ -3,6 +3,7 @@
 
 # Autotools cruft (NEVER check this into VCS)
 Makefile
+!docs/Makefile
 Makefile.in
 .version
 aclocal.m4
@@ -48,6 +49,7 @@ profile
 
 # other intermediate stuff
 build
+_build
 .eggs
 src/ShoRAH.egg-info/
 

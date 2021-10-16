@@ -13,7 +13,8 @@ def test_cmp_raw():
     match, mismatch, errors = filecmp.cmpfiles(
         os.path.join(p, 'data'),
         p,
-        spec_files
+        spec_files,
+        shallow=False
     ) 
     print(match)
     print(mismatch)
