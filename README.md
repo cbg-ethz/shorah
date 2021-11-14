@@ -169,7 +169,7 @@ All changes to the python code in `src/shorah` should always be formatted confor
 ## Development/CI with Docker
 The following command will run the CI locally within Docker. 
 ```bash
-docker run -w="/usr/app" -it $(docker build -q .) bash
+docker run --rm -w="/usr/app" -it $(docker build -q .) bash
 ```
 
 ## Contact
