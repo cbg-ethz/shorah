@@ -211,6 +211,7 @@ if __name__ == "__main__":
         const=True)
 
     parser.add_argument('alignment_file', metavar='ALG', type=str)
+    parser.add_argument('reference_filename', metavar='REF', type=str)
     parser.add_argument('region', metavar='REG', type=str)
 
 
@@ -227,5 +228,6 @@ if __name__ == "__main__":
         tiling_strategy= eqsts,
         minimum_overlap = args.m[0], 
         maximum_reads = args.x[0], # 1e4 / window_length, TODO why divide?
-        minimum_reads = args.c[0]
+        minimum_reads = args.c[0],
+        reference_filename = args.reference_filename
     )

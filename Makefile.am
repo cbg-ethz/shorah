@@ -42,6 +42,8 @@ dist_pkgpython_PYTHON = \
 	src/shorah/amplicon.py \
 	src/shorah/cli.py \
 	src/shorah/shorah_snv.py \
+	src/shorah/b2w.py \
+	src/shorah/tiling.py \
 	src/shorah/shotgun.py
 pkgpython_PYTHON = .version
 

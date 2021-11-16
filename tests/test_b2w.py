@@ -20,6 +20,7 @@ def _collect_files(base_path):
 # Note: maximum_reads = math.floor(1e5 / window_length) # TODO why divide?
 @pytest.mark.parametrize("spec_dir,alignment_file,reference_file,region,window_length,overlap_factor,win_min_ext,maximum_reads,minimum_reads", [
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  0), 
+    #("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2969-3213",           201, 3, 0.25, 497,  0), # TODO incorrect at left edge
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  20), 
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 3,    0), 
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           204, 3, 0.85, 490,  0),
@@ -38,7 +39,7 @@ def _collect_files(base_path):
     ("data_3",  "REF_aln.bam",      "NC_045512.2.fasta",        "NC_045512.2:16617-19805",  201, 3, 0.85, 497,  0),
     ("data_3",  "REF_aln.bam",      "NC_045512.2.fasta",        "NC_045512.2:20373-22769",  201, 3, 0.85, 497,  0),
     ("data_3",  "REF_aln.bam",      "NC_045512.2.fasta",        "NC_045512.2:23323-24655",  201, 3, 0.85, 497,  0),
-    #("data_3",  "REF_aln.bam",      "NC_045512.2.fasta", "NC_045512.2:25480-29732",  201, 3, 0.85), # TODO incorrect edge
+    #("data_3",  "REF_aln.bam",      "NC_045512.2.fasta",        "NC_045512.2:25480-29732",  201, 3, 0.85, 497,  0), # TODO incorrect edge
 ], indirect=["spec_dir"])
 def test_cmp_raw(spec_dir, alignment_file, reference_file, region, window_length,overlap_factor, win_min_ext, maximum_reads, minimum_reads):
     assert window_length > 0 and window_length%overlap_factor == 0

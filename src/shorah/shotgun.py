@@ -47,8 +47,12 @@ if __name__ == '__main__':
         mod = __import__('shorah')
         sys.modules["shorah"] = mod
         import shorah_snv
+        import b2w
+        import tiling
 else:
     from . import shorah_snv
+    from . import b2w
+    from . import tiling
 
 # Try fetching diri and b2w exe with pkg resources
 try:
@@ -157,27 +161,11 @@ def parse_aligned_reads(reads_file):
 def windows(run_settings):
     """run b2w to make windows from bam
     """
-    import subprocess
     bam, fasta, w, i, m, x, c, reg, ignore_indels = run_settings
     d = ' -d' if ignore_indels else ''
-    #dn = sys.path[0]
-    my_prog = shlex.quote(b2w_exe)  # os.path.join(dn, 'b2w')
-
-    my_arg = ' -w %i -i %i -m %i -x %i -c %i%s %s %s %s' % \
+    my_arg = '-w %i -i %i -m %i -x %i -c %i%s %s %s %s' % \
         (w, i, m, x, c, d, bam, fasta, reg)
-
-    try:
-        logging.debug('Running making windows: b2w%s', my_arg)
-        retcode = subprocess.call(my_prog + my_arg, shell=True)
-        if retcode != 0:
-            logging.error('%s %s', my_prog, my_arg)
-            logging.error('b2w returned %i', retcode)
-        else:
-            logging.debug('Finished making windows')
-            logging.debug('b2w returned %i', retcode)
-    except OSError as ee:
-        logging.error('Execution of b2w failed: %s', ee)
-    return retcode
+    logging.debug(f'To run standalone: python3 b2w.py {my_arg}')
 
 
 def run_dpm(run_setting):
@@ -400,6 +388,7 @@ def main(args):
     """
     from multiprocessing import Pool, cpu_count
     import glob
+    import math
     import time
 
     #import shorah_snv
@@ -438,9 +427,23 @@ def main(args):
     keep_all_files = keep_files
 
     # run b2w
-    retcode = windows((in_bam, in_fasta, win_length, incr, win_min_ext *
+
+    logging.info('starting b2w')
+    try:
+        if ignore_indels == True:
+            raise NotImplementedError('This argument was deprecated.')
+        windows((in_bam, in_fasta, win_length, incr, win_min_ext *
                        win_length, max_c, cov_thrd, region, ignore_indels))
-    if retcode != 0:
+        b2w.build_windows(
+            in_bam, 
+            region, 
+            tiling.EquispacedTilingStrategy(win_length, incr, True),
+            math.floor(win_min_ext * win_length),
+            max_c,
+            cov_thrd,
+            in_fasta
+        )
+    except:
         sys.exit('b2w run not successful')
 
     aligned_reads = parse_aligned_reads('reads.fas')
