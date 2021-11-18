@@ -5,7 +5,7 @@ b2w
    The `b2w.py` differs from the deprecated `b2w.cpp` in the following points:
    
       * Can no longer run with a samtools compatible region
-      * etc
+      * etc # TODO
 
 Window tiling strategies
 ************************
@@ -14,20 +14,18 @@ Equispaced
 ----------
 The window moves along the region in equally spaced steps.  
 
+Based on primer scheme
+-------------------
+Information on the postion of amplicons during the sequencing processes is exploited to place windows
+in a fashion so that partial overlapping is avoided. 
+
 User-defined
 ------------
-The user provides an additional file (i.e. an "insert file") that specifies where the amplification was 
-performed during sequencing.
-
-Adaptive
---------
-Window starting positions are calculated endogenously.
+Users may implement their own tiling strategy by deriving their own class from
+from the `TilingStrategy` abstract class.  
 
 API
-***
-
-.. caution::
-   ``reads.fas`` does not comply with the FASTA format.    
+*** 
 
 .. autofunction:: shorah.b2w.build_windows
 
@@ -35,4 +33,7 @@ API
    :members:
 
 .. autoclass:: shorah.tiling.EquispacedTilingStrategy
+   :members:
+
+.. autoclass:: shorah.tiling.PrimerTilingStrategy
    :members:

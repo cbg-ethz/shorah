@@ -108,6 +108,10 @@ def build_windows(alignment_file: str, region: str,
     #. Multiple FASTA files (one for each window position)
     #. A coverage file that lists all files in (1)
     #. A FASTA file that lists all reads used in (1) #TODO not really FASTA
+    
+        .. caution::
+            ``reads.fas`` does not comply with the FASTA format.  
+
 
     Args:
         alignment_file: Path to the alignment file in CRAM format.

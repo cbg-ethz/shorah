@@ -70,5 +70,16 @@ class EquispacedTilingStrategy(TilingStrategy):
         return [(i, self.window_length) for i in window_positions]
 
 class PrimerTilingStrategy(TilingStrategy):
-    def __init__(self, primer_path: str) -> None:
+    """Implements a tiling strategy that it is based on the primer scheme used
+    for sequencing.   
+
+    Attributes:
+        primer: A data structure containing the coordinates of each primer in 
+            the scheme, relative to the reference genome.
+
+            See more information here:
+            https://artic.readthedocs.io/en/latest/primer-schemes/
+    """
+
+    def __init__(self, primer_bed_path: str) -> None:
         pass
