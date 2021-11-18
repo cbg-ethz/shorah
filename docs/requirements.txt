@@ -1,1 +1,2 @@
 sphinx-autodoc-typehints==1.12.0
+pysam==0.17.0
