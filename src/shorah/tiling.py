@@ -9,15 +9,11 @@ class TilingStrategy(ABC):
     """
 
     @abstractmethod
-    def get_window_tilings(self, start: int, end: int) -> List[Tuple[int, int]]:
+    def get_window_tilings(self) -> List[Tuple[int, int]]:
         """
-        Args:
-            start: Start of region in reference genome (1 based like samtools).  
-            end: End of region (inclusive).
-
         Returns:
             A list of tuples that indicate the starting point and length of
-            each window. It assumed that this list is **sorted** by starting 
+            each window. It is assumed that this list is **sorted** by starting 
             points ascending. First integer is the starting position, second the 
             window length. For example (with fixed window length 201)::
 
@@ -25,6 +21,19 @@ class TilingStrategy(ABC):
 
         """
         pass
+
+    @abstractmethod
+    def get_reference_name() -> str:
+        """
+        Returns:
+            Name of the reference genome.
+        """
+        pass
+
+    @abstractmethod
+    def get_region_end() -> str:
+        pass
+
 
 class EquispacedTilingStrategy(TilingStrategy):
     """Implements a tiling strategy that puts windows of fixed length at equally
@@ -43,7 +52,7 @@ class EquispacedTilingStrategy(TilingStrategy):
             the old implementation. 
     """
 
-    def __init__(self, window_length=201, incr=201//3, 
+    def __init__(self, region, window_length=201, incr=201//3, 
         exact_conformance_overlap_at_boundary=False) -> None:
 
         if window_length%incr != 0 or incr <= 0 or window_length <= 0:
@@ -53,13 +62,34 @@ class EquispacedTilingStrategy(TilingStrategy):
         self.incr = incr
         self.exact_conformance_overlap_at_boundary = exact_conformance_overlap_at_boundary
 
-    def get_window_tilings(self, start: int, end: int) -> List[Tuple[int, int]]:
+        reference_name, start, end = self.__parse_region(region)
+        self.reference_name = reference_name
+        self.start = start
+        self.end = end
+
+    def __parse_region(self, region: str) -> Tuple[str, int, int]:
+        """
+        Args:
+            region: A genomic sequence compatibile with samtools. 
+                Example: "chr1:10000-20000"
+        Returns:
+            start: Start of region in reference genome (1 based like samtools).  
+            end: End of region (inclusive).
+        """
+        tmp = region.split(":")
+        reference_name = tmp[0]
+        tmp = tmp[1].split("-")
+        start = int(tmp[0]) 
+        end = int(tmp[1]) 
+        return reference_name, start, end
+
+    def get_window_tilings(self) -> List[Tuple[int, int]]:
         """Implements :meth:`~shorah.tiling.TilingStrategy.get_window_tilings`.
         """
         
         window_positions = list(range(
-            start - self.incr * 3 if self.exact_conformance_overlap_at_boundary else start - self.window_length,
-            end + 1 - (self.window_length//self.incr - 3) * self.incr if self.exact_conformance_overlap_at_boundary else end + 1, 
+            self.start - self.incr * 3 if self.exact_conformance_overlap_at_boundary else self.start - self.window_length,
+            self.end + 1 - (self.window_length//self.incr - 3) * self.incr if self.exact_conformance_overlap_at_boundary else self.end + 1, 
             self.incr 
         ))
 
@@ -69,17 +99,58 @@ class EquispacedTilingStrategy(TilingStrategy):
         
         return [(i, self.window_length) for i in window_positions]
 
+    def get_reference_name(self):
+        return self.reference_name
+
+    def get_region_end(self):
+        return self.end
+
+
 class PrimerTilingStrategy(TilingStrategy):
     """Implements a tiling strategy that it is based on the primer scheme used
     for sequencing.   
 
     Attributes:
-        primer: A data structure containing the coordinates of each primer in 
-            the scheme, relative to the reference genome.
+        amplicons: A data structure containing the coordinates of each primer in 
+            the scheme relative to the reference genome.
 
             See more information here:
             https://artic.readthedocs.io/en/latest/primer-schemes/
+
+            The datastructure is based upon the `foobar.insert.bed` file 
+            described in the documentation. See examples here:
+            https://github.com/artic-network/primer-schemes/tree/master/nCoV-2019/V3
+
+
+            https://primalscheme.com
+            https://github.com/aresti/primalscheme
     """
 
-    def __init__(self, primer_bed_path: str) -> None:
-        pass
+    def __init__(self, insert_bed_path: str) -> None:
+        self.amplicons: List[Tuple[int, int]] = []
+        with open(insert_bed_path) as f:
+            last_ref_seq = None
+            for line in f:
+                L = line.strip().split()
+                # 0-based, exclusive
+                self.amplicons.append((int(L[1]), int(L[2])))
+
+                if last_ref_seq != L[0] and last_ref_seq != None:
+                    raise InputError("Insert files with more than on reference \
+                        sequence are not supported.")
+                else:
+                    last_ref_seq = L[0]
+
+            self.reference_name = last_ref_seq 
+
+    def get_window_tilings(self) -> List[Tuple[int, int]]:
+        rv = []
+        for amplicon in self.amplicons:
+            rv.append( (amplicon[0], amplicon[1] - amplicon[0]) )
+        return rv
+    
+    def get_reference_name(self) -> str:
+        return self.reference_name
+        
+    def get_region_end(self):
+        return self.amplicons[-1][1]

@@ -436,8 +436,7 @@ def main(args):
                        win_length, max_c, cov_thrd, region, ignore_indels))
         b2w.build_windows(
             in_bam, 
-            region, 
-            tiling.EquispacedTilingStrategy(win_length, incr, True),
+            tiling.EquispacedTilingStrategy(region, win_length, incr, True),
             math.floor(win_min_ext * win_length),
             max_c,
             cov_thrd,

@@ -2,8 +2,8 @@ from shorah import tiling
 import pytest
 
 def test_equispaced():
-    strategy = tiling.EquispacedTilingStrategy(201, 67)
-    actual = strategy.get_window_tilings(201, 268)
+    strategy = tiling.EquispacedTilingStrategy("HBX2:201-268", 201, 67)
+    actual = strategy.get_window_tilings()
 
     expected = [(0, 201), (67, 201), (134, 201), (201, 201), (268, 201)]
 
@@ -11,9 +11,9 @@ def test_equispaced():
     assert all([a == b for a, b in zip(actual, expected)])
 
 def test_equispaced_with_HBX2():
-    strategy = tiling.EquispacedTilingStrategy(201, 67)
     end = 3713
-    actual = strategy.get_window_tilings(2469, end)
+    strategy = tiling.EquispacedTilingStrategy(f"HBX2:2469-{end}", 201, 67)
+    actual = strategy.get_window_tilings()
     print(actual)
 
     assert actual[0][0] == 2268
@@ -23,4 +23,12 @@ def test_equispaced_with_HBX2():
 
 def test_equispaced_wrong_incr():
     with pytest.raises(ValueError):
-        tiling.EquispacedTilingStrategy(201, 68)
+        tiling.EquispacedTilingStrategy("HBX:100-200", 201, 68)
+
+
+def test_primer_init():
+    strategy = tiling.PrimerTilingStrategy("./data_1/scheme.insert.bed")
+    first = strategy.get_window_tilings()[0]
+
+    assert first[0] == 34
+    assert first[1] == 373

@@ -54,11 +54,10 @@ def test_cmp_raw(spec_dir, alignment_file, reference_file, region, window_length
     )
     assert original.returncode == 0
 
-    strategy = tiling.EquispacedTilingStrategy(window_length, incr, True)
+    strategy = tiling.EquispacedTilingStrategy(region, window_length, incr, True)
 
     b2w.build_windows(
         alignment_file = os.path.join(p, spec_dir, alignment_file),
-        region = region,
         tiling_strategy = strategy,
         minimum_overlap = minimum_overlap, 
         maximum_reads = maximum_reads,

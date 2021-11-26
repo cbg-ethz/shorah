@@ -2,14 +2,6 @@ import pysam
 from typing import Optional
 from shorah.tiling import TilingStrategy, EquispacedTilingStrategy
 
-def _parse_region(region):
-    tmp = region.split(":")
-    reference_name = tmp[0]
-    tmp = tmp[1].split("-")
-    start = int(tmp[0]) 
-    end = int(tmp[1]) 
-    return reference_name, start, end # indexed 1, like samtools
-
 def _write_to_file(lines, file_name):
     with open(file_name, "w") as f:
         f.writelines("%s\n" % l for l in lines)
@@ -24,7 +16,7 @@ def _calc_location_maximum_reads(samfile, reference_name, maximum_reads):
 
     return budget
 
-def _run_one_window(samfile, region_start, reference_name, window_length, 
+def _run_one_window(samfile, window_start, reference_name, window_length, 
         minimum_overlap, permitted_reads_per_location, counter):
 
     arr = []
@@ -32,8 +24,8 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
 
     iter = samfile.fetch(
         reference_name, 
-        region_start, 
-        region_start + window_length # arg exclusive as per pysam convention
+        window_start, 
+        window_start + window_length # arg exclusive as per pysam convention
     ) 
 
     for idx, read in enumerate(iter):
@@ -50,7 +42,7 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
             )
 
         # 0- vs 1-based correction
-        start_cut_out = region_start - first_aligned_pos - 1
+        start_cut_out = window_start - first_aligned_pos - 1
 
         end_cut_out = start_cut_out + window_length 
 
@@ -67,14 +59,14 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
         
         full_read = ("".join(full_read))
         
-        if (first_aligned_pos < region_start + window_length - minimum_overlap
-                and last_aligned_post >= region_start + minimum_overlap - 3 # TODO justify 3
+        if (first_aligned_pos < window_start + window_length - minimum_overlap
+                and last_aligned_post >= window_start + minimum_overlap - 3 # TODO justify 3
                 and len(full_read) >= minimum_overlap): 
 
             cut_out_read = full_read[s]
 
             # TODO justify 2
-            k = (region_start + window_length) - last_aligned_post - 2 
+            k = (window_start + window_length) - last_aligned_post - 2 
             if k > 0:
                 cut_out_read = cut_out_read + k * "N" 
             if start_cut_out < 0:
@@ -93,14 +85,14 @@ def _run_one_window(samfile, region_start, reference_name, window_length,
                 (read.query_name, read.reference_start + 1, read.reference_end, full_read)
             )
 
-    counter = region_start + window_length
+    counter = window_start + window_length
 
     return arr, arr_read_summary, counter
 
 
-def build_windows(alignment_file: str, region: str, 
-    tiling_strategy: TilingStrategy, minimum_overlap: int, maximum_reads: int, 
-    minimum_reads: int, reference_filename: Optional[str] = None) -> None:
+def build_windows(alignment_file: str, tiling_strategy: TilingStrategy, 
+    minimum_overlap: int, maximum_reads: int, minimum_reads: int, 
+    reference_filename: Optional[str] = None) -> None:
     """Summarizes reads aligned to reference into windows. 
 
     Three products are created:
@@ -115,8 +107,6 @@ def build_windows(alignment_file: str, region: str,
 
     Args:
         alignment_file: Path to the alignment file in CRAM format.
-        region: A genomic sequence compatibile with samtools. 
-            Example: "chr1:10000-20000"
         tiling_strategy: A strategy on how the genome is partitioned.
         minimum_overlap: Minimum number of bases to overlap between reference
             and read to be considered in a window. The rest (i.e. 
@@ -129,7 +119,6 @@ def build_windows(alignment_file: str, region: str,
         reference_filename: Path to a FASTA file of the reference sequence.
             Only necessary if this information is not included in the CRAM file.
     """
-    reference_name, start, end = _parse_region(region)
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(
@@ -142,8 +131,9 @@ def build_windows(alignment_file: str, region: str,
     cov_arr = []
     reads = open("reads.fas", "w")
     counter = 0
-    tiling = tiling_strategy.get_window_tilings(start, end)
-    print(tiling)
+    reference_name = tiling_strategy.get_reference_name()
+    tiling = tiling_strategy.get_window_tilings()
+    region_end = tiling_strategy.get_region_end()
 
     permitted_reads_per_location = _calc_location_maximum_reads(
         samfile, 
@@ -151,21 +141,21 @@ def build_windows(alignment_file: str, region: str,
         maximum_reads
     )
 
-    for idx, (region_start, window_length) in enumerate(tiling):
+    for idx, (window_start, window_length) in enumerate(tiling):
         arr, arr_read_summary, counter = _run_one_window(
             samfile, 
-            region_start, 
+            window_start, 
             reference_name, 
             window_length, 
             minimum_overlap,
             dict(permitted_reads_per_location), # copys dict ("pass by value")
             counter
         )
-        region_end = region_start + window_length - 1
-        file_name = f'w-{reference_name}-{region_start}-{region_end}.reads.fas'
+        window_end = window_start + window_length - 1
+        file_name = f'w-{reference_name}-{window_start}-{window_end}.reads.fas'
 
         # TODO solution for backward conformance
-        end_extended_by_a_window = end + (tiling[1][0]-tiling[0][0])*3
+        end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
         for read in arr_read_summary:
             if idx == len(tiling) - 1 and read[1] > end_extended_by_a_window:
                 continue
@@ -182,8 +172,8 @@ def build_windows(alignment_file: str, region: str,
 
             if len(arr) > minimum_reads: 
                 line = (
-                    f'{file_name}\t{reference_name}\t{region_start}\t'
-                    f'{region_end}\t{len(arr)}'
+                    f'{file_name}\t{reference_name}\t{window_start}\t'
+                    f'{window_end}\t{len(arr)}'
                 )
                 cov_arr.append(line)
         
@@ -196,8 +186,8 @@ def build_windows(alignment_file: str, region: str,
 if __name__ == "__main__":
     import argparse
 
-    # Naming as in original C version
-    parser = argparse.ArgumentParser(description='b2w.')
+    # Naming as in original C++ version
+    parser = argparse.ArgumentParser(description='b2w')
     parser.add_argument('-w', '--window_length', nargs=1, type=int, 
         help='window length', required=True)
     parser.add_argument('-i', '--incr', nargs=1, type=int, help='increment', 
@@ -215,7 +205,7 @@ if __name__ == "__main__":
         const=True)
 
     parser.add_argument('alignment_file', metavar='ALG', type=str)
-    parser.add_argument('reference_filename', metavar='REF', type=str)
+    parser.add_argument('reference_filename', metavar='REF', nargs='?', default=None, type=str)
     parser.add_argument('region', metavar='REG', type=str)
 
 
@@ -224,12 +214,11 @@ if __name__ == "__main__":
     if args.d != None:
         raise NotImplementedError('This argument was deprecated.')
 
-    eqsts = EquispacedTilingStrategy(args.window_length[0], args.incr[0])
+    eqsts = EquispacedTilingStrategy(args.region, args.window_length[0], args.incr[0])
 
     build_windows(
         alignment_file = args.alignment_file,
-        region = args.region,
-        tiling_strategy= eqsts,
+        tiling_strategy = eqsts,
         minimum_overlap = args.m[0], 
         maximum_reads = args.x[0], # 1e4 / window_length, TODO why divide?
         minimum_reads = args.c[0],
