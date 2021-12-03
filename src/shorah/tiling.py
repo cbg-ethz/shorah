@@ -39,11 +39,14 @@ class EquispacedTilingStrategy(TilingStrategy):
     """Implements a tiling strategy that puts windows of fixed length at equally
     spaced distances. 
 
-    Default instantiation with `EquispacedTilingStrategy()` will result in   
+    Default instantiation with `EquispacedTilingStrategy(region)` will result in   
     a window of length 201. In that case, each window will have an overlap of 
     2/3 with the previous window.  
 
     Attributes:
+        reference_name: Name of the reference genome.
+        start: Start of region in reference genome (1 based like samtools).  
+        end: End of region (inclusive).
         window_length: Constant number of bases considered at once per loop.
         incr: Increment between each window.
         exact_conformance_overlap_at_boundary: The old implementation in C++
