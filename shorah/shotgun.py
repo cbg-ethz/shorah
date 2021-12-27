@@ -37,8 +37,9 @@ import shlex
 import logging
 import re
 import shutil
-
 import numpy as np
+
+import libshorah
 
 dn_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if __name__ == '__main__':
@@ -53,30 +54,6 @@ else:
     from . import shorah_snv
     from . import b2w
     from . import tiling
-
-# Try fetching diri and b2w exe with pkg resources
-try:
-    from pkg_resources import resource_filename
-except ModuleNotFoundError:
-    diri_exe = None
-    b2w_exe = None
-else:
-    diri_exe = resource_filename(__name__, 'bin/diri_sampler')
-    b2w_exe = resource_filename(__name__, 'bin/b2w')
-# Try fetching diri and b2w exe with bash 'which'
-if not (diri_exe and b2w_exe) or not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
-    diri_exe = shutil.which('diri_sampler')
-    b2w_exe = shutil.which('b2w')
-    if not (diri_exe and b2w_exe):
-        # Try fetching diri and b2w exe based on directory structure
-        all_dirs = os.path.abspath(__file__).split(os.sep)
-        base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
-        diri_exe = os.path.join(base_dir, 'bin', 'diri_sampler')
-        b2w_exe = os.path.join(base_dir, 'bin', 'b2w')
-        if not (os.path.exists(diri_exe) and os.path.exists(b2w_exe)):
-            logging.error(
-                'Executables b2w and diri_sampler not found, compile first.')
-            sys.exit('Executables b2w and diri_sampler not found, compile first.')
 
 #################################################
 # a common user should not edit above this line #
@@ -158,7 +135,7 @@ def parse_aligned_reads(reads_file):
     return out_reads
 
 
-def windows(run_settings):
+def b2w_logging(run_settings):
     """run b2w to make windows from bam
     """
     bam, fasta, w, i, m, x, c, reg, ignore_indels = run_settings
@@ -192,27 +169,37 @@ def run_dpm(run_setting):
         subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
     # dn = sys.path[0]
-    my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
-    my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
-        (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
-
+    #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
+    #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
+    #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
+    
+    # TODO integration
+    logging.debug('Exec dpm_sampler')
     try:
         os.remove('./corrected.tmp')
         # os.remove('./assignment.tmp')
     except OSError:
         pass
-    logging.debug(my_prog + my_arg)
+    
+
     # runs the gibbs sampler for the dirichlet process mixture
     try:
-        retcode = subprocess.call(my_prog + my_arg, shell=True)
-        if retcode < 0:
-            logging.error('%s %s', my_prog, my_arg)
-            logging.error('Child %s terminated by SIG %d', my_prog, -retcode)
-        else:
-            logging.debug('run %s finished', my_arg)
-            logging.debug('Child %s returned %i', my_prog, retcode)
-    except OSError as ee:
-        logging.error('Execution of %s failed: %s', my_prog, ee)
+        logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
+        retcode = libshorah.exec_dpm_sampler(
+            pipes.quote(filein), 
+            j, 
+            a, 
+            int(j * hist_fraction), 
+            K_cluster_start=init_K, 
+            R_seed=seed
+        )
+        if retcode == 0:
+            logging.debug(f'{filein} - Run finished successfully.')
+        else: 
+            logging.error(f'{filein} - Run failed with return code %i.', retcode)
+    except:
+        logging.error(f'{filein} - Run failed.')
+    
 
     return
 
@@ -355,7 +342,7 @@ def merge_corrected_reads(aligned_read):
         # vcr: extract sequence of the aligned reads in all windows
         kcr = np.array(list(corrected_read.keys()), dtype=int)
         vcr = np.array(list(corrected_read.values()))
-        vcr_len = [v.size for v in vcr]
+        vcr_len = [len(v) for v in vcr] # FIXED .size
 
         for rpos in range(rlen):
             tp = rstart + rpos - kcr
@@ -432,7 +419,7 @@ def main(args):
     try:
         if ignore_indels == True:
             raise NotImplementedError('This argument was deprecated.')
-        windows((in_bam, in_fasta, win_length, incr, win_min_ext *
+        b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext *
                        win_length, max_c, cov_thrd, region, ignore_indels))
         b2w.build_windows(
             in_bam, 
@@ -470,7 +457,7 @@ def main(args):
     runlist = win_to_run(alpha, seed)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
-    max_proc = max(cpu_count() - 1, 1)
+    max_proc = max(cpu_count() - 1, 1) 
     if maxthreads:
         max_proc = min(max_proc, maxthreads)
     logging.info('CPU(s) count %u, max thread limit %u, will run %u parallel dpm_sampler', cpu_count(), maxthreads, max_proc)

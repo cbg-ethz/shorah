@@ -32,12 +32,13 @@ adapted from samtools/calDep.c
 #include <set>
 #include <algorithm>
 #include <exception>
-
+#include <cassert>
 #include <cmath>
 #include <cfenv>
-#include <boost/math/special_functions/gamma.hpp>
 #include <htslib/sam.h>
 #include <htslib/faidx.h>
+
+#include "fil.hpp"
 
 #define UNUSED(expr) (void)(expr)
 
@@ -218,53 +219,23 @@ StrandCounts _count_matching_substitutions(htsFile* inFile, bam_hdr_t* header,
     return counts;
 }
 
-// main
-int main(int argc, char* argv[])
-{
-    paramstruct_t params = { 10000, 0.01, // cli.py's defaults
-            false }; // mimics b2w's behaviour (historically fil used to do the other way around, leading to contradictions in results).
-    int c = 0;
+
+int fil(std::string in_bam, float sigma, int max_depth, bool amplicon_mode, bool drop_snv) {
+    paramstruct_t params = { 
+        max_depth,
+        sigma,
+        drop_snv
+    };
+    int amplicon = amplicon_mode == true ? 1 : 0;
+
     hts_idx_t* idx = NULL;
-    int amplicon = 0;
     htsFile* inFile = NULL;
 
-    char help_string[] =
-        "\nUsage: fil [options] -b <in.bam>\n\nOptions:\n"
-        "\t-v: sigma (FLOAT) [default: 0.01]\n"
-        "\t-x: maxdepth (INT) [default: 10000]\n"
-        "\t-a: amplicon mode [default: shotgun]\n"
-        "\t-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n"
-        "\t-h: show this help\n\n";
+    inFile = hts_open(in_bam.c_str(), "r");
+    idx = sam_index_load(inFile, in_bam.c_str());
 
-    while ((c = getopt(argc, argv, "b:v:x:adh")) != EOF) {
-        switch (c) {
-            case 'b':
-                inFile = hts_open(optarg, "r");
-                idx = sam_index_load(inFile, optarg);
-                 // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI
-                break;
-            case 'v':
-                params.sig = atof(optarg);
-                break;
-            case 'x':
-                params.maxdepth = atoi(optarg);
-                break;
-            case 'a':
-                amplicon = 1;
-                break;
-            case 'd':
-                params.skip_indel = true; // this will bring the old historical behaviour of fil
-                break;
-            case 'h':
-                std::fprintf(stdout, "%s", help_string);
-                exit(EXIT_SUCCESS);
-            default:
-                std::fprintf(stderr, "%s", help_string);
-                exit(EXIT_FAILURE);
-        }
-    }
     if (inFile == NULL) {
-        std::cerr << "Failed to open BAM file  " << argv[1] << std::endl;
+        std::cerr << "Failed to open BAM file  " << in_bam.c_str() << std::endl;
         return 1;
     }
     bam_hdr_t* header = sam_hdr_read(inFile);
@@ -326,7 +297,6 @@ int main(int argc, char* argv[])
                 // construct pileup for coverage (pos + 1, pos + 1 + del_length)
                 st_freq_all = _coverage(
                     inFile, header, idx, chr, pos + 1, deletion_length, params);
-                    assert(pos_begin > 1);
                 st_freq_Mut = _count_matching_deletions(
                     inFile, header, idx, chr, pos, deletion_length, params);
             } else {
@@ -374,6 +344,8 @@ int main(int argc, char* argv[])
 
 
                     /*!
+                        TODO
+
                         @abstract P(X[ib] == x) with X ~ BetaBinom(n[ib], mean, sigma) -- formula 4 from doi:10.1186/1471-2164-14-501
 
                         NOTE as of Boost 1.73, there is still no beta-binomial distribution yet
@@ -384,15 +356,15 @@ int main(int argc, char* argv[])
                       */
                     auto pdfbetabinom = [&](const double x, const double n, const double mean, const double sigma) -> double {
                         return std::exp(
-                            boost::math::lgamma(n + 1.)
-                            - boost::math::lgamma(x + 1.) - boost::math::lgamma(n - x + 1.)
-
-                            + boost::math::lgamma(1. / sigma)
-                            + boost::math::lgamma(x + (mean * (1. / sigma)))
-                            + boost::math::lgamma(n + ((1. - mean) / sigma) - x)
-                            - boost::math::lgamma(n + (1. / sigma))
-                            - boost::math::lgamma(mean * (1. / sigma))
-                            - boost::math::lgamma((1. - mean) / sigma)
+                            std::lgamma(n + 1.)
+                            - std::lgamma(x + 1.) 
+                            - std::lgamma(n - x + 1.)
+                            + std::lgamma(1. / sigma)
+                            + std::lgamma(x + (mean * (1. / sigma)))
+                            + std::lgamma(n + ((1. - mean) / sigma) - x)
+                            - std::lgamma(n + (1. / sigma))
+                            - std::lgamma(mean * (1. / sigma))
+                            - std::lgamma((1. - mean) / sigma)
                         );
                     };
                     std::feclearexcept(FE_ALL_EXCEPT);
@@ -435,5 +407,5 @@ int main(int argc, char* argv[])
     bam_hdr_destroy(header);
     hts_idx_destroy(idx);
     hts_close(inFile);
-    exit(EXIT_SUCCESS);
+    return 0;
 }

@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "ShoRAH"
+version = "0.1.0"
+description = "SHOrt Reads Assembly into Haplotypes"
+license = "GPL-3.0-only"
+authors = ["Benjamin Langer <blanger@student.ethz.ch>"]
+build = "build.py"
+packages = [
+    { include = "shorah" }
+]
+
+[tool.poetry.scripts]
+shorah = 'shorah.cli:main'
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+biopython = "^1.79"
+numpy = "^1.21.4"
+pysam = "^0.18.0"
+pybind11 = "^2.8.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "pybind11~=2.8.1"]
+build-backend = "poetry.core.masonry.api"

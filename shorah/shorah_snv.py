@@ -46,24 +46,7 @@ from dataclasses import dataclass
 
 import logging
 
-# Try fetching fil exe with pkg resources
-try:
-    from pkg_resources import resource_filename
-except ModuleNotFoundError:
-    fil_exe = None
-else:
-    fil_exe = resource_filename(__name__, 'bin/fil')
-# Try fetching fil exe with bash 'which'
-if not fil_exe or not os.path.exists(fil_exe):
-    fil_exe = shutil.which('fil')
-    if not fil_exe:
-        # Try fetching fil exe based on directory structure
-        all_dirs = os.path.abspath(__file__).split(os.sep)
-        base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
-        fil_exe = os.path.join(base_dir, 'bin', 'fil')
-        if not os.path.exists(fil_exe):
-            logging.error('Executable fil not found, compile first.')
-            sys.exit('Executable fil not found, compile first.')
+import libshorah
 
 SNP_id = namedtuple('SNP_id', ['pos', 'var'])
 
@@ -387,16 +370,19 @@ def printRaw(snpD2, incr):
 
 
 def sb_filter(in_bam, sigma, amplimode="", drop_indels="",
-              max_coverage=100000):
+              max_coverage=100000): # TODO max_coverage is 10 times higher than in Cpp
     """run strand bias filter calling the external program 'fil'
     """
-    import subprocess
-    # dn = sys.path[0]
-    my_prog = shlex.quote(fil_exe)  # os.path.join(dn, 'fil')
-    my_arg = ' -b ' + in_bam + ' -v ' + str(sigma) + amplimode + drop_indels \
-             + ' -x ' + str(max_coverage)
-    logging.debug('running %s%s', my_prog, my_arg)
-    retcode = subprocess.call(my_prog + my_arg, shell=True)
+    
+    logging.debug('Running fil')
+    logging.debug(f"{in_bam} {sigma} {max_coverage}")
+    retcode = libshorah.fil(
+        in_bam, 
+        sigma, 
+        max_coverage,
+        False if amplimode == "" else True, 
+        False if drop_indels == "" else True
+    )
     return retcode
 
 

@@ -22,7 +22,6 @@ missing
 py-compile
 ar-lib
 test-driver
-/shorah
 
 # generated tarball
 shorah*.tar.bz2

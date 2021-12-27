@@ -41,17 +41,18 @@
 #include <new>
 #include <sstream>
 #include <string>
+#include <cassert> // TODO
 
-#ifdef HAVE_POPCNT
-#include <nmmintrin.h>
+#ifdef HAVE_POPCNT // TODO
+#include <nmmintrin.h> 
 #endif
 
 #include "data_structures.hpp"
 #include "dpm_sampler.hpp"
+#include "exec_dpm_sampler.hpp"
 
 #include <random>
 #include <boost/random/beta_distribution.hpp>
-#include <boost/random/normal_distribution.hpp>
 
 namespace {
     std::mt19937 rg;
@@ -100,10 +101,11 @@ namespace {
 }
 
 
-
 #define PROPHISTSIZE 100
-int main(int argc, char** argv)
+// character before underscore is the old CLI argument
+int exec_dpm_sampler(const std::string i_filein, const int j_iterations, const double a_alpha, const int t_history, const int R_seed, const double k_cluster_avg_reads, const int K_cluster_start)
 {
+    reset_globals();
 
     unsigned int i, j, k, ll, K1 = 0, iter2, tot_untouch, new_proposed = 0;
     int dk1, hapbases;
@@ -120,9 +122,29 @@ int main(int argc, char** argv)
 
     double_threshold_min = std::log(DBL_MIN);
     double_threshold_max = std::log(DBL_MAX);
-    parsecommandline(argc, argv);
 
-    std::string instr = filein;
+
+    //parsecommandline(argc, argv);
+    iter = j_iterations;
+    alpha = a_alpha;
+    HISTORY = t_history;
+
+    // optional
+    randseed = R_seed;
+
+    // optional params, mutually exclusive
+    avgNK = k_cluster_avg_reads;            
+    K = K_cluster_start;
+    if(avgNK != 0.0 && K != 0) {
+        throw std::invalid_argument("can't use -k and -K at same time.");
+    }
+    
+    
+    if (HISTORY > iter) HISTORY = iter;
+    if (randseed == 0) randseed = time(NULL);
+    if ((K == 0) && (avgNK <= 0.0)) avgNK = default_avgNK;
+
+    std::string instr = i_filein;
 
     /// rename sampling file and debug file
     // TODO once bioconda moves to gcc 4.9+ (with c++11 regex library), we could convert the whole rename section to regex, to keep coherent accross the whole project
@@ -148,18 +170,21 @@ int main(int argc, char** argv)
     rg.seed(randseed);
 
     res_dist = (int*)calloc(2, sizeof(int));
-    if (res_dist == NULL) exit(EXIT_FAILURE);
+    if (res_dist == NULL) throw std::bad_alloc();
     res = (ssret*)malloc(sizeof(ssret));
-    if (res == NULL) exit(EXIT_FAILURE);
+    if (res == NULL) throw std::bad_alloc();
 
     cbase = (int*)malloc(B * sizeof(int));  // count base
-    if (cbase == NULL) exit(EXIT_FAILURE);
+    if (cbase == NULL) throw std::bad_alloc();
     pbase = (double*)malloc(B * sizeof(double));
-    if (pbase == NULL) exit(EXIT_FAILURE);
+    if (pbase == NULL) throw std::bad_alloc();
     log_pbase = (double*)malloc(B * sizeof(double));
-    if (log_pbase == NULL) exit(EXIT_FAILURE);
+    if (log_pbase == NULL) throw std::bad_alloc();
 
-    read_data(filein, stat_file);
+    bool rv = read_data(i_filein.c_str(), stat_file);
+    if (rv) {
+        return 0;
+    }
     ftable = (int**)calloc(J, sizeof(int*));
     ftable_sum = new int[J];
 
@@ -195,7 +220,7 @@ int main(int argc, char** argv)
     for (i = 0; i < n; i++) {
         readtable[i] = (crnode*)calloc(1, sizeof(crnode));
         readtable[i]->creads = new int[J / 10 + 1];
-        readtable[i]->mindices = new int;  // instantiated, although not used
+        // TODO readtable[i]->mindices = new int;  // instantiated, although not used
     }
 
     for (i = 0; i < n; i++) {
@@ -347,8 +372,9 @@ int main(int argc, char** argv)
     int* temp;
     temp = new int[J / 10 + 1];
 
-    boost::random::normal_distribution<double> gaussian(0, g_noise);
+    std::normal_distribution<double> gaussian(0, g_noise);
     for (k = 0; k <= iter; k++) {
+
 #ifndef NDEBUG
         printf("-----------------------------------------------\n");
         printf("-----------> sampling the %ith time <-----------\n", k);
@@ -426,7 +452,12 @@ int main(int argc, char** argv)
                 }
             }
 
-            if (record) record_conf(tn, HISTORY + k - iter - 1);
+            if (record == 1) {
+            //if (k >= iter - HISTORY + 1) { FIXED
+                assert(k >= iter - HISTORY + 1);
+                assert(HISTORY + k - iter - 1 < HISTORY);
+                record_conf(tn, HISTORY + k - iter - 1);
+            }
 
             tn = tn->next;
         }
@@ -504,7 +535,7 @@ int main(int argc, char** argv)
   FILE* corr;
   if( (corr = fopen("corrected.tmp", "w")) == NULL ){
     printf("Impossible to write file corrected.tmp\n");
-    exit(EXIT_FAILURE);
+    throw;
   }
 
   for(i=0;i<n;i++) {
@@ -568,7 +599,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void read_data(char* filename, std::ofstream& out_file)
+bool read_data(const char* filename, std::ofstream& out_file)
 {
     FILE* data;
     char c;
@@ -576,7 +607,7 @@ void read_data(char* filename, std::ofstream& out_file)
     out_file << "# reading data\n";
     if ((data = fopen(filename, "r")) == NULL) {
         out_file << "Impossible to open file " << filename << "\n";
-        exit(EXIT_FAILURE);
+        throw;
     }
 
     for (;;)  // first sweep to count
@@ -599,7 +630,7 @@ void read_data(char* filename, std::ofstream& out_file)
 
     if (n == 0) {
         std::cout << "Error: No data found!\n";
-        exit(EXIT_FAILURE);
+        throw;
     }
 
     J = totsites / n;  // assuming fixed length reads
@@ -608,16 +639,16 @@ void read_data(char* filename, std::ofstream& out_file)
 
     if (n == 1) {
         out_file << "Nothing to do, have only one read... (n == 1)" << std::endl;
-        exit(0);
+        return true;
     }
 
     out_file << "# totbases = " << totbases << "\ttotsites = " << totsites << "\n";
 
     /// allocate memory for r[i][j], id[i], read2hap[i]
     r = (short unsigned int**)calloc(n, sizeof(unsigned short int*));
-    if (r == NULL) exit(EXIT_FAILURE);
+    if (r == NULL) throw std::bad_alloc();
     id = (char**)calloc(n, sizeof(char*));
-    if (id == NULL) exit(EXIT_FAILURE);
+    if (id == NULL) throw std::bad_alloc();
 
     /// This defines an array of maps
     /// to store the haplotypes every read has been assigned to
@@ -632,7 +663,7 @@ void read_data(char* filename, std::ofstream& out_file)
 
     if ((data = fopen(filename, "r")) == NULL) {
         printf("Impossible to REopen file %s\n", filename);
-        exit(EXIT_FAILURE);
+        throw;
     }
 
     i = -1;
@@ -661,6 +692,7 @@ void read_data(char* filename, std::ofstream& out_file)
     }
 
     fclose(data);
+    return false;
 }
 
 void read_conversion(crnode* b, unsigned short int* a, int seq_length)
@@ -994,7 +1026,7 @@ double sample_ref()
                 err_file << i2dna_code[h[i]];
             }
             err_file << "\n";
-            exit(EXIT_FAILURE);
+            throw;
         }
 
         if (K1 > 0) {
@@ -1091,7 +1123,7 @@ void sample_hap(cnode* cn)
 
         if (b1 == 0.0) {
             printf("# There is something wrong with THETA ( == 0.0)\n");
-            exit(EXIT_FAILURE);
+            throw;
         }
 
         if (b1 != 1.0) {
@@ -1185,7 +1217,7 @@ void check_size(const cnode* cst, unsigned int n)
         print_stats(err_file, mxt, J);
         printf("!!!! STOP !!!!\n");
         printf("size is now %i\n", this_n);
-        exit(EXIT_FAILURE);
+        throw;
     }
 
     return;
@@ -1221,7 +1253,7 @@ unsigned int d2i(char c)
     if (c == 'N' || c == 'n')  // this stands for missing data
         return B;
     printf("%c not a DNA base", c);
-    exit(EXIT_FAILURE);
+    throw;
     return 0;
 }
 
@@ -1405,7 +1437,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
     if (cn == NULL) {
         printf("sampling classes, no classes found\n");
-        exit(EXIT_FAILURE);
+        throw std::bad_alloc();
     }
 
     st = 0;
@@ -1415,11 +1447,11 @@ ssret* sample_class(unsigned int i, unsigned int step)
 
     if (theta == 0.0) { // the error rate should not be 0
         std::cerr << "# There is something wrong wih THETA! ( == 0.0 )" << std::endl;
-        exit(EXIT_FAILURE);
+        throw;
     }
     if (gam == 0.0) { // the mutation rate should not be 0
         std::cerr << "# There is something wrong with GAMMA! ( == 0.0 )" << std::endl;
-        exit(EXIT_FAILURE);
+        throw;
     }
 
     while (cn != NULL) {
@@ -1442,7 +1474,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
                 // This component should have been removed previously, because only
                 // consists of read i
                 std::cerr << "# Size of component " << cn->ci << " is zero" << std::endl;
-                exit(EXIT_FAILURE);
+                throw;
             }
             cl_ptr[st] = cn;
 
@@ -1457,7 +1489,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
                 // consists of read i
                 std::cerr << " # Weighted size of component " << cn->ci << "cannot be zero"
                           << std::endl;
-                exit(EXIT_FAILURE);
+                throw;
             }
 
             dist = cn->rd0[i];  // seq_distance(cn->h, r[i], J);
@@ -1645,7 +1677,7 @@ ssret* sample_class(unsigned int i, unsigned int step)
             // adding a new one
             if (rn == NULL) {
                 printf("STOP!!! There should be something\n");
-                exit(21);
+                throw;
             }
 
             while (rn != NULL) {
@@ -1785,9 +1817,10 @@ void record_conf(cnode* tn, unsigned int step)
 
     rnode* tr;
     char* ca;
-    ca = (char*)calloc(J, sizeof(char*));
+    ca = (char*)calloc(J+1, sizeof(char));
     i2dna_string(ca, tn->h, J);
-    std::string h = (std::string)ca;
+    ca[J] = '\0'; // FIXED null terminated
+    std::string h(ca);
     free(ca);
     freq_map::iterator freq_iter;
 
@@ -1805,7 +1838,9 @@ void record_conf(cnode* tn, unsigned int step)
         // freq_iter->second[step] = tn->size;
         freq_iter->second[step] = tw;
     } else {
-        freq[h] = (int*)calloc(HISTORY, sizeof(unsigned int));
+        freq[h] = (int*)calloc(HISTORY, sizeof(int)); // FIXED
+        assert(step < HISTORY);
+        std::cerr << "Step: " << step << std::endl;
         freq[h][step] = tw;  //! freq is updated if haplotype is NOT present
     }
 
@@ -1815,35 +1850,6 @@ void record_conf(cnode* tn, unsigned int step)
         tr = tr->next;
     }
     h.clear();
-    return;
-}
-
-void old_record_conf(cnode* tn, unsigned int step)
-{
-    /**
-     record configuration of a single node at a single step
-   */
-    std::pair<int, int> p;
-    rnode* rn;
-
-    if (tn->step < step) {  // if the node has been created in a previous step
-        // p = seq_distance_new(conversion(tn->h, J), conversion(tn->hh->h, J), J);
-        p = seq_distance(tn->h, tn->hh->h, J);
-        if (p.first != 0) {  // if the haplotype has changed
-            add_hap(&hst, tn->hh, tn->ci, J, step);
-            memcpy(hst->h, tn->h, J * sizeof(unsigned short int));  // copy into history
-            tn->hh = hst;                                           // and then update
-        }
-    } else {  // update the haplotype
-        memcpy(tn->hh->h, tn->h, J * sizeof(unsigned short int));
-    }
-
-    rn = tn->rlist;
-    while (rn != NULL) {
-        //    ass_hist[rn->ri][step - iter + HISTORY - 1] = tn->hh;
-        rn = rn->next;
-    }
-
     return;
 }
 
@@ -1865,8 +1871,8 @@ void cleanup()
     free(h);
 
     for (i = 0; i < n; i++) {
-        delete[] readtable[i]->creads;
-        delete[] readtable[i]->mindices;
+        delete [] readtable[i]->creads;
+        //delete [] readtable[i]->mindices;
 
         free(readtable[i]);
         free(r[i]);
@@ -1900,7 +1906,32 @@ void cleanup()
 
     delete[] ftable_sum;
 
-    // should maybe cleanup all nodes ...
+    // FIXED (cleanup of all nodes)
+    cnode* tmp = mxt;
+    while (tmp != NULL) {
+        cnode* tmp2 = tmp;
+        tmp = tmp->next;
+
+        rns* rns_tmp = tmp2->rlist;
+        while (rns_tmp != NULL) {
+            rns* rns_tmp_2 = rns_tmp;
+            rns_tmp = rns_tmp->next;
+            free(rns_tmp_2);
+        }
+
+        free(tmp2->rd0);
+        free(tmp2->rd1);
+        free(tmp2->h);
+        free(tmp2);
+    }
+
+    hnode* hnode_tmp = hst;
+    while (hnode_tmp != NULL) {
+        hnode* hnode_tmp_2 = hnode_tmp;
+        hnode_tmp = hnode_tmp->next;
+        free(hnode_tmp_2->h);
+        free(hnode_tmp_2);
+    }
 }
 
 int compare(const void* a, const void* b)
@@ -2213,69 +2244,42 @@ void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J)
     out_file << "# -------- STATS PRINTED ----------\n";
 }
 
-int parsecommandline(int argc, char** argv)
-{
-    // get command line parameters
+// FIXED / TODO instead of declaring vars locally as would be correct 
+void reset_globals() {
+    haplotypecount = 0;
 
-    char c;
-    while ((c = getopt(argc, argv, "i:j:a:t:o:m:K:k:R:c:Hh")) != -1) {
-        int exit_code = EXIT_FAILURE;
-        switch (c) {
-            case 'i':
-                filein = optarg;
-                break;
-            case 'j':
-                iter = atoi(optarg);
-                break;
-            case 'a':
-                alpha = atof(optarg);
-                break;
-            case 't':
-                HISTORY = atoi(optarg);
-                break;
-            case 'K':
-                if (avgNK == 0.0) {
-                    K = atoi(optarg);
-                } else {
-                    printf("can't use -k and -K at same time.\n");
-                    exit(1);
-                }
-                break;
-            case 'k':
-                if (K == 0) {
-                    avgNK = atof(optarg);
-                } else {
-                    printf("can't use -k and -K at same time.\n");
-                    exit(1);
-                }
-                break;
-            case 'R':
-                randseed = atoi(optarg);
-                break;
-            case 'h':
-                exit_code = EXIT_SUCCESS;
-                // fallthrough
-            default:
-                fprintf(stdout,
-                        "%s [options]\n"
-                        "\n"
-                        "  files\n"
-                        "\t-i <input data file>\n"
-                        "  parameters\n"
-                        "\t-j <sampling iterations>\n"
-                        "\t-a <alpha>\n"
-                        "\t-K <startvalue for number of clusters> not compat. with -k\n"
-                        "\t-k <avg. number of reads in each startcluster> not compat. with -K\n"
-                        "\t-t <history time>\n"
-                        "\t-R <randomseed>\n"
-                        "-----------------------------------------------------\n"
-                        "\t-h\t\t this help!\n",
-                        argv[0]);
-                exit(exit_code);
-        }
-    }
-    if (HISTORY > iter) HISTORY = iter;
-    if (randseed == 0) randseed = time(NULL);
-    if ((K == 0) && (avgNK <= 0.0)) avgNK = default_avgNK;
-    return 0;
-}  // ends parsecommandline
+    n = 0;
+    q = 0;
+    totsites = 0;
+    totbases = 0;
+    hapbases = 0;
+    lowest_free = 0;
+    iter = 1000;
+    MAX_K = 0;
+    J = 0;
+    K = 0; 
+    avgNK = 0.0;
+    default_avgNK = 10.0;
+    HISTORY = 100;
+    theta = 0.90;
+    eps1 = 0.985;
+    eps2 = 0.001;
+    gam = 0.90;
+    alpha = 0.01;
+    g_noise = 0.0001;
+
+    record = 0;
+
+    randseed = 0;
+
+    mxt = NULL;
+    hst = NULL;
+}
+
+// TODO
+/*
+int main() {
+    int rv1 = exec_dpm_sampler("w-HXB2-2737-2937.reads.fas", 2595, 0.1, 519, 42, 0, 20);
+    int rv2 = exec_dpm_sampler("w-HXB2-2737-2937.reads.fas", 2595, 0.1, 519, 42, 0, 20);
+    return rv1 + rv2;
+}*/

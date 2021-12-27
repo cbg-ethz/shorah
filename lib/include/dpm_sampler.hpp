@@ -22,12 +22,16 @@
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef DPM_SAMPLER_HPP
+#define DPM_SAMPLER_HPP
+
 /* variables and functions defined here
    for data structures see data_structures.hpp */
 
 #include <map>
 #include <string>
 #include <utility>
+#include "data_structures.hpp"
 
 const unsigned int B = 5;  // characters in the alphabet
 const int one_int = 153391689;
@@ -35,7 +39,7 @@ const int two_int = 306783378;
 const int four_int = 613566756;
 const int LIMIT = 100000;
 
-char* filein;
+//char* filein;
 char** id;
 unsigned short int** r;
 crnode** readtable;
@@ -50,6 +54,7 @@ int* res_dist;
 int* cbase;
 double* pbase;
 double* log_pbase;
+
 unsigned int n = 0;
 unsigned int q = 0;
 unsigned int totsites = 0;
@@ -69,7 +74,7 @@ double eps2 = 0.001;
 double gam = 0.90; // mutation rate
 double alpha = 0.01; // probability of creating new classes
 double g_noise = 0.0001;
-// unsigned int* c; // c[i] = k -> read i in class k
+
 double* P;
 double* log_P;
 
@@ -108,18 +113,11 @@ FILE* assign;
 
 hnode*** ass_hist;
 unsigned int record = 0;
-int storagetype;
 
 unsigned short int** haplotypes;
 int* ch;  // count haplotypes
 
 char* haplotype_output;
-int ho_flag = 0;
-int ho_count = 0;
-
-FILE* fp_clustersize;
-char* clusterfile_output;
-int write_clusterfile = 0;
 
 double double_threshold_min;  // will be set to = gsl_sf_log(DBL_MIN);
 double double_threshold_max;  // will be set to = gsl_sf_log(DBL_MAX);
@@ -131,7 +129,7 @@ double double_threshold_max;  // will be set to = gsl_sf_log(DBL_MAX);
 unsigned long randseed = 0; /* random seed, if no command line parameter
                    -R given, set to current time */
 
-void read_data(char* filein, std::ofstream& out_file);
+bool read_data(const char* filein, std::ofstream& out_file);
 
 void read_conversion(crnode* b, unsigned short int* a, int seq_length);
 
@@ -167,10 +165,7 @@ void write_assignment(unsigned int it, unsigned int new_proposed, const cnode* t
 
 void create_history(unsigned int k);
 
-void old_record_conf(cnode* tn, unsigned int step);
 void record_conf(cnode* tn, unsigned int step);
-
-int parsecommandline(int argc, char** argv);
 
 void cleanup();
 
@@ -189,3 +184,7 @@ void write_haplotype_frequencies(char* filename, unsigned int hcount);
 void write_posterior_files(std::string instr);
 
 void print_stats(std::ofstream& out_file, const cnode* cn, unsigned int J);
+
+void reset_globals();
+
+#endif

@@ -22,6 +22,9 @@
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef DATA_STRUCTURES_HPP
+#define DATA_STRUCTURES_HPP
+
 /** \file data_structures.hpp
     \brief A Documented file.
 
@@ -30,7 +33,7 @@
     and functions
 */
 
-static char i2dna_code[] = "ACGT-N";
+static const char i2dna_code[] = "ACGT-N";
 
 unsigned int haplotypecount = 0;
 
@@ -346,3 +349,5 @@ typedef struct sss
     unsigned int proposed;
     struct cns* to_class;
 } ssret;
+
+#endif
