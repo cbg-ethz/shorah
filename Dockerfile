@@ -1,6 +1,6 @@
 FROM python:3.10
 
-ENV POETRY_VERSION=1.1.11
+ENV POETRY_VERSION=1.1.12
 
 RUN apt-get update -y && \
     apt-get install -y libhts-dev libboost-random-dev
@@ -14,4 +14,4 @@ COPY . /usr/app/
 
 ENTRYPOINT ["./entrypoint.sh"]
 
-#CMD pip install pytest && cd ./tests && pytest
+CMD cd ./tests && poetry run pytest

@@ -46,6 +46,8 @@ adapted from samtools/calDep.c
 #include <htslib/sam.h>
 #include <htslib/faidx.h>
 
+#include "b2w.hpp"
+
 #define UNUSED(expr) (void)(expr)
 
 // data for fetch_func and pileup_func
@@ -86,8 +88,10 @@ static int pileup_func(const uint32_t win_b, const uint32_t win_e, const uint32_
 }
 
 
-// main
-int main(int argc, char* argv[])
+int b2w(
+    const std::string bam_file, const std::string fasta_name,  
+    int win, int inc, int min_overlap, int max, int cov_thrd, 
+    bool skip_indel, const std::string region_name)
 {
     int c = 0;           // for parsing command line arguments
 
@@ -98,79 +102,33 @@ int main(int argc, char* argv[])
 
     paramstruct_t param = {  // data for callback functions
         // based on default from cli.py and shotgun.py
-        201,   // window size
-        201/3, // incr = size / shifts
-        (int) std::round(201. * 0.85), // min_overlap = size * win_min_ext
-        10000 / 201, // max_c = max_coverage / size
-        0,  // coverage threshold
-        false   // (historically default behaviour of shorah is to never skip insertions)
+        win,   // window size
+        inc, // size / shifts
+        min_overlap, // min_overlap = size * win_min_ext
+        max, // max_c = max_coverage / size
+        cov_thrd,  // coverage threshold
+        skip_indel   // (historically default behaviour of shorah is to never skip insertions)
     };
 
-    char help_string[] =
-        "\nUsage: b2w [options] <in.bam> <in.fasta> [region]\n\nOptions:\n\t-w: window length "
-        "(INT)\n\t-i: increment (INT)\n\t-m: minimum overlap (INT)\n\t-x: max reads starting at a "
-        "position (INT)\n\t-c: coverage threshold. Omit windows with low coverage (INT)\n\t"
-        "-d: drop SNVs that are adjacent to insertions/deletions (alternate behaviour)\n\t-h: show this help\n\n";
-
-    const char* bamname = nullptr, * fastaname = nullptr, * regionname = nullptr;
-
-    while ((c = getopt(argc, argv, "w:i:m:x:c:dh")) != EOF) {
-        switch (c) {
-            case 'w':
-                param.win = atof(optarg);
-                break;
-            case 'i':
-                param.inc = atof(optarg);
-                break;
-            case 'm':
-                param.min_overlap = atof(optarg);
-                break;
-            case 'x':
-                param.max = atof(optarg);
-                break;
-            case 'c':
-                param.cov_thrd = atof(optarg);
-                break;
-            case 'd':
-                // brings fil's weird behaviour into b2w
-                param.skip_indel = true;
-                break;
-            case 'h':
-                std::fprintf(stdout, "%s", help_string);
-                exit(EXIT_SUCCESS);
-            default:
-                std::fprintf(stderr, "%s", help_string);
-                exit(EXIT_FAILURE);
-        }
-    }
-    // remaining parameters: <in.bam> <in.fasta> region
-    if ((argc - optind) < 2 or (argc - optind) > 3) {
-        std::fprintf(stderr, "%d parameters left, %s", argc - optind, help_string);
-        return 1;
-    }
-    bamname=argv[optind];
-    fastaname=argv[optind + 1];
-    regionname=(argc == optind + 3) ? argv[optind + 2] : nullptr;
-
-    if (NULL == (inFile = hts_open(bamname, "r"))) {  // open bam file
-        std::fprintf(stderr, "Failed to open BAM file %s\n", bamname);
+    if (NULL == (inFile = hts_open(bam_file.c_str(), "r"))) {  // open bam file
+        std::fprintf(stderr, "Failed to open BAM file %s\n", bam_file.c_str());
         return 2;
     }
 
-    if (fai_build(fastaname)) {  // generate reference index
-        std::fprintf(stderr, "Failed to index FASTA file %s\n", fastaname);
+    if (fai_build(fasta_name.c_str())) {  // generate reference index
+        std::fprintf(stderr, "Failed to index FASTA file %s\n", fasta_name.c_str());
         return 3;
     }
-    if (NULL == (fai = fai_load(fastaname))) {
-        std::fprintf(stderr, "Failed to load FASTA file %s\n", fastaname);
+    if (NULL == (fai = fai_load(fasta_name.c_str()))) {
+        std::fprintf(stderr, "Failed to load FASTA file %s\n", fasta_name.c_str());
         return 2;
     }
 
     const int idx_min_shift = 0; // NOTE BAI sufficient for up to 2^29-1. If we move from virus to organism with longer chromosomes (plants ?), we should switch to HTS_FMT_CSI [default idx_min_shift = 14]
-    int iBuild = bam_index_build(bamname, idx_min_shift);  // generate bam index
+    int iBuild = bam_index_build(bam_file.c_str(), idx_min_shift);  // generate bam index
     UNUSED(iBuild);
     hts_idx_t* idx;
-    if (NULL == (idx = sam_index_load(inFile, bamname))) {  // load bam index
+    if (NULL == (idx = sam_index_load(inFile, bam_file.c_str()))) {  // load bam index
         std::fprintf(stderr, "BAM indexing file is not available.\n");
         return 3;
     }
@@ -330,7 +288,7 @@ int main(int argc, char* argv[])
         delete [] rd;
     };
 
-    if (nullptr == regionname) {          // region not specified
+    if (region_name.empty()) {          // region not specified
         for (int i = 0; i < n; i++)
             process_ROI(i,  // take each chromosome in turn
                     0,      // region of interest's start coordinate, 0-based
@@ -338,24 +296,23 @@ int main(int argc, char* argv[])
     } else {  // parse specific region
         // based on samtools/bam_aux.c:bam_parse_region
         int ref_id = -1, roi_b = 0, roi_e = std::numeric_limits<decltype(roi_e)>::max();
-        const char* roi_str = regionname;
         {
-            const char* name_lim = hts_parse_reg(roi_str, &roi_b, &roi_e);
+            const char* name_lim = hts_parse_reg(region_name.c_str(), &roi_b, &roi_e);
             if (name_lim) { // valid name ?
                 if (roi_b <= roi_e) { // valid range ?
-                    const std::ptrdiff_t nl = name_lim - roi_str; // get only the 'name' part (everything before the colon ':')
+                    const std::ptrdiff_t nl = name_lim - region_name.c_str(); // get only the 'name' part (everything before the colon ':')
                     assert(nl > 0);
-                    char *name = strndup(roi_str, nl);
+                    char *name = strndup(region_name.c_str(), nl);
                     ref_id = bam_name2id(header, name);
                     free(name);
                 }
             } else
                 // not parsable as a region, but possibly a sequence named "foo:a"
-                ref_id = bam_name2id(header, roi_str);
+                ref_id = bam_name2id(header, region_name.c_str());
         }
 
         if (ref_id < 0) {
-            std::fprintf(stderr, "Invalid region %s\n", roi_str);
+            std::fprintf(stderr, "Invalid region %s\n", region_name.c_str());
             return 4;
         }
         roi_b -= 3 * param.inc;  // make sure start and end of region are covered by 3 windows
@@ -376,5 +333,5 @@ int main(int argc, char* argv[])
     hts_close(inFile);
     covOut.close();
     reads.close();
-    exit(EXIT_SUCCESS);
+    return 0;
 }

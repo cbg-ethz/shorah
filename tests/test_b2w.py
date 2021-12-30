@@ -4,7 +4,7 @@ import os
 import glob
 from shorah import b2w, tiling
 import math
-import subprocess
+import libshorah
 
 p = os.path.dirname(__file__)
 
@@ -46,13 +46,20 @@ def test_cmp_raw(spec_dir, alignment_file, reference_file, region, window_length
     minimum_overlap = math.floor(window_length * win_min_ext)
     incr = window_length//overlap_factor
 
-    cmd = f"b2w -w {window_length} -i {incr} -m {minimum_overlap} -x {maximum_reads} -c {minimum_reads} {alignment_file} {reference_file} {region}"
-    print(cmd)
-    original = subprocess.run(
-        cmd, 
-        shell=True, check=True, cwd=os.path.join(p, spec_dir)
+    os.chdir(os.path.join(p, spec_dir))
+    returncode = libshorah.b2w(
+        alignment_file,
+        reference_file,
+        window_length,
+        incr,
+        minimum_overlap,
+        maximum_reads,
+        minimum_reads,
+        False,
+        region
     )
-    assert original.returncode == 0
+    os.chdir(p)
+    assert returncode == 0
 
     strategy = tiling.EquispacedTilingStrategy(region, window_length, incr, True)
 

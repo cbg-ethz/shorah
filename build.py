@@ -9,7 +9,7 @@ def build(setup_kwargs):
             include_dirs=["lib/include"],
             libraries=["hts"],
             undef_macros=["HAVE_POPCNT"],
-            extra_compile_args = ["-std=c++14", "-O0", "-g", "-fno-inline"]
+            extra_compile_args = ["-std=c++14"]
         ),
     ]
     setup_kwargs.update({

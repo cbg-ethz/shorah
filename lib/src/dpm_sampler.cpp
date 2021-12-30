@@ -1840,7 +1840,6 @@ void record_conf(cnode* tn, unsigned int step)
     } else {
         freq[h] = (int*)calloc(HISTORY, sizeof(int)); // FIXED
         assert(step < HISTORY);
-        std::cerr << "Step: " << step << std::endl;
         freq[h][step] = tw;  //! freq is updated if haplotype is NOT present
     }
 
