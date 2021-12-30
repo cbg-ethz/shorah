@@ -4,6 +4,9 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     steps:
+      - name: Install deps
+        uses: sudo apt install -y libhts-dev libboost-random-dev
+        
       - name: Checkout repository
         uses: actions/checkout@v2
 
