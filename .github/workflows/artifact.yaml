@@ -1,7 +1,7 @@
 on: [push]
 
 jobs:
-  build_and_test:
+  build_and_upload_artifact:
     runs-on: ubuntu-latest
     steps:
       - name: Install deps
@@ -26,5 +26,5 @@ jobs:
       - name: Archive code coverage results
         uses: actions/upload-artifact@v2
         with:
-          name: dist
-          path: dist
+          name: whl
+          path: dist/*.whl
