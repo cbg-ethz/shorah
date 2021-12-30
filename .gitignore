@@ -26,12 +26,6 @@ test-driver
 # generated tarball
 shorah*.tar.bz2
 
-# executables
-b2w
-!b2w/
-diri_sampler
-fil
-
 # samtools lib
 libbam.a
 
@@ -43,7 +37,6 @@ __pycache__/
 # OS X temporary files that should never be committed
 .DS_Store
 *.swp
-*.lock
 profile
 
 # other intermediate stuff
