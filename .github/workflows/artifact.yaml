@@ -23,11 +23,18 @@ jobs:
           poetry install
           poetry build
 
+      # For the sake of simplicity, we'll name the tag and the release with
+      # the first 8 chars of the commit SHA:
+      - name: Get short SHA
+        id: short_sha
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v1 
         #if: startsWith(github.ref, 'refs/tags/')
         with:
+          name: ${{ steps.short_sha.outputs.sha8 }}
+          tag_name: ${{ steps.short_sha.outputs.sha8 }}
           prerelease: true
           files: |
             dist/*
