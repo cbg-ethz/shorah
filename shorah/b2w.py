@@ -99,7 +99,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
 
     #. Multiple FASTA files (one for each window position)
     #. A coverage file that lists all files in (1)
-    #. A FASTA file that lists all reads used in (1) #TODO not really FASTA
+    #. A FASTA file that lists all reads used in (1)
     
         .. caution::
             ``reads.fas`` does not comply with the FASTA format.  

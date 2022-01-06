@@ -165,7 +165,10 @@ def main():
                                 default=True, dest="keep_files", help="keep all intermediate files")
 
     parser_shotgun.add_argument("-t", "--threads", metavar='INT', required=False,
-                               type=int, dest="maxthreads", default=0, help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
+                                type=int, dest="maxthreads", default=0, help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
+
+    parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str, 
+                                required=False, default=None, dest="path_insert_file", help="path to an (optional) insert file (primer tiling strategy)")
 
     parser_shotgun.set_defaults(func=shotgun_run)
 

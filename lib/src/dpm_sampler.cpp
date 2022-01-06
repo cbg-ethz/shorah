@@ -41,7 +41,7 @@
 #include <new>
 #include <sstream>
 #include <string>
-#include <cassert> // TODO
+#include <cassert>
 
 #ifdef HAVE_POPCNT // TODO
 #include <nmmintrin.h> 

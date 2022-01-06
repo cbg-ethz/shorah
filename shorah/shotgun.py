@@ -341,8 +341,9 @@ def merge_corrected_reads(aligned_read):
         # kcr: extract start index of the aligned reads in all windows
         # vcr: extract sequence of the aligned reads in all windows
         kcr = np.array(list(corrected_read.keys()), dtype=int)
-        vcr = np.array(list(corrected_read.values()))
-        vcr_len = [len(v) for v in vcr] # FIXED .size
+        vcr = np.array([np.array(v) for v in corrected_read.values()], dtype=object) # FIXED dtype
+        vcr_len = [v.size for v in vcr]
+    
 
         for rpos in range(rlen):
             tp = rstart + rpos - kcr
@@ -392,6 +393,7 @@ def main(args):
     seed = args.seed
     ignore_indels = args.ignore_indels
     maxthreads = args.maxthreads
+    path_insert_file = args.path_insert_file
 
     logging.info(' '.join(sys.argv))
 
@@ -421,9 +423,15 @@ def main(args):
             raise NotImplementedError('This argument was deprecated.')
         b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext *
                        win_length, max_c, cov_thrd, region, ignore_indels))
+        if path_insert_file == None:
+            strategy = tiling.EquispacedTilingStrategy(region, win_length, incr, True)
+        else:
+            strategy = tiling.PrimerTilingStrategy(path_insert_file)
+        logging.info(f"Using tiling strategy: {type(strategy).__name__}")
+
         b2w.build_windows(
             in_bam, 
-            tiling.EquispacedTilingStrategy(region, win_length, incr, True),
+            strategy,
             math.floor(win_min_ext * win_length),
             max_c,
             cov_thrd,
