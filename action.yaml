@@ -4,4 +4,4 @@ outputs:
     description: 'The output'
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'Containerfile'
