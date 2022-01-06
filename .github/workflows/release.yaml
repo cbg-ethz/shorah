@@ -1,5 +1,7 @@
 on: [push]
 
+# TODO make conditional on successful tests
+
 jobs:
   build_and_upload_artifact:
     runs-on: ubuntu-latest
@@ -35,6 +37,8 @@ jobs:
         with:
           name: canary-${{ steps.short_sha.outputs.sha8 }}
           tag_name: canary-${{ steps.short_sha.outputs.sha8 }}
+          generate_release_notes: false
+          target_commitish: ${GITHUB_SHA}
           prerelease: true
           files: |
             dist/*
