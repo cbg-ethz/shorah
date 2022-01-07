@@ -437,7 +437,8 @@ def main(args):
             cov_thrd,
             in_fasta
         )
-    except:
+    except Exception as e:
+        logging.debug(e)
         sys.exit('b2w run not successful')
 
     aligned_reads = parse_aligned_reads('reads.fas')
