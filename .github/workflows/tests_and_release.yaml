@@ -1,9 +1,18 @@
 on: [push]
 
-# TODO make conditional on successful tests
-
 jobs:
+  tests:
+    runs-on: ubuntu-latest
+    name: Tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run test cases
+        id: hello
+        uses: ./
+
   build_and_upload_artifact:
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - name: Install deps
@@ -29,7 +38,7 @@ jobs:
       # the first 8 chars of the commit SHA:
       - name: Get short SHA
         id: short_sha
-        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-7)"
 
       - name: Release
         uses: softprops/action-gh-release@v1 
