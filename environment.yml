@@ -1,0 +1,7 @@
+name: shorah
+dependencies:
+  - pip
+  - htslib 1.*
+  - boost-cpp >=1.56
+  - pip:
+    - https://github.com/spaceben/shorah/releases/download/canary-eeec049/ShoRAH-0.1.0.tar.gz 
