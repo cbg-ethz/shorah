@@ -26,14 +26,9 @@
     calls diri_sampler to correct them, and merges the correction into a
     file of corrected reads
 """
-
-from __future__ import division
-from __future__ import print_function
-
 import os
 import pipes
 import sys
-import shlex
 import logging
 import re
 import shutil
@@ -437,6 +432,7 @@ def main(args):
             cov_thrd,
             in_fasta
         )
+        logging.info('finished b2w')
     except Exception as e:
         logging.debug(e)
         sys.exit('b2w run not successful')

@@ -93,8 +93,6 @@ int b2w(
     int win, int inc, int min_overlap, int max, int cov_thrd, 
     bool skip_indel, const std::string region_name)
 {
-    int c = 0;           // for parsing command line arguments
-
     htsFile* inFile;
     faidx_t* fai;
     std::ofstream reads;

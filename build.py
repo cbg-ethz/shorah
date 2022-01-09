@@ -9,11 +9,12 @@ def build(setup_kwargs):
             include_dirs=["lib/include"],
             libraries=["hts"],
             undef_macros=["HAVE_POPCNT"],
-            extra_compile_args = ["-std=c++14"]
+            extra_compile_args = ["-std=c++11"]
         ),
     ]
+
     setup_kwargs.update({
         "ext_modules": ext_modules,
-        "cmd_class": {"build_ext": build_ext},
+        "cmdclass": {"build_ext": build_ext},
         "zip_safe": False,
     })

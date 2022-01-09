@@ -33,14 +33,12 @@
     ------------
 '''
 
-from __future__ import division
 import glob
 import gzip
 import os
 import shutil
 import sys
 import warnings
-import shlex
 from collections import namedtuple
 from dataclasses import dataclass
 
