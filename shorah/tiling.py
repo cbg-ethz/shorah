@@ -148,16 +148,9 @@ class PrimerTilingStrategy(TilingStrategy):
     def get_window_tilings(self) -> List[Tuple[int, int]]:
         rv = []
         for amplicon in self.amplicons:
-            rv.append( [amplicon[0], amplicon[1] - amplicon[0]] )
-
-        rv *= 3
-        for i in range(len(self.amplicons) - 1, 2 * len(self.amplicons)):
-            rv[i][0] += 1 
-        for i in range(2* len(self.amplicons) - 1, len(rv)):
-            rv[i][0] -= 1
-
-        for i in range(len(rv)):
-            rv[i] = tuple(rv[i])
+            rv.append( (amplicon[0]-1, amplicon[1] - amplicon[0]) )
+            rv.append( (amplicon[0], amplicon[1] - amplicon[0]) )
+            rv.append( (amplicon[0]+1, amplicon[1] - amplicon[0]) )
 
         return rv
     

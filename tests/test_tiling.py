@@ -14,7 +14,6 @@ def test_equispaced_with_HBX2():
     end = 3713
     strategy = tiling.EquispacedTilingStrategy(f"HBX2:2469-{end}", 201, 67)
     actual = strategy.get_window_tilings()
-    print(actual)
 
     assert actual[0][0] == 2268
     assert actual[-1][0] == 3675 
@@ -29,8 +28,8 @@ def test_equispaced_wrong_incr():
 def test_primer_init():
     strategy = tiling.PrimerTilingStrategy("./data_1/scheme.insert.bed")
     window_tilings = strategy.get_window_tilings()
-    first = window_tilings[0]
-    last = window_tilings[-1]
+    first = window_tilings[1]
+    last = window_tilings[-2]
 
     assert first[0] == 34
     assert first[1] == 373
