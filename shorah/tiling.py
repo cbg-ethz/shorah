@@ -100,13 +100,7 @@ class EquispacedTilingStrategy(TilingStrategy):
         if self.exact_conformance_overlap_at_boundary == True:
             window_positions.append(window_positions[-1] + self.incr)
         
-        rv = [(i, self.window_length) for i in window_positions] * 3
-        for i in range(len(window_positions) - 1, 2 * len(window_positions)):
-            rv[i][0] += 1 
-        for i in range(2* len(window_positions) - 1, len(rv)):
-            rv[i][0] -= 1
-
-        return rv
+        return [(i, self.window_length) for i in window_positions]
 
     def get_reference_name(self):
         return self.reference_name
@@ -154,7 +148,17 @@ class PrimerTilingStrategy(TilingStrategy):
     def get_window_tilings(self) -> List[Tuple[int, int]]:
         rv = []
         for amplicon in self.amplicons:
-            rv.append( (amplicon[0], amplicon[1] - amplicon[0]) )
+            rv.append( [amplicon[0], amplicon[1] - amplicon[0]] )
+
+        rv *= 3
+        for i in range(len(self.amplicons) - 1, 2 * len(self.amplicons)):
+            rv[i][0] += 1 
+        for i in range(2* len(self.amplicons) - 1, len(rv)):
+            rv[i][0] -= 1
+
+        for i in range(len(rv)):
+            rv[i] = tuple(rv[i])
+
         return rv
     
     def get_reference_name(self) -> str:

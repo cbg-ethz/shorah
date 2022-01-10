@@ -35,7 +35,10 @@ def test_primer_init():
     assert first[0] == 34
     assert first[1] == 373
 
-    assert last[0] == 9338 - 1
+    assert last[0] == 9338
     assert last[1] == 357
 
-    assert len(window_tilings()) == 93
+    assert type(first).__name__ == 'tuple'
+    assert type(last).__name__ == 'tuple'
+
+    assert len(window_tilings) == 93
