@@ -7,10 +7,11 @@ Welcome to shorah's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
    :caption: Contents:
 
+   cli
    b2w
+   cpp
 
 
 
