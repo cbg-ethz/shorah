@@ -83,12 +83,6 @@ def shotgun_run(args):
     shotgun.main(args)
 
 
-def amplicon_run(args):
-    """Default function for command line parser."""
-    from shorah import amplicon
-    amplicon.main(args)
-
-
 def snv_run(args):
     from shorah import shorah_snv
     shorah_snv.main(args)
@@ -115,10 +109,12 @@ def main():
                           type=str, dest="f", help="reference genome in fasta format")
 
     parent_parser.add_argument("-a", "--alpha", metavar='FLOAT', required=False,
-                               type=float, dest="a", default=0.1, help="alpha in dpm sampling (controls the probability of creating new classes)")
+                               type=float, dest="a", default=0.1, 
+                               help="alpha in dpm sampling (controls the probability of creating new classes)")
 
     parent_parser.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str,
-                               dest="r", default='', help="region in format 'chr:start-stop', e.g. 'chrm:1000-3000'")
+                               dest="r", default='', 
+                               help="region in format 'chr:start-stop', e.g. 'chrm:1000-3000'")
 
     parent_parser.add_argument("-R", "--seed", metavar='INT', required=False,
                                type=int, dest="seed", default=None, help="set seed for reproducible results")
@@ -130,13 +126,15 @@ def main():
                                type=float, dest="sigma", help="sigma value to use when calling SNVs")
 
     parent_parser.add_argument("-I", "--ignore_indels", action="store_true", default=False, dest="ignore_indels",
-                               help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', ignore this option if you don't understand)")
+                               help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', \
+                                    ignore this option if you don't understand)")
 
     parent_parser.add_argument("-p", "--threshold", metavar='FLOAT', default=0.9,
-                               type=float, dest="posterior_thresh", help="pos threshold when calling variants from support files")
+                               type=float, dest="posterior_thresh", 
+                               help="pos threshold when calling variants from support files")
 
     parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
-                               default=['csv', 'vcf'], nargs='+',
+                               default=['csv'], nargs='+',
                                choices=['csv', 'vcf'],
                                help='output format of called SNVs')
 
@@ -146,7 +144,9 @@ def main():
                                  dest='cov_thrd', help='coverage threshold. Omit windows with low coverage')
 
     parser = argparse.ArgumentParser(
-        usage='%(prog)s <subcommand> [options]', epilog="Run `shorah subcommand -h` for more help", parents=[version_parser])
+        usage='%(prog)s <subcommand> [options]', 
+        epilog="Run `shorah subcommand -h` for more help", 
+        parents=[version_parser])
 
     subparsers = parser.add_subparsers(
         title='sub-commands', help='available sub-commands')
@@ -165,30 +165,21 @@ def main():
                                 default=True, dest="keep_files", help="keep all intermediate files")
 
     parser_shotgun.add_argument("-t", "--threads", metavar='INT', required=False,
-                                type=int, dest="maxthreads", default=0, help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
+                            type=int, dest="maxthreads", default=0, 
+                            help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
 
     parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str, 
-                                required=False, default=None, dest="path_insert_file", help="path to an (optional) insert file (primer tiling strategy)")
+                                required=False, default=None, dest="path_insert_file", 
+                                help="path to an (optional) insert file (primer tiling strategy)")
 
     parser_shotgun.set_defaults(func=shotgun_run)
-
-    parser_amplicon = subparsers.add_parser(
-        'amplicon', help='run local analysis in amplicon mode', parents=[version_parser, parent_parser, coverage_parser])
-
-    parser_amplicon.add_argument("-d", "--diversity", action="store_true", default=False,
-                                 dest="diversity", help="detect the highest entropy region and run there")
-
-    parser_amplicon.add_argument("-m", "--min_overlap", metavar='FLOAT', default=0.95,
-                                 type=float, dest="min_overlap", help="fraction of read overlap to be included")
-
-    parser_amplicon.set_defaults(func=amplicon_run)
 
     # create the parser for command "snv"
     parser_snv = subparsers.add_parser(
         'snv', help='run single-nucleotide-variant calling', parents=[version_parser, parent_parser])
 
     parser_snv.add_argument("-i", "--increment", metavar='INT', default=1, type=int, required=False,
-                            dest="increment", help="value of increment to use when calling\nSNVs (1 used in  amplicon mode)")
+                            dest="increment", help="value of increment to use when calling\nSNVs")
 
     parser_snv.set_defaults(func=snv_run)
 

@@ -16,8 +16,8 @@ def test_long_deletions():
     print(os.getcwd())
     # Input data
     bamfile = "test_aln.cram"
-    snvsfile = "snv/SNV.txt"
-    outfile = "snv/SNVs_0.010000.tsv"
+    snvsfile = "snv/raw_snv.tsv" # SNV.txt
+    outfile = "snv/raw_snv_0.010000.tsv" # SNVs_0.010000.tsv
 
     helper_long_deletions.main(bamfile=bamfile, snvsfile=snvsfile, outfile=outfile)
 
