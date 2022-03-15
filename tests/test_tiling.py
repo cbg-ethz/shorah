@@ -24,9 +24,9 @@ def test_equispaced_use_full_reference_as_region():
         201, 67, use_full_reference_as_region=True)
     actual = strategy.get_window_tilings()
 
-    assert actual[0][0] == 0
+    assert actual[0][0] == 1
     assert actual[0][1] == 201
-    assert actual[-1][0] == 2747
+    assert actual[-1][0] == 2748
     assert actual[-1][0] + 201 < 3000
 
 

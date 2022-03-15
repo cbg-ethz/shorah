@@ -17,7 +17,8 @@ def _calc_location_maximum_reads(samfile, reference_name, maximum_reads):
     return budget
 
 def _run_one_window(samfile, window_start, reference_name, window_length, 
-        minimum_overlap, permitted_reads_per_location, counter):
+        minimum_overlap, permitted_reads_per_location, counter,
+        exact_conformance_fix_0_1_basing_in_reads):
 
     arr = []
     arr_read_summary = []
@@ -76,9 +77,12 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
                 "read unequal window size"
             )
 
-            arr.append(
-                f'>{read.query_name} {first_aligned_pos}\n{cut_out_read}'
-            )
+            if exact_conformance_fix_0_1_basing_in_reads == False:
+                arr_line = f'>{read.query_name} {first_aligned_pos}\n{cut_out_read}' # first_aligned_pos is 0-based
+            else:
+                arr_line = f'>{read.query_name} {first_aligned_pos+1}\n{cut_out_read}'
+
+            arr.append(arr_line)
 
         if read.reference_start >= counter and len(full_read) >= minimum_overlap:
             arr_read_summary.append(
@@ -92,7 +96,8 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
 def build_windows(alignment_file: str, tiling_strategy: TilingStrategy, 
     minimum_overlap: int, maximum_reads: int, minimum_reads: int, 
-    reference_filename: Optional[str] = None) -> None:
+    reference_filename: str, 
+    exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False) -> None:
     """Summarizes reads aligned to reference into windows. 
 
     Three products are created:
@@ -117,7 +122,10 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
         minimum_reads: Lower (exclusive) limit of reads allowed in a window.
             Serves to omit windows with low coverage.
         reference_filename: Path to a FASTA file of the reference sequence.
-            Only necessary if this information is not included in the CRAM file.
+        exact_conformance_fix_0_1_basing_in_reads: Fixes an incorrect 0-basing 
+            of reads in the window file in the old C++ version. 1-basing is 
+            applied everywhere now. Set this flag to `False` only for exact 
+            conformance with the old version (in tests). 
     """
 
     pysam.index(alignment_file)
@@ -127,6 +135,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
         reference_filename=reference_filename,
         threads=1
     )
+    reffile = pysam.FastaFile(reference_filename)
 
     cov_arr = []
     reads = open("reads.fas", "w")
@@ -149,10 +158,12 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             window_length, 
             minimum_overlap,
             dict(permitted_reads_per_location), # copys dict ("pass by value")
-            counter
+            counter,
+            exact_conformance_fix_0_1_basing_in_reads
         )
+
         window_end = window_start + window_length - 1
-        file_name = f'w-{reference_name}-{window_start}-{window_end}.reads.fas'
+        file_name = f'w-{reference_name}-{window_start}-{window_end}'
 
         # TODO solution for backward conformance
         end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
@@ -166,13 +177,18 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
                 f'{read[0]}\t{tiling[0][0]-1}\t{end_extended_by_a_window}\t{read[1]}\t{read[2]}\t{read[3]}\n'
             )
         
-        if idx != len(tiling) - 1: # except last
+        if (idx != len(tiling) - 1 # except last 
+            and len(arr) > 0): # suppress output if window empty
 
-            _write_to_file(arr, file_name) 
+            _write_to_file(arr, file_name + '.reads.fas') 
+            _write_to_file([
+                f'>{reference_name} {window_start}\n' + # window_start is 1-based
+                reffile.fetch(reference=reference_name, start=window_start-1, end=window_end)
+            ], file_name + '.ref.fas')
 
             if len(arr) > minimum_reads: 
                 line = (
-                    f'{file_name}\t{reference_name}\t{window_start}\t'
+                    f'{file_name}.reads.fas\t{reference_name}\t{window_start}\t'
                     f'{window_end}\t{len(arr)}'
                 )
                 cov_arr.append(line)

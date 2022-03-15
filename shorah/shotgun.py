@@ -452,6 +452,7 @@ def main(args):
             in_fasta
         )
         logging.info('finished b2w')
+
     except Exception as e:
         logging.debug(e)
         sys.exit('b2w run not successful')

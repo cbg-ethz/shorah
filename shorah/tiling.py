@@ -14,10 +14,10 @@ class TilingStrategy(ABC):
         Returns:
             A list of tuples that indicate the starting point and length of
             each window. It is assumed that this list is **sorted** by starting 
-            points ascending. First integer is the **0-based** starting position, 
+            points ascending. First integer is the **1-based** starting position, 
             second the window length. For example (with fixed window length 201)::
 
-                [(0, 201), (67, 201), (134, 201), (201, 201)]
+                [(1, 201), (68, 201), (135, 201), (202, 201)]
 
         """
         pass
@@ -45,7 +45,7 @@ class EquispacedTilingStrategy(TilingStrategy):
 
     Attributes:
         reference_name: Name of the reference genome.
-        start: Start of region in reference genome (1 based like samtools).  
+        start: Start of region in reference genome (1-based like samtools).  
         end: End of region (inclusive).
         window_length: Constant number of bases considered at once per loop.
         incr: Increment between each window.
@@ -84,7 +84,7 @@ class EquispacedTilingStrategy(TilingStrategy):
             region: A genomic sequence compatibile with samtools. 
                 Example: "chr1:10000-20000"
         Returns:
-            start: Start of region in reference genome (1 based like samtools).  
+            start: Start of region in reference genome (1-based like samtools).  
             end: End of region (inclusive).
         """
         tmp = region.split(":")
@@ -100,21 +100,23 @@ class EquispacedTilingStrategy(TilingStrategy):
         
         if self.use_full_reference_as_region == True:
             window_positions = list(range(
-                0,
+                1,
                 self.end - 1,
                 self.incr
             ))    
             while window_positions[-1] + self.window_length >= self.end:
                 del window_positions[-1]
-            print(window_positions)
+
         else:
             window_positions = list(range(
-                self.start - self.incr * 3 if self.exact_conformance_overlap_at_boundary 
-                    else self.start - self.window_length,
+                self.start - self.incr * 3 if self.exact_conformance_overlap_at_boundary
+                    else self.start - self.window_length, # this is 1-based
                 self.end + 1 - (self.window_length//self.incr - 3) * self.incr if self.exact_conformance_overlap_at_boundary 
                     else self.end + 1, # TODO why +1
                 self.incr 
             ))
+        
+        print(window_positions)
 
         # add one more window at the end
         if self.exact_conformance_overlap_at_boundary == True:
