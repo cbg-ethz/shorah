@@ -167,7 +167,7 @@ def run_dpm(run_setting):
     #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
     #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
     #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
-    
+
     # TODO integration
     logging.debug('Exec dpm_sampler')
     try:
@@ -175,26 +175,26 @@ def run_dpm(run_setting):
         # os.remove('./assignment.tmp')
     except OSError:
         pass
-    
+
 
     # runs the gibbs sampler for the dirichlet process mixture
     try:
         logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
         retcode = libshorah.exec_dpm_sampler(
-            pipes.quote(filein), 
-            j, 
-            a, 
-            int(j * hist_fraction), 
-            K_cluster_start=init_K, 
+            pipes.quote(filein),
+            j,
+            a,
+            int(j * hist_fraction),
+            K_cluster_start=init_K,
             R_seed=seed
         )
         if retcode == 0:
             logging.debug(f'{filein} - Run finished successfully.')
-        else: 
+        else:
             logging.error(f'{filein} - Run failed with return code %i.', retcode)
     except Exception as e:
         logging.error(f'{filein} - Run failed: {e}')
-    
+
 
     return
 
@@ -338,7 +338,7 @@ def merge_corrected_reads(aligned_read):
         kcr = np.array(list(corrected_read.keys()), dtype=int)
         vcr = np.array([np.array(v) for v in corrected_read.values()], dtype=object) # FIXED dtype
         vcr_len = [v.size for v in vcr]
-    
+
 
         for rpos in range(rlen):
             tp = rstart + rpos - kcr
@@ -418,9 +418,9 @@ def main(args):
         b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext *
                        win_length, max_c, cov_thrd, region, ignore_indels))
 
-        if path_insert_file == None and region == "": # special case if no region defined 
+        if path_insert_file == None and region == "": # special case if no region defined
             samfile = pysam.AlignmentFile(
-                in_bam, 
+                in_bam,
                 "r", # auto-detect bam/cram (rc)
                 reference_filename=in_fasta,
                 threads=1
@@ -428,13 +428,13 @@ def main(args):
             if samfile.nreferences != 1:
                 raise NotImplementedError("There are multiple references in this alignment file.")
             strategy = tiling.EquispacedTilingStrategy(
-                f"{samfile.references[0]}:1-{samfile.lengths[0]}", 
-                win_length, 
-                incr, 
-                False, 
+                f"{samfile.references[0]}:1-{samfile.lengths[0]}",
+                win_length,
+                incr,
+                False,
                 True
             )
-        elif path_insert_file == None: 
+        elif path_insert_file == None:
             strategy = tiling.EquispacedTilingStrategy(region, win_length, incr, True)
         else:
             strategy = tiling.PrimerTilingStrategy(path_insert_file)
@@ -444,7 +444,7 @@ def main(args):
         logging.info(f"Using tiling strategy: {type(strategy).__name__}")
 
         b2w.build_windows(
-            in_bam, 
+            in_bam,
             strategy,
             math.floor(win_min_ext * win_length),
             max_c,
@@ -482,7 +482,7 @@ def main(args):
     runlist = win_to_run(alpha, seed)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
-    max_proc = max(cpu_count() - 1, 1) 
+    max_proc = max(cpu_count() - 1, 1)
     if maxthreads:
         max_proc = min(max_proc, maxthreads)
     logging.info('CPU(s) count %u, max thread limit %u, will run %u parallel dpm_sampler', cpu_count(), maxthreads, max_proc)
@@ -596,7 +596,7 @@ def main(args):
             else:
                 os.remove(freq_file)
 
-        for raw_file in glob.glob('./w*reads.fas'):
+        for raw_file in glob.glob('./w*reads.fas') + glob.glob('./w*ref.fas'):
             if os.stat(raw_file).st_size > 0:
                 gzf = gzip_file(raw_file)
                 try:
@@ -668,7 +668,7 @@ def main(args):
     except OSError:
         os.rename('snv', 'snv_before_%d' % int(time.time()))
         os.mkdir('snv')
-        
+
     for snv_file in glob.glob('./raw_snv*'):
         shutil.move(snv_file, 'snv/')
 
