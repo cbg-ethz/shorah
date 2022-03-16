@@ -146,8 +146,6 @@ class PrimerTilingStrategy(TilingStrategy):
             described in the documentation. See examples here:
             https://github.com/artic-network/primer-schemes/tree/master/nCoV-2019/V3
 
-            https://primalscheme.com
-            https://github.com/aresti/primalscheme
     """
 
     def __init__(self, insert_bed_path: str) -> None:

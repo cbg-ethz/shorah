@@ -9,8 +9,9 @@ Welcome to shorah's documentation!
 .. toctree::
    :caption: Contents:
 
-   cli
+   getting-started
    b2w
+   cli
    cpp
 
 

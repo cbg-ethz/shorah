@@ -40,6 +40,7 @@ Why does this file exist, and why not put this in __main__?
 """
 import os
 import sys
+import argparse
 
 
 use_pkg_resources = False
@@ -87,11 +88,8 @@ def snv_run(args):
     from shorah import shorah_snv
     shorah_snv.main(args)
 
-
-def main():
-    """Parse command line, run default functions."""
-    import argparse
-    # parse command line
+# TODO
+def all_parsers():
     # create the top-level parser
     version_parser = argparse.ArgumentParser(add_help=False)
 
@@ -100,48 +98,48 @@ def main():
 
     parent_parser = argparse.ArgumentParser(add_help=False)
 
-    required = parent_parser.add_argument_group('required arguments')
+    required = parent_parser.add_argument_group('Required arguments')
 
     required.add_argument("-b", "--bam", metavar='BAM', required=True,
-                          type=str, dest="b", help="sorted bam format alignment file")
+                          type=str, dest="b", help="A sorted bam format alignment file")
 
     required.add_argument("-f", "--fasta", metavar='REF', required=True,
-                          type=str, dest="f", help="reference genome in fasta format")
+                          type=str, dest="f", help="A corresponding reference genome in fasta format")
 
     parent_parser.add_argument("-a", "--alpha", metavar='FLOAT', required=False,
                                type=float, dest="a", default=0.1, 
-                               help="alpha in dpm sampling (controls the probability of creating new classes)")
+                               help="Alpha in dpm sampling (controls the probability of creating new classes)")
 
     parent_parser.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str,
-                               dest="r", default='', 
-                               help="region in format 'chr:start-stop', e.g. 'chrm:1000-3000'")
+                               dest="r", default="", 
+                               help="Region in 1-based samtools format 'chr:start-stop', e.g. 'chrm:1000-3000'")
 
     parent_parser.add_argument("-R", "--seed", metavar='INT', required=False,
-                               type=int, dest="seed", default=None, help="set seed for reproducible results")
+                               type=int, dest="seed", default=None, help="Set seed for reproducible results")
 
     parent_parser.add_argument("-x", "--maxcov", metavar='INT', required=False, type=int,
-                               default=10000, dest="max_coverage", help="approximate max coverage allowed")
+                               default=10000, dest="max_coverage", help="Approximate max coverage allowed")
 
     parent_parser.add_argument("-S", "--sigma", metavar='FLOAT', default=0.01,
-                               type=float, dest="sigma", help="sigma value to use when calling SNVs")
+                               type=float, dest="sigma", help="Sigma value to use when calling SNVs")
 
     parent_parser.add_argument("-I", "--ignore_indels", action="store_true", default=False, dest="ignore_indels",
-                               help="ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', \
-                                    ignore this option if you don't understand)")
+                               help="Ignore SNVs adjacent to insertions/deletions\n(legacy behaviour of 'fil', \
+                                    ignore this option if you don't understand it)") # TODO check if this still relevant
 
     parent_parser.add_argument("-p", "--threshold", metavar='FLOAT', default=0.9,
                                type=float, dest="posterior_thresh", 
-                               help="pos threshold when calling variants from support files")
+                               help="Posterior threshold when calling variants from support files")
 
     parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
                                default=['csv'], nargs='+',
                                choices=['csv', 'vcf'],
-                               help='output format of called SNVs')
+                               help='Output format of called SNVs')
 
     coverage_parser = argparse.ArgumentParser(add_help=False)
 
     coverage_parser.add_argument("-c", "--win_coverage", metavar='INT', default=0, type=int,
-                                 dest='cov_thrd', help='coverage threshold. Omit windows with low coverage')
+                                 dest='cov_thrd', help='Coverage threshold (to omit windows with low coverage)')
 
     parser = argparse.ArgumentParser(
         usage='%(prog)s <subcommand> [options]', 
@@ -156,21 +154,21 @@ def main():
         'shotgun', help='run local analysis in shotgun mode', parents=[version_parser, parent_parser, coverage_parser])
 
     parser_shotgun.add_argument("-w", "--windowsize", metavar='INT',
-                                required=False, type=int, dest="w", default=201, help="window size")
+                                required=False, type=int, dest="w", default=201, help="Window size")
 
     parser_shotgun.add_argument("-s", "--winshifts", metavar='INT', required=False,
-                                type=int, default=3, dest="win_shifts", help="number of window shifts")
+                                type=int, default=3, dest="win_shifts", help="Number of window shifts")
 
     parser_shotgun.add_argument("-k", "--keep_files", required=False, action='store_true',
-                                default=True, dest="keep_files", help="keep all intermediate files")
+                                default=True, dest="keep_files", help="Keep all intermediate files")
 
     parser_shotgun.add_argument("-t", "--threads", metavar='INT', required=False,
                             type=int, dest="maxthreads", default=0, 
-                            help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
+                            help="Limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
 
     parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str, 
                                 required=False, default=None, dest="path_insert_file", 
-                                help="path to an (optional) insert file (primer tiling strategy)")
+                                help="Path to an insert file (primer tiling strategy). --windowsize and --winshift values will be ignored.")
 
     parser_shotgun.set_defaults(func=shotgun_run)
 
@@ -182,6 +180,15 @@ def main():
                             dest="increment", help="value of increment to use when calling\nSNVs")
 
     parser_snv.set_defaults(func=snv_run)
+
+    return parser
+
+
+
+
+def main():
+    """Parse command line, run default functions."""
+    parser = all_parsers()
 
     # exit so that log file is not written
     if len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
