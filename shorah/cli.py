@@ -109,11 +109,11 @@ def main():
                           type=str, dest="f", help="reference genome in fasta format")
 
     parent_parser.add_argument("-a", "--alpha", metavar='FLOAT', required=False,
-                               type=float, dest="a", default=0.1, 
+                               type=float, dest="a", default=0.1,
                                help="alpha in dpm sampling (controls the probability of creating new classes)")
 
     parent_parser.add_argument("-r", "--region", metavar='chrm:start-stop', required=False, type=str,
-                               dest="r", default='', 
+                               dest="r", default='',
                                help="region in format 'chr:start-stop', e.g. 'chrm:1000-3000'")
 
     parent_parser.add_argument("-R", "--seed", metavar='INT', required=False,
@@ -130,11 +130,11 @@ def main():
                                     ignore this option if you don't understand)")
 
     parent_parser.add_argument("-p", "--threshold", metavar='FLOAT', default=0.9,
-                               type=float, dest="posterior_thresh", 
+                               type=float, dest="posterior_thresh",
                                help="pos threshold when calling variants from support files")
 
     parent_parser.add_argument('-of', '--out_format', type=str, dest='format',
-                               default=['csv'], nargs='+',
+                               default=['csv', 'vcf'], nargs='+',
                                choices=['csv', 'vcf'],
                                help='output format of called SNVs')
 
@@ -144,8 +144,8 @@ def main():
                                  dest='cov_thrd', help='coverage threshold. Omit windows with low coverage')
 
     parser = argparse.ArgumentParser(
-        usage='%(prog)s <subcommand> [options]', 
-        epilog="Run `shorah subcommand -h` for more help", 
+        usage='%(prog)s <subcommand> [options]',
+        epilog="Run `shorah subcommand -h` for more help",
         parents=[version_parser])
 
     subparsers = parser.add_subparsers(
@@ -165,11 +165,11 @@ def main():
                                 default=True, dest="keep_files", help="keep all intermediate files")
 
     parser_shotgun.add_argument("-t", "--threads", metavar='INT', required=False,
-                            type=int, dest="maxthreads", default=0, 
+                            type=int, dest="maxthreads", default=0,
                             help="limit maximum number of parallel sampler threads\n(0: CPUs count-1, n: limit to n)")
 
-    parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str, 
-                                required=False, default=None, dest="path_insert_file", 
+    parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str,
+                                required=False, default=None, dest="path_insert_file",
                                 help="path to an (optional) insert file (primer tiling strategy)")
 
     parser_shotgun.set_defaults(func=shotgun_run)

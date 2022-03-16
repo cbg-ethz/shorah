@@ -669,7 +669,7 @@ def main(args):
         os.rename('snv', 'snv_before_%d' % int(time.time()))
         os.mkdir('snv')
 
-    for snv_file in glob.glob('./raw_snv*'):
+    for snv_file in glob.glob('./raw_snv*') + glob.glob('./SNV*'):
         shutil.move(snv_file, 'snv/')
 
     logging.info('shotgun run ends')

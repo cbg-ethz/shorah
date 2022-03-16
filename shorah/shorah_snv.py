@@ -30,6 +30,16 @@
     a file of raw snvs, parsed from the directory support,
     and a directory containing snvs resulting from strand
     bias tests with different sigma values
+
+    Output Files:
+    - raw_snv_collected.tsv: contains all SNVs from all windows. Each in a seperate row.
+    - raw_snv.tsv: contains all SNVs
+    - SNV.tsv: contains only SNVs that are covered by at least {min_windows_coverage}
+               windows
+    - SNVs_*.tsv, strand bias filter applied
+    - raw_snvs_*.tsv: strand bias filter applied
+    - SNVs_*_final.vcf: final file
+    - SNVs_*_final.csv: file file
     ------------
 '''
 
@@ -56,7 +66,6 @@ class SNV:
     support: float = 0.0
 
 standard_header_row = ['Chromosome', 'Pos', 'Ref', 'Var', 'Frq', 'Pst']
-
 
 def deletion_length(seq):
     """Determines the length of the deletion. Note that a sequence migth have
@@ -179,33 +188,93 @@ def parseWindow(line, ref1, threshold=0.9):
     return snp
 
 
+def add_SNV_to_dict(all_dict, add_key, add_val):
+    if add_key in all_dict.keys():
+        all_dict[add_key].append(add_val)
+    else:
+        all_dict.update({add_key: [add_val]})
+
+    return all_dict
+
+
 def getSNV(ref, window_thresh=0.9):
     """Parses SNV from all windows and output the dictionary with all the
-    information
+    information.
+
+    Writes file: collected_snv.tsv
+
+    Note: SNVs that were discovered by several windows will occurr in several
+    rows of the file (one row = one window).
+
+    Returns a dict containing all SNVs, already grouped together per SNV_id.
     """
 
-    with open('coverage.txt') as cov_file, open('raw_snv.tsv', 'w') as f:
-        f.write('\t'.join(standard_header_row) + '\n')
+    all_snp = {}
+    # cycle over all windows reported in coverage.txt
+    with open('coverage.txt') as cov_file, open('raw_snv_collected.tsv', 'w') as f_collect:
+        f_collect.write('\t'.join(standard_header_row) + '\n')
         for i in cov_file:
             snp = parseWindow(i, ref, window_thresh)
-            for _, val in sorted(snp.items()):
-                f.write('\t'.join(map(str, [val.chrom, val.pos, val.ref, val.var, val.freq, val.support])) + "\n")
+            #all_snp = join_snp_dict(all_snp, snp)
+            for SNV_id, val in sorted(snp.items()):
+                all_snp = add_SNV_to_dict(all_snp, SNV_id, val)
+                f_collect.write('\t'.join(map(str, [val.chrom, val.pos, val.ref, val.var, val.freq, val.support])) + "\n")
+
+    return all_snp
+
+def writeRaw(all_snp, min_windows_coverage):
+    """Write the SNVs that were collected for each window into
+        - raw_snv.tsv: contains all SNVs
+        - SNV.tsv: contains only SNVs that are covered by at least {min_windows_coverage}
+                   windows
+    """
+    header_row =  ['Chromosome', 'Pos', 'Ref', 'Var']
+
+    import numpy as np
+    max_number_window_covering_SNV = np.max([len(val) for _, val in sorted(all_snp.items())])
+
+    header_row = header_row + ['Frq'+str(k+1) for k in range(max_number_window_covering_SNV)]
+    header_row = header_row + ['Pst'+str(k+1) for k in range(max_number_window_covering_SNV)]
+
+    with open('raw_snv.tsv', 'w') as f_raw_snv, open('SNV.tsv', 'w') as f_SNV:
+        f_raw_snv.write('\t'.join(header_row) + '\n')
+        f_SNV.write('\t'.join(header_row) + '\n')
+
+        for SNV_id, val in sorted(all_snp.items()):
+
+            write_line = [val[0].chrom, val[0].pos, val[0].ref, val[0].var]
+            freq_list = [single_val.freq for single_val in val]
+            support_list = [single_val.support for single_val in val]
+
+            number_window_covering_SNV = len(freq_list)
+
+            if number_window_covering_SNV < max_number_window_covering_SNV:
+                filler = (max_number_window_covering_SNV - len(freq_list)) * ['*']
+                freq_list = freq_list + filler
+                support_list = support_list + filler
+
+            write_line = write_line + freq_list + support_list
+
+            f_raw_snv.write('\t'.join(map(str, write_line)) + '\n')
+
+            if number_window_covering_SNV >= min_windows_coverage:
+                f_SNV.write('\t'.join(map(str, write_line)) + '\n')
 
 
-def sb_filter(in_bam, file_to_append, out_file_prefix, sigma, amplimode="", 
+def sb_filter(in_bam, file_to_append, out_file_prefix, sigma, amplimode="",
               drop_indels="", max_coverage=100000): # TODO max_coverage is 10 times higher than in Cpp
     """run strand bias filter calling the external program 'fil'
     """
-    
+
     logging.debug('Running fil')
     logging.debug(f"{in_bam} {file_to_append} {out_file_prefix} {sigma} {max_coverage}")
     retcode = libshorah.fil(
-        in_bam, 
+        in_bam,
         file_to_append,
         out_file_prefix,
-        sigma, 
+        sigma,
         max_coverage,
-        False if amplimode == "" else True, 
+        False if amplimode == "" else True,
         False if drop_indels == "" else True
     )
     return retcode
@@ -238,8 +307,10 @@ def main(args):
     '''main code
     '''
     from Bio import SeqIO
+    from math import log10
     import csv
     import inspect
+    from datetime import date
 
     reference = args.f
     bam_file = args.b
@@ -255,21 +326,29 @@ def main(args):
 
     # snpD_m is the file with the 'consensus' SNVs (from different windows)
     logging.debug('now parsing SNVs')
-    getSNV(ref_m, posterior_thresh)
-    
+    all_SNVs = getSNV(ref_m, posterior_thresh)
+    writeRaw(all_SNVs, min_windows_coverage=2)
+
+    with open('raw_snv.tsv') as f_raw_snv:
+        windows_header_row = f_raw_snv.readline().split('\t')
+        windows_header_row[-1] = windows_header_row[-1].split('\n')[0]
+
     d = ' -d' if ignore_indels else ''
-    
+
     a = ' -a' if increment == 1 else '' # TODO when is increment == 1 (amplimode)
+
     # run strand bias filter
-    retcode_m = sb_filter(bam_file, "raw_snv.tsv", "raw_snv_", sigma, amplimode=a, drop_indels=d,
+    #retcode_m = sb_filter(bam_file, "raw_snv.tsv", "raw_snvs_", sigma, amplimode=a, drop_indels=d,
+    #                      max_coverage=max_coverage)
+    retcode_n = sb_filter(bam_file, "SNV.tsv", "SNVs_", sigma, amplimode=a, drop_indels=d,
                           max_coverage=max_coverage)
 
-    if retcode_m != 0: 
+    if retcode_n != 0 :
         logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
-    
+
     # parse the p values from raw_snv_* file
-    snpFile = glob.glob('raw_snv_*.tsv')[0]  # takes the first file only
+    snpFile = glob.glob('SNVs_*.tsv')[0]  # takes the first file only
     logging.debug(f"For BH - selected file: {snpFile}")
 
     write_list = []
@@ -284,7 +363,7 @@ def main(args):
                 d[idx][1].append(line_no)
             else:
                 d[idx] = (float(parts[-1]), [line_no])
-            
+
     p_vals = list(d.values())
 
     # sort p values, correct with Benjamini Hochberg and append to output
@@ -296,9 +375,9 @@ def main(args):
             write_list[i].append(q)
 
     # Write ShoRAH csv output file
-    if 'csv' in args.format: 
+    if 'csv' in args.format:
         csv_file = '{}_final.csv'.format(os.path.splitext(snpFile)[0])
-        header_row = standard_header_row + ['Fvar', 'Rvar', 'Ftot', 'Rtot', 'Pval', 'Qval']
+        header_row = windows_header_row + ['Fvar', 'Rvar', 'Ftot', 'Rtot', 'Pval', 'Qval']
         with open(csv_file, 'w') as cf:
             writer = csv.writer(cf)
             writer.writerow(header_row)
@@ -308,5 +387,64 @@ def main(args):
                     writer.writerow(wl)
 
     if 'vcf' in args.format:
-        # TODO 
-        raise NotImplementedError('vcf format is not implemented at the moment')
+        VCF_file = f'{os.path.splitext(snpFile)[0]}_final.vcf'
+        VCF_meta = [
+            '##fileformat=VCFv4.2',
+            f'##fileDate={date.today():%Y%m%d}',
+            f'##source=ShoRAH_{args.version}',
+            f'##reference={args.f}'
+        ]
+        for ref_name, ref_seq in ref_m.items():
+            VCF_meta.append(f'##contig=<ID={ref_name},length={len(ref_seq)}>',)
+        VCF_meta.extend([
+            '##INFO=<ID=Fvar,Number=1,Type=Integer,Description="Number of forward reads with variant">',
+            '##INFO=<ID=Rvar,Number=1,Type=Integer,Description="Number of reverse reads with variant">',
+            '##INFO=<ID=Ftot,Number=1,Type=Integer,Description="Total number of forward reads">',
+            '##INFO=<ID=Rtot,Number=1,Type=Integer,Description="Total number of reverse reads">',
+            '##INFO=<ID=Pval,Number=1,Type=Float,Description="P-value for strand bias">',
+            '##INFO=<ID=Qval,Number=1,Type=Float,Description="Q-value for strand bias">'
+        ])
+        VCF_meta.extend([
+                '##INFO=<ID=FreqX,Number=1,Type=Float,Description="Frequency of the variant in window X">',
+                '##INFO=<ID=PostX,Number=1,Type=Float,Description="Posterior probability of the variant in window x">',
+            ])
+
+        with open(VCF_file, 'w') as vcf:
+            vcf.write('\n'.join(VCF_meta))
+            # VCFv4.2 HEADER line
+            vcf.write('\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
+            # Iterate over single SNV lines and write them to output file
+            for wl in write_list:
+                # only print when q >= 5%
+                if wl[-1] >= 0.05:
+                    info = f'Fvar={wl[-6]};Rvar={wl[-5]};Ftot={wl[-4]};' \
+                        f'Rtot={wl[-3]};Pval={wl[-2]};Qval={wl[-1]}'
+                    if increment == 1:
+                        post_avg = min([1, float(wl[5])])
+                        info = f'Freq={wl[4]};Post={wl[5]};' + info
+                    else:
+                        freq_str = ';'.join([f'Freq{i+1}={j}'
+                            for i, j in enumerate(wl[4:7]) if j != '*'])
+                        post_str = ';'.join([f'Post{i+1}={j}'
+                            for i, j in enumerate(wl[7:10]) if j != '*'])
+                        info = f'{freq_str};{post_str};{info}'.replace('-', '0')
+                        post_all = []
+                        for freq, post in zip(wl[4:7], wl[7:10]):
+                            if freq == '*':
+                                pass
+                            elif freq == '-':
+                                post_all.append(0)
+                            else:
+                                post_all.append(min([1, float(post)]))
+                        # Calculate posterior average
+                        post_avg = sum(post_all) / len(post_all)
+                    # Calculate a Phred quality score where the base calling
+                    # error probabilities is set to (1 - posterior avg).
+                    # Maximum is set to 100.
+                    try:
+                        qual_norm = -10 * log10(1 - post_avg)
+                    except ValueError:
+                        qual_norm = 100
+
+                    vcf.write(f'\n{wl[0]}\t{wl[1]}\t.\t{wl[2]}\t{wl[3]}'
+                              f'\t{qual_norm}\tPASS\t{info}')
