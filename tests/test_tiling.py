@@ -16,18 +16,18 @@ def test_equispaced_with_HBX2():
     actual = strategy.get_window_tilings()
 
     assert actual[0][0] == 2268
-    assert actual[-1][0] == 3675 
+    assert actual[-1][0] == 3675
     assert actual[-1][0] + actual[-1][1] >= end
 
 def test_equispaced_use_full_reference_as_region():
-    strategy = tiling.EquispacedTilingStrategy(f"HBX2:1-3000", 
+    strategy = tiling.EquispacedTilingStrategy(f"HBX2:1-3000",
         201, 67, use_full_reference_as_region=True)
     actual = strategy.get_window_tilings()
 
     assert actual[0][0] == 1
     assert actual[0][1] == 201
-    assert actual[-1][0] == 2748
-    assert actual[-1][0] + 201 < 3000
+    assert actual[-1][0] == 2949 #2748 (old number where last windows where excluded)
+    #assert actual[-1][0] + 201 < 3000
 
 
 def test_equispaced_wrong_incr():
