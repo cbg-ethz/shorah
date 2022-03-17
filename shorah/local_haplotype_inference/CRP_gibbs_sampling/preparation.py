@@ -45,9 +45,9 @@ def init_clusters(reads_list, reference_seq):
 ### ----- Functions for preparation ----
 ### ---------------------------------------
 
-def load_reference_seq(reference_file,window):
+def load_reference_seq(reference_file):
     for seq in skbio.io.read(reference_file, format='fasta'):
-         return seq[window[0]:window[1]]
+         return seq
 
 # This function is used for data/simple/seq.fasta and data/simple/seq_verysimple.fasta
 def load_fasta2reads_list(reads_file):

@@ -101,9 +101,9 @@ def unique_reads_list(reads_list):
     reads_list=[read for read in reads_list if read.weight>0]
     return reads_list
 
-def load_reference_seq(reference_file,window):
+def load_reference_seq(reference_file):
     for seq in skbio.io.read(reference_file, format='fasta'):
-         return seq[window[0]:window[1]], seq.metadata['id']
+         return seq, seq.metadata['id']
 
 def reference2binary(reference_seq, alphabet):
     length_seq = len(reference_seq)

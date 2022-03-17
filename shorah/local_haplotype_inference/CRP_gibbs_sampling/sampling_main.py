@@ -182,7 +182,7 @@ def main(freads_in, fref_in, output_dir, alpha, max_iter, thres_ess_max, thres_r
     if os.path.exists(output_dir)==False:
         os.makedirs(output_dir)
 
-    reference_seq = preparation.load_reference_seq(fref_in, window) #TODO: what happens when there are insertions
+    reference_seq = preparation.load_reference_seq(fref_in)
     reads_list = preparation.load_fasta2reads_list(freads_in)
 
     for read in reads_list: read.metadata.update({'distance2reference': aux_dpm.distance(read, reference_seq)})

@@ -42,7 +42,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
         os.makedirs(output_dir) # Create a new directory because it does not exist
 
     # Read in reads
-    reference_seq, ref_id = preparation.load_reference_seq(fref_in, window) #TODO: check what happens with insertions
+    reference_seq, ref_id = preparation.load_reference_seq(fref_in) 
     reference_binary = preparation.reference2binary(reference_seq, alphabet)
     if freads_in.endswith('fasta') or freads_in.endswith('fas'):
         reads_list= preparation.load_fasta2reads_list(freads_in, alphabet)
