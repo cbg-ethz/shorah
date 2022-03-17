@@ -120,7 +120,7 @@ def main():
                                type=int, dest="seed", default=None, help="set seed for reproducible results")
 
     parent_parser.add_argument("-x", "--maxcov", metavar='INT', required=False, type=int,
-                               default=100000, dest="max_coverage", help="approximate max coverage allowed")
+                               default=100000, dest="max_coverage", help="approximate max read coverage per position allowed")
 
     parent_parser.add_argument("-S", "--sigma", metavar='FLOAT', default=0.01,
                                type=float, dest="sigma", help="sigma value to use when calling SNVs")

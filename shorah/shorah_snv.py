@@ -386,6 +386,8 @@ def main(args):
                 if wl[-1] >= 0.05:
                     writer.writerow(wl)
 
+    max_number_window = int(windows_header_row[-1].split('Pst')[1])
+
     if 'vcf' in args.format:
         VCF_file = f'{os.path.splitext(snpFile)[0]}_final.vcf'
         VCF_meta = [
@@ -415,27 +417,35 @@ def main(args):
             vcf.write('\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO')
             # Iterate over single SNV lines and write them to output file
             for wl in write_list:
+                chrom = wl[0]
+                pos = wl[1]
+                base_ref = wl[2]
+                base_var = wl[3]
+
+                freqs_vcf = wl[4:4+max_number_window]
+                posts_vcf = wl[4+max_number_window: 4+max_number_window+max_number_window]
+
                 # only print when q >= 5%
                 if wl[-1] >= 0.05:
                     info = f'Fvar={wl[-6]};Rvar={wl[-5]};Ftot={wl[-4]};' \
                         f'Rtot={wl[-3]};Pval={wl[-2]};Qval={wl[-1]}'
-                    if increment == 1:
-                        post_avg = min([1, float(wl[5])])
-                        info = f'Freq={wl[4]};Post={wl[5]};' + info
-                    else:
-                        freq_str = ';'.join([f'Freq{i+1}={j}'
-                            for i, j in enumerate(wl[4:7]) if j != '*'])
-                        post_str = ';'.join([f'Post{i+1}={j}'
-                            for i, j in enumerate(wl[7:10]) if j != '*'])
-                        info = f'{freq_str};{post_str};{info}'.replace('-', '0')
-                        post_all = []
-                        for freq, post in zip(wl[4:7], wl[7:10]):
-                            if freq == '*':
-                                pass
-                            elif freq == '-':
-                                post_all.append(0)
-                            else:
-                                post_all.append(min([1, float(post)]))
+
+                    freq_str = ';'.join([f'Freq{i+1}={j}'
+                        for i, j in enumerate(freqs_vcf) if j != '*'])
+
+                    post_str = ';'.join([f'Post{i+1}={j}'
+                        for i, j in enumerate(posts_vcf) if j != '*'])
+
+                    info = f'{freq_str};{post_str};{info}'.replace('-', '0')
+
+                    post_all = []
+                    for freq, post in zip(freqs_vcf, posts_vcf):
+                        if freq == '*':
+                            pass
+                        elif freq == '-':
+                            post_all.append(0)
+                        else:
+                            post_all.append(min([1, float(post)]))
                         # Calculate posterior average
                         post_avg = sum(post_all) / len(post_all)
                     # Calculate a Phred quality score where the base calling

@@ -443,8 +443,6 @@ def main(args):
         seed = np.random.randint(100, size=1)
 
     incr = win_length // win_shifts
-    #max_c = max_coverage // win_length #TODO: Why is this done?
-    max_c = max_coverage
     keep_all_files = keep_files
 
     # run b2w
@@ -454,7 +452,7 @@ def main(args):
         if ignore_indels == True:
             raise NotImplementedError('This argument was deprecated.')
         b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext *
-                       win_length, max_c, cov_thrd, region, ignore_indels))
+                       win_length, max_coverage, cov_thrd, region, ignore_indels))
 
         if path_insert_file == None and region == "": # special case if no region defined
             samfile = pysam.AlignmentFile(
@@ -485,7 +483,7 @@ def main(args):
             in_bam,
             strategy,
             math.floor(win_min_ext * win_length),
-            max_c,
+            max_coverage,
             cov_thrd,
             in_fasta
         )
