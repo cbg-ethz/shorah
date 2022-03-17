@@ -123,7 +123,6 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
 
     inference_files = glob.glob('./w*best_run.txt') + glob.glob('./w*history_run*.csv') + glob.glob('./w*runtime.pkl') + glob.glob('./w*results*.pkl')
 
-    print(inference_files)
     for inf_file in inference_files:
         if os.stat(inf_file).st_size > 0:
             gzf = gzip_file(inf_file)
