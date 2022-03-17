@@ -50,6 +50,9 @@ else:
     from . import b2w
     from . import tiling
 
+# import local haplotype inference methods
+from .local_haplotype_inference.mean_field_approximation import run_dpm_mfa
+
 #################################################
 # a common user should not edit above this line #
 #################################################
@@ -145,7 +148,7 @@ def run_dpm(run_setting):
     """
     import subprocess
 
-    filein, j, a, seed = run_setting
+    filein, j, a, seed, f_inference_config = run_setting
 
     # if cor.fas.gz exists, skip
     # greedy re match to handle situation where '.reads' appears in the ID
@@ -163,38 +166,71 @@ def run_dpm(run_setting):
         shutil.move(fstgz, './')
         subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
-    # dn = sys.path[0]
-    #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
-    #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
-    #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
+    ref_in = filein.split('.')[0] + str('.ref.fas')
 
-    # TODO integration
-    logging.debug('Exec dpm_sampler')
-    try:
-        os.remove('./corrected.tmp')
-        # os.remove('./assignment.tmp')
-    except OSError:
+    # if already run before, extract the read file
+    fstgz = 'raw_reads/%s.reads.fas.gz' % stem
+    if os.path.exists(filein):
         pass
+    elif os.path.exists(fstgz):
+        shutil.move(fstgz, './')
+        subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
+
+    ref_fstgz = 'raw_reads/%s.ref.fas.gz' % stem
+    if os.path.exists(ref_in):
+        pass
+    elif os.path.exists(ref_fstgz):
+        shutil.move(ref_fstgz, './')
+        subprocess.check_call(["gunzip", "%s-ref.gz" % stem])
+
+    if f_inference_config == '': # run the original sampler of ShoRAH
+
+        # dn = sys.path[0]
+        #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
+        #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
+        #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
+
+        # TODO integration
+        logging.debug('Exec dpm_sampler')
+        try:
+            os.remove('./corrected.tmp')
+            # os.remove('./assignment.tmp')
+        except OSError:
+            pass
 
 
-    # runs the gibbs sampler for the dirichlet process mixture
-    try:
-        logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
-        retcode = libshorah.exec_dpm_sampler(
-            pipes.quote(filein),
-            j,
-            a,
-            int(j * hist_fraction),
-            K_cluster_start=init_K,
-            R_seed=seed
-        )
-        if retcode == 0:
-            logging.debug(f'{filein} - Run finished successfully.')
-        else:
-            logging.error(f'{filein} - Run failed with return code %i.', retcode)
-    except Exception as e:
-        logging.error(f'{filein} - Run failed: {e}')
+        # runs the gibbs sampler for the dirichlet process mixture
+        try:
+            logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
+            retcode = libshorah.exec_dpm_sampler(
+                pipes.quote(filein),
+                j,
+                a,
+                int(j * hist_fraction),
+                K_cluster_start=init_K,
+                R_seed=seed
+            )
+            if retcode == 0:
+                logging.debug(f'{filein} - Run finished successfully.')
+            else:
+                logging.error(f'{filein} - Run failed with return code %i.', retcode)
+        except Exception as e:
+            logging.error(f'{filein} - Run failed: {e}')
 
+    else:
+        # read the config file
+        import yaml
+        with open(f_inference_config) as file:
+            inference_config = yaml.full_load(file)
+
+            if inference_config['method'] == 'mean_field_approximation':
+                run_dpm_mfa.main(freads_in=filein,
+                         fref_in=ref_in,
+                         output_dir='./',
+                         n_starts=int(inference_config['n_starts']),
+                         K=int(inference_config['n_cluster']),
+                         alpha0=float(inference_config['alpha0']),
+                         alphabet = 'ACGT-')
 
     return
 
@@ -295,7 +331,7 @@ def base_break(baselist):
     return rc
 
 
-def win_to_run(alpha_w, seed):
+def win_to_run(alpha_w, seed, f_inference_config):
     """Return windows to run on diri_sampler."""
 
     rn_list = []
@@ -307,7 +343,7 @@ def win_to_run(alpha_w, seed):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 15)
-        rn_list.append((winFile, j, alpha_w, seed))
+        rn_list.append((winFile, j, alpha_w, seed, f_inference_config))
 
     del end
     del(beg, chr1)
@@ -388,6 +424,7 @@ def main(args):
     ignore_indels = args.ignore_indels
     maxthreads = args.maxthreads
     path_insert_file = args.path_insert_file
+    f_inference_config = args.f_inference_config
 
     logging.info(' '.join(sys.argv))
 
@@ -480,17 +517,21 @@ def main(args):
     # Now the windows and the error correction #
     ############################################
 
-    runlist = win_to_run(alpha, seed)
+    runlist = win_to_run(alpha, seed, f_inference_config)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
     if maxthreads:
         max_proc = min(max_proc, maxthreads)
     logging.info('CPU(s) count %u, max thread limit %u, will run %u parallel dpm_sampler', cpu_count(), maxthreads, max_proc)
-    pool = Pool(processes=max_proc)
-    pool.map(run_dpm, runlist)
-    pool.close()
-    pool.join()
+
+    from multiprocessing import Process
+    all_processes = [Process(target=run_dpm, args=(run_set,)) for run_set in runlist]
+    for p in all_processes:
+      p.start()
+
+    for p in all_processes:
+      p.join()
 
     # prepare directories
     if keep_all_files:
@@ -504,7 +545,7 @@ def main(args):
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a, s = i
+        winFile, j, a, s, f_inference_config = i
         del a  # in future alpha might be different on each window
         del s
         # greedy re match to handle situation where '.' or '-' appears in the

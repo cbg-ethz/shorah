@@ -327,7 +327,7 @@ def main(args):
     # snpD_m is the file with the 'consensus' SNVs (from different windows)
     logging.debug('now parsing SNVs')
     all_SNVs = getSNV(ref_m, posterior_thresh)
-    writeRaw(all_SNVs, min_windows_coverage=2)
+    writeRaw(all_SNVs, min_windows_coverage=1) # min_windows_coverage = 2 usually 
 
     with open('raw_snv.tsv') as f_raw_snv:
         windows_header_row = f_raw_snv.readline().split('\t')

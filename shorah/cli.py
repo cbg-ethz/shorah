@@ -172,6 +172,10 @@ def main():
                                 required=False, default=None, dest="path_insert_file",
                                 help="path to an (optional) insert file (primer tiling strategy)")
 
+    parser_shotgun.add_argument("--inference-config-file", metavar='INFERENCE_FILE', type=str,
+                                required=False, default='', dest="f_inference_config",
+                                help="config-yaml file to specify the local haplotype inference method.")
+
     parser_shotgun.set_defaults(func=shotgun_run)
 
     # create the parser for command "snv"
