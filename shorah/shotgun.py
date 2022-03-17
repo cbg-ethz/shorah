@@ -406,7 +406,8 @@ def main(args):
         seed = np.random.randint(100, size=1)
 
     incr = win_length // win_shifts
-    max_c = max_coverage // win_length
+    #max_c = max_coverage // win_length #TODO: Why is this done?
+    max_c = max_coverage
     keep_all_files = keep_files
 
     # run b2w
