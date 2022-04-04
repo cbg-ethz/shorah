@@ -306,7 +306,7 @@ def win_to_run(alpha_w, seed):
 
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
-        j = min(300000, int(cov) * 15)
+        j = min(300000, int(cov) * 20)
         rn_list.append((winFile, j, alpha_w, seed))
 
     del end
