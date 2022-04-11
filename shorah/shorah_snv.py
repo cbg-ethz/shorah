@@ -210,15 +210,36 @@ def getSNV(ref, window_thresh=0.9):
     """
 
     all_snp = {}
+    tmp = []
+
     # cycle over all windows reported in coverage.txt
     with open('coverage.txt') as cov_file, open('raw_snv_collected.tsv', 'w') as f_collect:
         f_collect.write('\t'.join(standard_header_row) + '\n')
         for i in cov_file:
             snp = parseWindow(i, ref, window_thresh)
+            winFile, chrom, beg, end, cov = i.rstrip().split('\t')
             #all_snp = join_snp_dict(all_snp, snp)
             for SNV_id, val in sorted(snp.items()):
                 all_snp = add_SNV_to_dict(all_snp, SNV_id, val)
                 f_collect.write('\t'.join(map(str, [val.chrom, val.pos, val.ref, val.var, val.freq, val.support])) + "\n")
+
+            # write co-occurring mutation to file
+            for SNV_id, val in sorted(snp.items()):
+                snv_dict = {'winFile': winFile,
+                            'chrom': chrom,
+                            'start': beg,
+                            'end': end,
+                            'coverage': cov,
+                            'position': val.pos,
+                            'ref': val.ref,
+                            'var': val.var,
+                            'freq': val.freq,
+                            'support': val.support}
+
+                tmp.append(snv_dict)
+    import pandas as pd
+    pd.DataFrame(tmp).to_csv('cooccurring_mutations.csv')
+
 
     return all_snp
 
