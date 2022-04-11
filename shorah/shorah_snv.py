@@ -319,6 +319,7 @@ def main(args):
     max_coverage = args.max_coverage
     ignore_indels = args.ignore_indels
     posterior_thresh = args.posterior_thresh
+    path_insert_file = args.path_insert_file
 
     logging.info(str(inspect.getfullargspec(main)))
     ref_m = dict([[s.id, str(s.seq).upper()]
@@ -327,7 +328,11 @@ def main(args):
     # snpD_m is the file with the 'consensus' SNVs (from different windows)
     logging.debug('now parsing SNVs')
     all_SNVs = getSNV(ref_m, posterior_thresh)
-    writeRaw(all_SNVs, min_windows_coverage=2)
+    if path_insert_file is None:
+        min_windows_coverage=2
+    else:
+        min_windows_coverage=1
+    writeRaw(all_SNVs, min_windows_coverage=min_windows_coverage)
 
     with open('raw_snv.tsv') as f_raw_snv:
         windows_header_row = f_raw_snv.readline().split('\t')
