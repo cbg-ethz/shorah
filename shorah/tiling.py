@@ -168,9 +168,7 @@ class PrimerTilingStrategy(TilingStrategy):
         #start = self.amplicons[0][0]
         #end = self.amplicons[-1][1]
         for amplicon in self.amplicons:
-            # amplicon[0] is 0-based
-            # amplicon[0]+1 is 1-baeed
-            rv.append( (amplicon[0]+1, amplicon[1] - amplicon[0]) )
+            rv.append( (amplicon[0], amplicon[1] - amplicon[0]) )
             # add two more windows +/-50bp
             #if amplicon[0]-50 > start:
             #    rv.append( (amplicon[0]-50, amplicon[1] - amplicon[0]) )
