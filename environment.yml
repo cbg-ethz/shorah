@@ -1,0 +1,9 @@
+name: shorah
+channels:
+  - bioconda
+dependencies:
+  - pip
+  - htslib >=1.9
+  - boost-cpp >=1.56
+  - pip:
+    - https://github.com/spaceben/shorah/releases/download/canary-eeec049/ShoRAH-0.1.0.tar.gz 

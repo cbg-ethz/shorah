@@ -158,13 +158,19 @@ file in directory
 
 
 ## Coding style
-All changes to the C++ code in `src/cpp` should always be formatted according to the included `.clang-format` style by doing
+All changes to the C++ code in `lib` should always be formatted according to the included `.clang-format` style by doing
 
 	clang-format -style=file -i src/cpp/*.[ch]pp
 
 in the root of the repository.
 
-All changes to the python code in `src/shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
+All changes to the python code in `shorah` should always be formatted conforming to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide. To this end, we advise to use [autopep8](https://pypi.python.org/pypi/autopep8).
+
+## Development/CI with Docker
+The following command will run the CI locally within Docker. 
+```bash
+docker run --rm -w="/usr/app" -it $(docker build -q .) bash
+```
 
 ## Contact
 

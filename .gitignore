@@ -3,6 +3,7 @@
 
 # Autotools cruft (NEVER check this into VCS)
 Makefile
+!docs/Makefile
 Makefile.in
 .version
 aclocal.m4
@@ -21,15 +22,9 @@ missing
 py-compile
 ar-lib
 test-driver
-/shorah
 
 # generated tarball
 shorah*.tar.bz2
-
-# executables
-b2w
-diri_sampler
-fil
 
 # samtools lib
 libbam.a
@@ -42,11 +37,11 @@ __pycache__/
 # OS X temporary files that should never be committed
 .DS_Store
 *.swp
-*.lock
 profile
 
 # other intermediate stuff
 build
+_build
 .eggs
 src/ShoRAH.egg-info/
 

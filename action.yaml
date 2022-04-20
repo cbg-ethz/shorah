@@ -1,0 +1,7 @@
+name: 'Test container'
+outputs:
+  out: 
+    description: 'The output'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
