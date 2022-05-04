@@ -50,9 +50,19 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                  'alpha0': alpha0,
                  'alphabet': alphabet} # N= #reads, K= #components
 
+    history_alpha= []
+    history_mean_log_pi = []
+    history_theta_c = []
+    history_theta_d = []
+    history_mean_log_theta = []
+    history_gamma_a = []
+    history_gamma_b = []
+    history_mean_log_gamma = []
+    history_mean_haplo = []
+    history_mean_cluster = []
+    history_elbo = []
 
     state_init_dict = initialization.draw_init_state(K, alpha0, alphabet, reads_list, reference_binary)
-
     state_init_dict.update({'lnB_alpha0': lnB(state_init_dict['alpha']),
                             'betaln_a0_b0': betaln(state_init_dict['gamma_a'],state_init_dict['gamma_b']),
                             'betaln_c0_d0': betaln(state_init_dict['theta_c'],state_init_dict['theta_d'])})
@@ -64,7 +74,6 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'mean_z0': state_init_dict['mean_cluster'],
                         'mean_log_pi': state_init_dict['mean_log_pi']})
 
-    list_history = [state_init_dict]
     end_time_intit =timer()
     dict_result.update({'time_initialization': end_time_intit-start_time})
 
@@ -74,10 +83,8 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
     exitflag=''# those can be deleted afterwardsd
     converged=False
     elbo=0
-    elbo_history=[]
     state_curr_dict = state_init_dict
     k=0
-
     while (converged==False) or (k<15):
 
         if iter<=1:
@@ -89,18 +96,26 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
             state_curr_dict.update({'digamma_c_d_sum': digamma_c_d_sum})
 
         state_curr_dict = update_eqs.update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_init_dict, state_curr_dict)
-        elbo_old = elbo
-        #print('ELBO ',elbo)
         elbo = elbo_eqs.compute_elbo(reads_weights,reads_seq_binary,reference_binary, state_init_dict, state_curr_dict)
 
-        elbo_history.append(elbo)
+        history_elbo.append(elbo)
+        history_alpha.append(state_curr_dict['alpha'])
+        history_mean_log_pi.append(state_curr_dict['mean_log_pi'])
+        history_theta_c.append(state_curr_dict['theta_c'])
+        history_theta_d.append(state_curr_dict['theta_d'])
+        history_mean_log_theta.append(state_curr_dict['mean_log_theta'])
+        history_gamma_a.append(state_curr_dict['gamma_a'])
+        history_gamma_b.append(state_curr_dict['gamma_b'])
+        history_mean_log_gamma.append(state_curr_dict['mean_log_gamma'])
+        history_mean_haplo.append(state_curr_dict['mean_haplo'])
+        history_mean_cluster.append(state_curr_dict['mean_cluster'])
 
         if iter>1:
-            if (elbo_history[-2]>elbo) and np.abs(elbo-elbo_history[-2])>1e-08 :
+            if (history_elbo[-2]>elbo) and np.abs(elbo-history_elbo[-2])>1e-08 :
                 message='Error: ELBO is decreasing.'
                 exitflag=-1
                 break
-            elif np.abs(elbo-elbo_history[-2]) <1e-08:
+            elif np.abs(elbo-history_elbo[-2]) <1e-08:
                 converged=True
                 k+=1
                 message='ELBO converged.'
@@ -110,17 +125,11 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
 
         #if k%10==0: # every 10th parameter set is saved to history
         state_curr_dict.update({'elbo':elbo})
-        list_history.append(state_curr_dict)
 
         iter+=1
     # End: While-loop
 
-    state_curr_dict.update({'elbo':elbo})
-    # save history
-    list_history.append(state_curr_dict)
-    df_history = pd.DataFrame(list_history)
-    df_history.to_csv(output_dir+'history_run'+str(start_id)+'.csv')
-
+    state_curr_dict.update({'elbo' : elbo})
     end_time_optimization = timer()
 
     dict_result.update({'exit_message': message,
@@ -128,7 +137,19 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'n_iterations': iter,
                         'converged': converged,
                         'elbo': elbo,
-                        'elbo_history': elbo_history,
+                        'history_mean_log_theta': history_mean_log_theta,
+                        'history_elbo': history_elbo,
+                        'history_alpha': history_alpha,
+                        'history_mean_log_pi': history_mean_log_pi,
+                        'history_theta_c': history_theta_c,
+                        'history_alpha': history_alpha,
+                        'history_theta_d': history_theta_d,
+                        'history_mean_log_theta': history_mean_log_theta,
+                        'history_gamma_a': history_gamma_a,
+                        'history_gamma_b': history_gamma_b,
+                        'history_mean_log_gamma': history_mean_log_gamma,
+                        'history_mean_haplo': history_mean_haplo,
+                        'history_mean_cluster': history_mean_cluster,
                         'time_optimization': end_time_optimization-end_time_intit,
                         'runtime_total': end_time_optimization-start_time})
 
@@ -148,6 +169,6 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
     pickle.dump(dict_result,f2)
     f2.close()
 
-    result=(state_init_dict, state_curr_dict)
+    result=(state_init_dict, state_curr_dict, dict_result)
 
     return result

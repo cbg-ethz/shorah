@@ -42,7 +42,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
         os.makedirs(output_dir) # Create a new directory because it does not exist
 
     # Read in reads
-    reference_seq, ref_id = preparation.load_reference_seq(fref_in) 
+    reference_seq, ref_id = preparation.load_reference_seq(fref_in)
     reference_binary = preparation.reference2binary(reference_seq, alphabet)
     if freads_in.endswith('fasta') or freads_in.endswith('fas'):
         reads_list= preparation.load_fasta2reads_list(freads_in, alphabet)
@@ -71,9 +71,8 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     outfile.write('number of reads '+ str(len(reads_list)) + '\n')
     outfile.write('number of components '+ str(K) + '\n')
 
-
     # Find best run
-    #if n_starts >1:
+    #if n_starts >1:\
     max_elbo = result_list[0][1]['elbo']
     max_idx = 0
     for idx, state_run in enumerate(result_list):
@@ -82,8 +81,6 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
         if max_elbo < curr_elbo:
             max_elbo = curr_elbo
             max_idx = idx
-    #else:
-    #    max_idx=0
 
 
     state_curr_dict = result_list[max_idx][1]
