@@ -31,8 +31,6 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
 
 def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,reads_list, reference_binary, reference_seq):
 
-
-
     mean_z = state_curr_dict['mean_cluster']
     mean_h = state_curr_dict['mean_haplo']
 
@@ -52,7 +50,6 @@ def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,
     L = reads_list[0].seq_binary.shape[0] # length of seq
 
     dict_summary={}
-
 
     unique_haplo = get_unique_haplotypes(mean_h, alphabet)
     unique_cluster = merge_cluster_assignments(mean_z,unique_haplo)

@@ -73,15 +73,27 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
 
     # Find best run
     #if n_starts >1:\
-    max_elbo = result_list[0][1]['elbo']
-    max_idx = 0
+    #max_elbo = result_list[0][1]['elbo']
+    #max_idx = 0
+    sort_elbo = []
     for idx, state_run in enumerate(result_list):
-        state_end_dict = state_run[1]
-        curr_elbo = state_end_dict['elbo']
-        if max_elbo < curr_elbo:
-            max_elbo = curr_elbo
-            max_idx = idx
+        #state_end_dict = state_run[1]
+        sort_elbo.append((idx,state_run[1]['elbo'] ))
+        #curr_elbo = state_end_dict['elbo']
+        #if max_elbo < curr_elbo:
+        #    max_elbo = curr_elbo
+        #    max_idx = idx
 
+    # sort list of tuple by ELBO value
+    sort_elbo.sort(key=lambda x:x[1], reverse=True)
+    max_idx = sort_elbo[0][0]
+    max_elbo = sort_elbo[0][1]
+    sort_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
+
+
+    f2 = open(output_name+'all_results.pkl',"wb")
+    pickle.dump(sort_results,f2)
+    f2.close()
 
     state_curr_dict = result_list[max_idx][1]
     outfile.write('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx) +'\n')
@@ -92,9 +104,6 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     # write output like in original shorah
     analyze_results.haplotypes_to_fasta(state_curr_dict, output_name+'support.fas')
     analyze_results.correct_reads(state_curr_dict, output_name+'cor.fas')
-
-    #analyze_results.haplotypes_to_fasta(state_curr_dict, output_dir+'support/'+fname_out_base+'.reads-support.fas')
-    #analyze_results.correct_reads(state_curr_dict, output_dir+'corrected/'+fname_out_base+'.reads-cor.fas')
 
     #f_best_run = open(output_dir+'debug/best_run.txt','w')
     f_best_run = open(output_name+'best_run.txt','w')

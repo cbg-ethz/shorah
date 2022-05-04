@@ -7,13 +7,11 @@ from scipy.special import digamma
 from scipy.stats._multivariate import _lnB as lnB
 from scipy.special import betaln
 
-
 # my python scripts
 from . import initialization
 from . import update_eqs
 from . import elbo_eqs
 from . import analyze_results
-
 
 """
 Parallelizing with Pool following:
@@ -153,21 +151,16 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'time_optimization': end_time_optimization-end_time_intit,
                         'runtime_total': end_time_optimization-start_time})
 
-    dict_result.update(state_curr_dict)
+    #dict_result.update(state_curr_dict)
     summary = analyze_results.summarize_results(state_curr_dict,
-                                                         alphabet,
-                                                         reads_seq_binary,
-                                                         reads_weights,
-                                                         reads_list,
-                                                         reference_binary,
-                                                         reference_seq)
+                                                alphabet,
+                                                reads_seq_binary,
+                                                reads_weights,
+                                                reads_list,
+                                                reference_binary,
+                                                reference_seq)
     dict_result.update(summary)
     state_curr_dict.update(summary)
-
-
-    f2 = open(output_dir+'results'+str(start_id)+'.pkl',"wb")
-    pickle.dump(dict_result,f2)
-    f2.close()
 
     result=(state_init_dict, state_curr_dict, dict_result)
 
