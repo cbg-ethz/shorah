@@ -8,7 +8,7 @@ import os
 import sys
 import jax.numpy as jnp
 import logging
-logging.basicConfig(filename='numpyro_run_mcmc.log', encoding='utf-8', level=logging.INFO)
+#logging.basicConfig(filename='numpyro_run_mcmc.log', encoding='utf-8', level=logging.INFO)
 
 numpyro.set_platform('cpu')
 #print('jax-version ',jax.__version__) #0.2.3

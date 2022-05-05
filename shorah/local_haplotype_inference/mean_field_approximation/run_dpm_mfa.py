@@ -7,6 +7,8 @@ import sys
 import os
 import pickle
 from timeit import default_timer as timer
+import logging
+logging.basicConfig(filename='shorah_inference.log', encoding='utf-8', level=logging.INFO)
 
 # my python-scripts
 from . import preparation
@@ -54,38 +56,21 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     end_time_init = timer()
     dict_runtime.update({'time_preparation': end_time_init-start_time})
     dict_runtime.update({'n_starts': n_starts})
-    #print('time_preparation', end_time_init-start_time)
 
     result_list = cavi.multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, n_starts, output_name)
 
     end_time_optimization = timer()
     dict_runtime.update({'time_optimization': end_time_optimization-end_time_init})
-    #print('time_optimization', end_time_optimization-end_time_init)
 
-    # Write summary output file
-    #outfile = open(output_dir+'debug/output_info.txt','w')
-    outfile = open(output_dir+'output_info.txt','w')
-    outfile.write('reference '+ fref_in + '\n')
-    outfile.write('reads '+ freads_in + '\n')
-    outfile.write('lenght of sequences '+ str(reads_list[0].seq_binary.shape[0]) + '\n')
-    outfile.write('number of reads '+ str(len(reads_list)) + '\n')
-    outfile.write('number of components '+ str(K) + '\n')
+    logging.info('reference '+ fref_in)
+    logging.info('reads '+ freads_in)
+    logging.info('lenght of sequences '+ str(reads_list[0].seq_binary.shape[0]))
+    logging.info('number of reads '+ str(len(reads_list)))
 
     # Find best run
-    #if n_starts >1:\
-    #max_elbo = result_list[0][1]['elbo']
-    #max_idx = 0
-    sort_elbo = []
-    for idx, state_run in enumerate(result_list):
-        #state_end_dict = state_run[1]
-        sort_elbo.append((idx,state_run[1]['elbo'] ))
-        #curr_elbo = state_end_dict['elbo']
-        #if max_elbo < curr_elbo:
-        #    max_elbo = curr_elbo
-        #    max_idx = idx
+    sort_elbo = [(idx,state_run[1]['elbo']) for idx, state_run in enumerate(result_list)]
+    sort_elbo.sort(key=lambda x:x[1], reverse=True) # sort list of tuple by ELBO value
 
-    # sort list of tuple by ELBO value
-    sort_elbo.sort(key=lambda x:x[1], reverse=True)
     max_idx = sort_elbo[0][0]
     max_elbo = sort_elbo[0][1]
     sort_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
@@ -94,12 +79,12 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     f2 = open(output_name+'all_results.pkl',"wb")
     pickle.dump(sort_results,f2)
     f2.close()
+    logging.info("Results dicts of all runs written to " + output_name+'all_results.pkl')
 
     state_curr_dict = result_list[max_idx][1]
-    outfile.write('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx) +'\n')
-    outfile.write('Best run -- clustering results: \n')
-    outfile = analyze_results.write_info2file(state_curr_dict, outfile, alphabet, reads_list, reads_seq_binary, reads_weights,reference_binary, reference_seq)
-    outfile.close()
+    logging.info('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx))
+    # TODO maybe write this to logging
+    # outfile = analyze_results.write_info2file(state_curr_dict, outfile, alphabet, reads_list, reads_seq_binary, reads_weights,reference_binary, reference_seq)
 
     # write output like in original shorah
     analyze_results.haplotypes_to_fasta(state_curr_dict, output_name+'support.fas')
@@ -113,9 +98,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
 
     end_time_total = timer()
     dict_runtime.update({'time_total': end_time_total-start_time})
-    #print('time_total', end_time_total-start_time)
 
-    #f = open(output_dir+'debug/runtime.pkl',"wb")
     f = open(output_name+'runtime.pkl',"wb")
     pickle.dump(dict_runtime,f)
     f.close()
@@ -140,7 +123,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
         else:
             os.remove(inf_file)
 
-
+    logging.info('Files cleaned up.')
 
 
 if __name__ == '__main__':
