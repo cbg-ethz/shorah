@@ -168,7 +168,7 @@ def run_dpm(run_setting):
         shutil.move(fstgz, './')
         subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
-    ref_in = filein.split('.')[0] + str('.ref.fas')
+    ref_in = filein.split('.reads.')[0] + str('.ref.fas')
 
     # if already run before, extract the read file
     fstgz = 'raw_reads/%s.reads.fas.gz' % stem
