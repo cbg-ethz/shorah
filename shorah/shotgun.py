@@ -150,7 +150,7 @@ def run_dpm(run_setting):
     """
     import subprocess
 
-    filein, j, a, seed, f_inference_config = run_setting
+    filein, j, a, seed, inference_type, n_max_haplotypes, n_mfa_starts = run_setting
 
     # if cor.fas.gz exists, skip
     # greedy re match to handle situation where '.reads' appears in the ID
@@ -185,7 +185,7 @@ def run_dpm(run_setting):
         shutil.move(ref_fstgz, './')
         subprocess.check_call(["gunzip", "%s-ref.gz" % stem])
 
-    if f_inference_config == '': # run the original sampler of ShoRAH
+    if inference_type == '': # run the original sampler of ShoRAH
 
         # dn = sys.path[0]
         #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
@@ -220,41 +220,39 @@ def run_dpm(run_setting):
             logging.error(f'{filein} - Run failed: {e}')
 
     else:
-        # read the config file
-        import yaml
-        with open(f_inference_config) as file:
-            inference_config = yaml.full_load(file)
 
-            if inference_config['method'] == 'mean_field_approximation':
-                run_dpm_mfa.main(freads_in=filein,
-                         fref_in=ref_in,
-                         output_dir='./',
-                         n_starts=int(inference_config['n_starts']),
-                         K=int(inference_config['n_cluster']),
-                         alpha0=float(inference_config['alpha0']),
-                         alphabet = 'ACGT-')
-
-            elif inference_config['method'] == 'gibbs_sampling':
-                run_gibbs.main(freads_in=filein,
-                               fref_in=ref_in,
-                               output_dir='./',
-                               alpha= float(inference_config['alpha0']),
-                               max_iter=int(inference_config['max_n_iterations']),
-                               thres_ess_max = float(inference_config['threshold_ess_max']),
-                               thres_rhat = float(inference_config['threshold_rhat'])
-                               )
-            elif inference_config['method'] == 'numpyro_finiteDPM':
-                run_mcmc.main(freads_in = filein,
-                               fref_in = ref_in,
-                               output_dir = './',
-                               alpha0 = float(inference_config['alpha0']),
-                               max_num_samples = int(inference_config['max_n_iterations']),
-                               cluster_num = int(inference_config['n_cluster']),
-                               str_model = 'finiteDPM',
-                               alphabet = 'ACGT-',
-                               thres_ess_max = float(inference_config['threshold_ess_max']),
-                               thres_rhat = float(inference_config['threshold_rhat'])
-                               )
+        if inference_type == 'mean_field_approximation':
+            run_dpm_mfa.main(freads_in=filein,
+                     fref_in=ref_in,
+                     output_dir='./',
+                     n_starts=int(n_mfa_starts),
+                     K=int(n_max_haplotypes),
+                     alpha0=float(a),
+                     alphabet = 'ACGT-')
+        """
+        Outdated
+        elif inference_type == 'gibbs_sampling':
+            run_gibbs.main(freads_in=filein,
+                           fref_in=ref_in,
+                           output_dir='./',
+                           alpha= float(inference_config['alpha0']),
+                           max_iter=int(inference_config['max_n_iterations']),
+                           thres_ess_max = float(inference_config['threshold_ess_max']),
+                           thres_rhat = float(inference_config['threshold_rhat'])
+                           )
+        elif inference_type == 'numpyro_finiteDPM':
+            run_mcmc.main(freads_in = filein,
+                           fref_in = ref_in,
+                           output_dir = './',
+                           alpha0 = float(inference_config['alpha0']),
+                           max_num_samples = int(inference_config['max_n_iterations']),
+                           cluster_num = int(inference_config['n_cluster']),
+                           str_model = 'finiteDPM',
+                           alphabet = 'ACGT-',
+                           thres_ess_max = float(inference_config['threshold_ess_max']),
+                           thres_rhat = float(inference_config['threshold_rhat'])
+                           )
+        """
 
     return
 
@@ -355,7 +353,7 @@ def base_break(baselist):
     return rc
 
 
-def win_to_run(alpha_w, seed, f_inference_config):
+def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts):
     """Return windows to run on diri_sampler."""
 
     rn_list = []
@@ -367,7 +365,7 @@ def win_to_run(alpha_w, seed, f_inference_config):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 20)
-        rn_list.append((winFile, j, alpha_w, seed, f_inference_config))
+        rn_list.append((winFile, j, alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts))
 
     del end
     del(beg, chr1)
@@ -448,7 +446,9 @@ def main(args):
     ignore_indels = args.ignore_indels
     maxthreads = args.maxthreads
     path_insert_file = args.path_insert_file
-    f_inference_config = args.f_inference_config
+    inference_type = args.inference_type
+    n_max_haplotypes = args.n_max_haplotypes
+    n_mfa_starts = args.n_max_haplotypes
 
     logging.info(' '.join(sys.argv))
 
@@ -539,7 +539,7 @@ def main(args):
     # Now the windows and the error correction #
     ############################################
 
-    runlist = win_to_run(alpha, seed, f_inference_config)
+    runlist = win_to_run(alpha, seed, inference_type, n_max_haplotypes, n_mfa_starts)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
@@ -567,7 +567,7 @@ def main(args):
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a, s, f_inference_config = i
+        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts = i
         del a  # in future alpha might be different on each window
         del s
         # greedy re match to handle situation where '.' or '-' appears in the
