@@ -97,15 +97,15 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
         elbo = elbo_eqs.compute_elbo(reads_weights,reads_seq_binary,reference_binary, state_init_dict, state_curr_dict)
 
         history_elbo.append(elbo)
-        history_alpha.append(state_curr_dict['alpha'])
+        #history_alpha.append(state_curr_dict['alpha'])
         history_mean_log_pi.append(state_curr_dict['mean_log_pi'])
-        history_theta_c.append(state_curr_dict['theta_c'])
-        history_theta_d.append(state_curr_dict['theta_d'])
+        #history_theta_c.append(state_curr_dict['theta_c'])
+        #history_theta_d.append(state_curr_dict['theta_d'])
         history_mean_log_theta.append(state_curr_dict['mean_log_theta'])
-        history_gamma_a.append(state_curr_dict['gamma_a'])
-        history_gamma_b.append(state_curr_dict['gamma_b'])
+        #history_gamma_a.append(state_curr_dict['gamma_a'])
+        #history_gamma_b.append(state_curr_dict['gamma_b'])
         history_mean_log_gamma.append(state_curr_dict['mean_log_gamma'])
-        history_mean_haplo.append(state_curr_dict['mean_haplo'])
+        #history_mean_haplo.append(state_curr_dict['mean_haplo'])
         history_mean_cluster.append(state_curr_dict['mean_cluster'])
 
         if iter>1:
