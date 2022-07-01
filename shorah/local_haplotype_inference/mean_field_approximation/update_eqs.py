@@ -19,20 +19,16 @@ def update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_i
     #alpha_updated = state_curr['alpha']
     mean_log_pi = state_curr['mean_log_pi']
     digamma_alpha_sum = state_curr['digamma_alpha_sum']
-
     mean_log_gamma = state_curr['mean_log_gamma']
     digamma_a_b_sum=state_curr['digamma_a_b_sum']
     digamma_c_d_sum=state_curr['digamma_c_d_sum']
-
     mean_log_theta = state_curr['mean_log_theta']
+    
     mean_h = update_mean_haplo(reads_seq_binary, reads_weights, reads_list,reference_binary,mean_z,mean_log_theta,mean_log_gamma)
     mean_z = update_mean_cluster(reads_seq_binary, reads_list,mean_log_pi,mean_h,mean_log_theta)
     alpha_updated = update_alpha(alpha0, mean_z, reads_list,reads_weights)
-
     mean_log_pi = get_mean_log_pi(alpha_updated, digamma_alpha_sum)
-
     a_updated,b_updated = update_a_and_b(reference_binary,mean_h,a,b)
-
     mean_log_gamma =get_mean_log_beta_dist(a_updated,b_updated,digamma_a_b_sum)
 
     c_updated,d_updated = update_c_and_d(reads_seq_binary, reads_weights,reads_list, mean_z, mean_h, c,d)
@@ -51,8 +47,6 @@ def update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_i
                             'mean_haplo': mean_h,
                             'mean_cluster': mean_z
                             })
-    #print('one update ', timer()-sssstart_time)
-
 
     return state_curr_dict_new
 
@@ -72,7 +66,6 @@ def get_mean_log_beta_dist(a,b,digamma_sum):
     return mean_log_gamma, mean_log_gamma_inv
 
 def update_mean_cluster(reads_seq_binary,reads_list,mean_log_pi,mean_haplo,mean_log_theta):
-
     B = mean_haplo.shape[2]
 
     temp_haplo_k = mean_log_theta[0]*mean_haplo
@@ -84,9 +77,7 @@ def update_mean_cluster(reads_seq_binary,reads_list,mean_log_pi,mean_haplo,mean_
 
     del temp_haplo_k
     del temp_haplo_k_inv
-
-    #print('temp_c ', temp_c)
-
+    
     max_z = np.max(temp_c, axis=1)
     max_z = max_z[:, np.newaxis]
     mean_z= np.exp(temp_c-max_z)
@@ -106,14 +97,18 @@ def update_mean_haplo(reads_seq_binary, reads_weights, reads_list,reference_tabl
     all_N_pos=reads_seq_binary.sum(axis=2)>0# if reads_list[n].seq_binary[l].sum(axis=0)=0 then "N" at position l then position l is ignored
     temp_sum = np.add(np.ones(reads_seq_binary.shape),(-1)*reads_seq_binary)
     reads_seq_binary_inv = np.einsum('NL,NLB->NLB',all_N_pos, temp_sum)
-    del temp_sum
+
     del all_N_pos
+    del temp_sum
+
     mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,mean_cluster)
 
     log_mean_haplo = b1*np.einsum('NLB,NK->KLB', reads_seq_binary, mean_cluster_weight) # shape: (K,L,B)
     log_mean_haplo += b2*np.einsum('NLB,NK->KLB', reads_seq_binary_inv, mean_cluster_weight)
     log_mean_haplo[:] += ref_part
-    del mean_cluster_weight
+
+    del ref_part
+
     max_hap = np.max(log_mean_haplo, axis=2) # shape: (K,L)
     max_hap = max_hap[:, :, np.newaxis]
     mean_haplo = np.exp(log_mean_haplo-max_hap)
