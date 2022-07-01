@@ -448,7 +448,7 @@ def main(args):
     path_insert_file = args.path_insert_file
     inference_type = args.inference_type
     n_max_haplotypes = args.n_max_haplotypes
-    n_mfa_starts = args.n_max_haplotypes
+    n_mfa_starts = args.n_mfa_starts
 
     logging.info(' '.join(sys.argv))
 

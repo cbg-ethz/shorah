@@ -23,13 +23,14 @@ def update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_i
     digamma_a_b_sum=state_curr['digamma_a_b_sum']
     digamma_c_d_sum=state_curr['digamma_c_d_sum']
     mean_log_theta = state_curr['mean_log_theta']
+    
     mean_h = update_mean_haplo(reads_seq_binary, reads_weights, reads_list,reference_binary,mean_z,mean_log_theta,mean_log_gamma)
     mean_z = update_mean_cluster(reads_seq_binary, reads_list,mean_log_pi,mean_h,mean_log_theta)
     alpha_updated = update_alpha(alpha0, mean_z, reads_list,reads_weights)
     mean_log_pi = get_mean_log_pi(alpha_updated, digamma_alpha_sum)
     a_updated,b_updated = update_a_and_b(reference_binary,mean_h,a,b)
-
     mean_log_gamma =get_mean_log_beta_dist(a_updated,b_updated,digamma_a_b_sum)
+
     c_updated,d_updated = update_c_and_d(reads_seq_binary, reads_weights,reads_list, mean_z, mean_h, c,d)
     mean_log_theta = get_mean_log_beta_dist(c_updated,d_updated,digamma_c_d_sum)
     state_curr_dict_new = dict({'alpha': alpha_updated,
@@ -76,7 +77,7 @@ def update_mean_cluster(reads_seq_binary,reads_list,mean_log_pi,mean_haplo,mean_
 
     del temp_haplo_k
     del temp_haplo_k_inv
-
+    
     max_z = np.max(temp_c, axis=1)
     max_z = max_z[:, np.newaxis]
     mean_z= np.exp(temp_c-max_z)

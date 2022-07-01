@@ -83,7 +83,7 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
     elbo=0
     state_curr_dict = state_init_dict
     k=0
-    while (converged==False) or (k<15):
+    while (converged==False):
 
         if iter<=1:
             digamma_alpha_sum=digamma(state_curr_dict['alpha'].sum(axis=0))
@@ -113,7 +113,7 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                 message='Error: ELBO is decreasing.'
                 exitflag=-1
                 break
-            elif np.abs(elbo-history_elbo[-2]) <1e-08:
+            elif np.abs(elbo-history_elbo[-2]) <1e-03:
                 converged=True
                 k+=1
                 message='ELBO converged.'
