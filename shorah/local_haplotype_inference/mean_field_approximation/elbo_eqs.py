@@ -4,17 +4,14 @@ import numpy as np
 from scipy.stats._multivariate import _lnB as lnB
 
 
-def compute_elbo(reads_weights,reads_seq_binary, reference_binary, state_init, state_curr):
+def compute_elbo(reads_weights, reference_binary, reads_log_error_proba, state_init, state_curr):
 
     alpha0 = state_init['alpha']
     a = state_init['gamma_a']
     b = state_init['gamma_b']
-    c = state_init['theta_c']
-    d = state_init['theta_d']
 
     lnB_alpha0= state_init['lnB_alpha0']
     betaln_a0_b0=state_init['betaln_a0_b0']
-    betaln_c0_d0=state_init['betaln_c0_d0']
 
     mean_z = state_curr['mean_cluster']
     mean_h = state_curr['mean_haplo']
@@ -26,35 +23,19 @@ def compute_elbo(reads_weights,reads_seq_binary, reference_binary, state_init, s
     b_updated = state_curr['gamma_b']
     mean_log_gamma = state_curr['mean_log_gamma']
 
-    c_updated = state_curr['theta_c']
-    d_updated = state_curr['theta_d']
-    mean_log_theta = state_curr['mean_log_theta']
-
-    elbo =elbo_data(reads_weights, reads_seq_binary,mean_z, mean_h, mean_log_theta)
+    elbo =elbo_data(reads_weights,mean_z, mean_h, reads_log_error_proba)
     elbo+=elbo_pi(alpha0,lnB_alpha0, alpha_updated, mean_log_pi)
     elbo+=elbo_cluster(mean_z, mean_log_pi, reads_weights)
     elbo+=elbo_haplo(reference_binary, mean_h, mean_log_gamma)
     elbo+=elbo_gamma(a,b,betaln_a0_b0,mean_log_gamma,a_updated,b_updated)
-    elbo+=elbo_gamma(c,d,betaln_c0_d0, mean_log_theta,c_updated,d_updated)
 
     return elbo
 
-def elbo_data(reads_weights,reads_seq_binary,mean_cluster, mean_haplo, mean_log_theta):
-    B = mean_haplo.shape[2]
+def elbo_data(reads_weights,mean_cluster, mean_haplo, reads_log_error_proba):
 
-    b1=mean_log_theta[0]
-    b2=(mean_log_theta[1]-np.log(B-1))
-
-    all_N_pos=reads_seq_binary.sum(axis=2)>0
-    temp_sum = np.add(np.ones(reads_seq_binary.shape),(-1)*reads_seq_binary)
-
-    reads_seq_binary_inv = np.einsum('NL,NLB->NLB',all_N_pos, temp_sum)
-    temp_c = np.einsum('NLB,KLB->NK',b1*reads_seq_binary, mean_haplo)
-    temp_c += np.einsum('NLB,KLB->NK',b2*reads_seq_binary_inv,mean_haplo)
-
+    haplo_error_rate_part = np.einsum('NLB,KLB->NK', reads_log_error_proba, mean_haplo)
     mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,mean_cluster)
-
-    final = np.einsum('NK,NK->' ,mean_cluster_weight,temp_c)
+    final = np.einsum('NK,NK->' ,mean_cluster_weight,haplo_error_rate_part)
 
     return final
 

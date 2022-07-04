@@ -25,11 +25,11 @@ def collect_result(result):
     results.append(result)
 
 
-def multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list,reads_seq_binary, reads_weights, n_starts, output_dir):
+def multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list,reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_dir):
 
     pool = mp.Pool(mp.cpu_count())
     for start in range(n_starts):
-        pool.apply_async(run_cavi, args=(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights,start, output_dir), callback=collect_result)
+        pool.apply_async(run_cavi, args=(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start, output_dir), callback=collect_result)
 
     pool.close()
     pool.join()
@@ -37,7 +37,7 @@ def multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_
     return results
 
 
-def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights,start_id, output_dir):
+def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start_id, output_dir):
     """
     Runs cavi (coordinate ascent variational inference).
     """
@@ -50,9 +50,6 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
 
     history_alpha= []
     history_mean_log_pi = []
-    history_theta_c = []
-    history_theta_d = []
-    history_mean_log_theta = []
     history_gamma_a = []
     history_gamma_b = []
     history_mean_log_gamma = []
@@ -62,12 +59,10 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
 
     state_init_dict = initialization.draw_init_state(K, alpha0, alphabet, reads_list, reference_binary)
     state_init_dict.update({'lnB_alpha0': lnB(state_init_dict['alpha']),
-                            'betaln_a0_b0': betaln(state_init_dict['gamma_a'],state_init_dict['gamma_b']),
-                            'betaln_c0_d0': betaln(state_init_dict['theta_c'],state_init_dict['theta_d'])})
+                            'betaln_a0_b0': betaln(state_init_dict['gamma_a'],state_init_dict['gamma_b'])})
 
     # write initial values to dict
-    dict_result.update({'theta0': state_init_dict['mean_log_theta'][0],
-                        'gamma0': state_init_dict['mean_log_gamma'][0],
+    dict_result.update({'gamma0': state_init_dict['mean_log_gamma'][0],
                         'mean_h0': state_init_dict['mean_haplo'],
                         'mean_z0': state_init_dict['mean_cluster'],
                         'mean_log_pi': state_init_dict['mean_log_pi']})
@@ -88,24 +83,15 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
         if iter<=1:
             digamma_alpha_sum=digamma(state_curr_dict['alpha'].sum(axis=0))
             digamma_a_b_sum=digamma(state_curr_dict['gamma_a']+state_curr_dict['gamma_b'])
-            digamma_c_d_sum=digamma(state_curr_dict['theta_c']+state_curr_dict['theta_d'])
             state_curr_dict.update({'digamma_alpha_sum': digamma_alpha_sum})
             state_curr_dict.update({'digamma_a_b_sum': digamma_a_b_sum})
-            state_curr_dict.update({'digamma_c_d_sum': digamma_c_d_sum})
 
-        state_curr_dict = update_eqs.update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_init_dict, state_curr_dict)
-        elbo = elbo_eqs.compute_elbo(reads_weights,reads_seq_binary,reference_binary, state_init_dict, state_curr_dict)
+        state_curr_dict = update_eqs.update(reads_seq_binary, reads_weights, reference_binary, reads_log_error_proba, state_init_dict, state_curr_dict)
+        elbo = elbo_eqs.compute_elbo(reads_weights,reference_binary, reads_log_error_proba,state_init_dict, state_curr_dict)
 
         history_elbo.append(elbo)
-        #history_alpha.append(state_curr_dict['alpha'])
         history_mean_log_pi.append(state_curr_dict['mean_log_pi'])
-        #history_theta_c.append(state_curr_dict['theta_c'])
-        #history_theta_d.append(state_curr_dict['theta_d'])
-        history_mean_log_theta.append(state_curr_dict['mean_log_theta'])
-        #history_gamma_a.append(state_curr_dict['gamma_a'])
-        #history_gamma_b.append(state_curr_dict['gamma_b'])
         history_mean_log_gamma.append(state_curr_dict['mean_log_gamma'])
-        #history_mean_haplo.append(state_curr_dict['mean_haplo'])
         history_mean_cluster.append(state_curr_dict['mean_cluster'])
 
         if iter>1:
@@ -135,14 +121,10 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'n_iterations': iter,
                         'converged': converged,
                         'elbo': elbo,
-                        'history_mean_log_theta': history_mean_log_theta,
                         'history_elbo': history_elbo,
                         'history_alpha': history_alpha,
                         'history_mean_log_pi': history_mean_log_pi,
-                        'history_theta_c': history_theta_c,
                         'history_alpha': history_alpha,
-                        'history_theta_d': history_theta_d,
-                        'history_mean_log_theta': history_mean_log_theta,
                         'history_gamma_a': history_gamma_a,
                         'history_gamma_b': history_gamma_b,
                         'history_mean_log_gamma': history_mean_log_gamma,
@@ -151,12 +133,14 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'time_optimization': end_time_optimization-end_time_intit,
                         'runtime_total': end_time_optimization-start_time})
 
+
     #dict_result.update(state_curr_dict)
     summary = analyze_results.summarize_results(state_curr_dict,
                                                 alphabet,
                                                 reads_seq_binary,
                                                 reads_weights,
                                                 reads_list,
+                                                reads_log_error_proba,
                                                 reference_binary,
                                                 reference_seq)
     dict_result.update(summary)

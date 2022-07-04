@@ -21,17 +21,12 @@ def draw_init_state(K, alpha0,alphabet,reads_list, reference_binary):
     mismatch = 2
 
     k = np.random.uniform(low=0.5, high=1.0,size=4)
-    #print('k ', k)
     a,b = matches*k[0], mismatch*k[1]
     c,d = matches*k[2], mismatch*k[3]
-    #print('matches ', matches)
-    #print('mismatch ', mismatch)
 
-    theta0 = np.random.beta(c,d)
     gamma0 = np.random.beta(a,b)
 
     mean_log_gamma = np.log(gamma0), np.log(1-gamma0)
-    mean_log_theta = np.log(theta0), np.log(1-theta0)
 
     mean_h = init_mean_haplo(K,L,alphabet,mean_log_gamma, reference_binary)
 
@@ -41,9 +36,6 @@ def draw_init_state(K, alpha0,alphabet,reads_list, reference_binary):
 
     state_init_dict = dict({'alpha': alpha_temp,
                             'mean_log_pi': mean_log_pi,
-                            'theta_c': c,
-                            'theta_d': d,
-                            'mean_log_theta': mean_log_theta,
                             'gamma_a': a,
                             'gamma_b': b,
                             'mean_log_gamma': mean_log_gamma,
@@ -76,45 +68,3 @@ def init_mean_haplo(K,L,alphabet,mean_log_gamma, reference_table):
             for base in range(len(alphabet)):
                 mean_haplo[k][position][base]=(base_true**reference_table[position][base])*(base_false**(1-reference_table[position][base]))
     return mean_haplo
-
-"""
-
-def precluster_Kmeans(K, reads_seqs):
-
-    X = vectorizer.fit_transform(reads_seqs)
-    model = KMeans(n_clusters=true_k, init='k-means++', max_iter=100, n_init=1)
-    model.fit(X)
-    kmeans = KMeans(n_clusters=K, random_state=0).fit(reads_table)
-    print(kmeans.labels_)
-    print(kmeans.labels_.shape)
-
-
-def precluster_AffinityPropagation(reads_seqs):
-
-    from sklearn.cluster import AffinityPropagation
-    import distance
-
-    reads_seqs = np.asarray(reads_seqs)
-    lev_similarity = -1*np.array([[distance.levenshtein(w1,w2) for w1 in reads_seqs] for w2 in reads_seqs])
-
-    affprop = AffinityPropagation(affinity="precomputed", damping=0.5)
-    affprop.fit(lev_similarity)
-    for cluster_id in np.unique(affprop.labels_):
-        exemplar = reads_seqs[affprop.cluster_centers_indices_[cluster_id]]
-        cluster = np.unique(reads_seqs[np.nonzero(affprop.labels_==cluster_id)])
-        cluster_str = ", ".join(cluster)
-        print(" - *%s:* %s" % (exemplar, cluster_str))
-
-
-def precluster_DBSCAN(reads_seqs):
-    from distance import levenshtein
-    from sklearn.cluster import dbscan
-    data = reads_seqs
-    def lev_metric(x, y):
-        i, j = int(x[0]), int(y[0])     # extract indices
-        return levenshtein(data[i], data[j])
-
-    X = np.arange(len(data)).reshape(-1, 1)
-    db=dbscan(X, metric=lev_metric, eps=5, min_samples=2).fit(X)
-    print(db.labels_)
-"""

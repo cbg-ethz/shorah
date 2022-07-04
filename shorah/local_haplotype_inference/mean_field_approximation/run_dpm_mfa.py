@@ -31,7 +31,7 @@ def gzip_file(f_name):
 
     return f_out.name
 
-def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'):
+def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'):
     start_time = timer()
 
     window_id = freads_in.split('/')[-1][:-4] # freads_in is absolute path
@@ -52,12 +52,14 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
         reads_list= preparation.load_bam2reads_list(freads_in, alphabet)
 
     reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
+    qualities = preparation.get_average_qualities(fname_qualities, reads_list)
+    reads_log_error_proba = preparation.get_reads_log_error_proba(qualities, reads_seq_binary, len(alphabet))
 
     end_time_init = timer()
     dict_runtime.update({'time_preparation': end_time_init-start_time})
     dict_runtime.update({'n_starts': n_starts})
 
-    result_list = cavi.multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, n_starts, output_name)
+    result_list = cavi.multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_name)
 
     end_time_optimization = timer()
     dict_runtime.update({'time_optimization': end_time_optimization-end_time_init})

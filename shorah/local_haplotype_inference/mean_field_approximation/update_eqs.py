@@ -4,14 +4,12 @@ import numpy as np
 #from timeit import default_timer as timer
 
 
-def update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_init, state_curr):
+def update(reads_seq_binary, reads_weights, reference_binary, reads_log_error_proba, state_init, state_curr):
 
     #sssstart_time = timer()
     alpha0 = state_init['alpha']
     a = state_init['gamma_a']
     b = state_init['gamma_b']
-    c = state_init['theta_c']
-    d = state_init['theta_d']
 
     mean_z = state_curr['mean_cluster']
     mean_h = state_curr['mean_haplo']
@@ -21,27 +19,18 @@ def update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_i
     digamma_alpha_sum = state_curr['digamma_alpha_sum']
     mean_log_gamma = state_curr['mean_log_gamma']
     digamma_a_b_sum=state_curr['digamma_a_b_sum']
-    digamma_c_d_sum=state_curr['digamma_c_d_sum']
-    mean_log_theta = state_curr['mean_log_theta']
-    
-    mean_h = update_mean_haplo(reads_seq_binary, reads_weights, reads_list,reference_binary,mean_z,mean_log_theta,mean_log_gamma)
-    mean_z = update_mean_cluster(reads_seq_binary, reads_list,mean_log_pi,mean_h,mean_log_theta)
-    alpha_updated = update_alpha(alpha0, mean_z, reads_list,reads_weights)
+    mean_h = update_mean_haplo(reads_weights,reference_binary, reads_log_error_proba, mean_z,mean_log_gamma)
+    mean_z = update_mean_cluster(mean_log_pi,mean_h,reads_log_error_proba)
+    alpha_updated = update_alpha(alpha0, mean_z,reads_weights)
     mean_log_pi = get_mean_log_pi(alpha_updated, digamma_alpha_sum)
     a_updated,b_updated = update_a_and_b(reference_binary,mean_h,a,b)
     mean_log_gamma =get_mean_log_beta_dist(a_updated,b_updated,digamma_a_b_sum)
 
-    c_updated,d_updated = update_c_and_d(reads_seq_binary, reads_weights,reads_list, mean_z, mean_h, c,d)
-    mean_log_theta = get_mean_log_beta_dist(c_updated,d_updated,digamma_c_d_sum)
     state_curr_dict_new = dict({'alpha': alpha_updated,
                             'mean_log_pi': mean_log_pi,
-                            'theta_c': c_updated,
-                            'theta_d': d_updated,
-                            'mean_log_theta': mean_log_theta,
                             'gamma_a': a_updated,
                             'gamma_b': b_updated,
                             'digamma_alpha_sum':digamma_alpha_sum,
-                            'digamma_c_d_sum':digamma_c_d_sum,
                             'digamma_a_b_sum':digamma_a_b_sum,
                             'mean_log_gamma': mean_log_gamma,
                             'mean_haplo': mean_h,
@@ -65,19 +54,15 @@ def get_mean_log_beta_dist(a,b,digamma_sum):
     mean_log_gamma_inv = digamma(b)-digamma_sum
     return mean_log_gamma, mean_log_gamma_inv
 
-def update_mean_cluster(reads_seq_binary,reads_list,mean_log_pi,mean_haplo,mean_log_theta):
-    B = mean_haplo.shape[2]
+def update_mean_cluster(mean_log_pi,mean_haplo,reads_log_error_proba):
 
-    temp_haplo_k = mean_log_theta[0]*mean_haplo
-    temp_haplo_k_inv = (mean_log_theta[1]-np.log(B-1))*mean_haplo
+    haplo_error_rate_part = np.einsum('NLB,KLB->NK', reads_log_error_proba, mean_haplo)
 
-    temp_c = np.einsum('NLB,KLB->NK',reads_seq_binary,temp_haplo_k)
-    temp_c += np.einsum('NLB,KLB->NK',(1-reads_seq_binary),temp_haplo_k_inv)
+    temp_c = haplo_error_rate_part
     temp_c[:] += mean_log_pi
 
-    del temp_haplo_k
-    del temp_haplo_k_inv
-    
+    del haplo_error_rate_part
+
     max_z = np.max(temp_c, axis=1)
     max_z = max_z[:, np.newaxis]
     mean_z= np.exp(temp_c-max_z)
@@ -87,27 +72,20 @@ def update_mean_cluster(reads_seq_binary,reads_list,mean_log_pi,mean_haplo,mean_
 
     return mean_z
 
-def update_mean_haplo(reads_seq_binary, reads_weights, reads_list,reference_table, mean_cluster,mean_log_theta,mean_log_gamma):
+def update_mean_haplo(reads_weights,reference_table, reads_log_error_proba, mean_cluster,mean_log_gamma):
+
     B=reference_table.shape[1] # size of alphabet
-
-    ref_part=reference_table*mean_log_gamma[0]+(1-reference_table)*(mean_log_gamma[1]-np.log(B-1))
-    b1=mean_log_theta[0]
-    b2=(mean_log_theta[1]-np.log(B-1))
-
-    all_N_pos=reads_seq_binary.sum(axis=2)>0# if reads_list[n].seq_binary[l].sum(axis=0)=0 then "N" at position l then position l is ignored
-    temp_sum = np.add(np.ones(reads_seq_binary.shape),(-1)*reads_seq_binary)
-    reads_seq_binary_inv = np.einsum('NL,NLB->NLB',all_N_pos, temp_sum)
-
-    del all_N_pos
-    del temp_sum
+    ref_part = reference_table*mean_log_gamma[0]+(1-reference_table)*(mean_log_gamma[1]-np.log(B-1))
 
     mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,mean_cluster)
+    cluster_assignment_part = np.einsum('NLB,NK->KLB', reads_log_error_proba, mean_cluster_weight)
 
-    log_mean_haplo = b1*np.einsum('NLB,NK->KLB', reads_seq_binary, mean_cluster_weight) # shape: (K,L,B)
-    log_mean_haplo += b2*np.einsum('NLB,NK->KLB', reads_seq_binary_inv, mean_cluster_weight)
+    log_mean_haplo = cluster_assignment_part # shape: (K,L,B)
     log_mean_haplo[:] += ref_part
 
     del ref_part
+    del cluster_assignment_part
+    del mean_cluster_weight
 
     max_hap = np.max(log_mean_haplo, axis=2) # shape: (K,L)
     max_hap = max_hap[:, :, np.newaxis]
@@ -129,7 +107,7 @@ def update_a_and_b(reference_table,mean_haplo,a,b):
 
     return up_a,up_b
 
-def update_c_and_d(reads_seq_binary, reads_weights,reads_list, mean_cluster, mean_haplo, c,d):
+def update_c_and_d(reads_seq_binary, reads_weights, mean_cluster, mean_haplo, c,d):
 
     mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,mean_cluster)
 
@@ -143,7 +121,7 @@ def update_c_and_d(reads_seq_binary, reads_weights,reads_list, mean_cluster, mea
 
     return up_c,up_d
 
-def update_alpha(alpha, mean_cluster, reads_list,reads_weights):
+def update_alpha(alpha, mean_cluster,reads_weights):
 
     temp_alpha = alpha.copy()
     temp_mean_cluster = mean_cluster.copy()

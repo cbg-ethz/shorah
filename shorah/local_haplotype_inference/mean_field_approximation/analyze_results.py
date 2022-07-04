@@ -29,7 +29,7 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
 
         SeqIO.write(records, output_dir, "fasta")
 
-def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,reads_list, reference_binary, reference_seq):
+def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,reads_list, reads_log_error_proba, reference_binary, reference_seq):
 
     mean_z = state_curr_dict['mean_cluster']
     mean_h = state_curr_dict['mean_haplo']
@@ -41,9 +41,6 @@ def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,
     b_updated = state_curr_dict['gamma_b']
     mean_log_gamma = state_curr_dict['mean_log_gamma']
 
-    c_updated = state_curr_dict['theta_c']
-    d_updated = state_curr_dict['theta_d']
-    mean_log_theta = state_curr_dict['mean_log_theta']
 
     K = len(alpha_updated)
     N = len(reads_list) # number of reads
@@ -53,7 +50,7 @@ def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,
 
     unique_haplo = get_unique_haplotypes(mean_h, alphabet)
     unique_cluster = merge_cluster_assignments(mean_z,unique_haplo)
-    unique_mean_h = update_eqs.update_mean_haplo(reads_seq_binary, reads_weights,reads_list,reference_binary,unique_cluster,mean_log_theta,mean_log_gamma)
+    unique_mean_h = update_eqs.update_mean_haplo(reads_weights,reference_binary,reads_log_error_proba,unique_cluster,mean_log_gamma)
     unique_haplo_posterior = compute_unique_haplo_posterior(unique_mean_h,unique_haplo,alphabet)
 
     for k in range(len(unique_haplo)):

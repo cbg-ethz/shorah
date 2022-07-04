@@ -22,6 +22,56 @@ class Read:
         self.seq_binary = seq_table
 
 
+def get_average_qualities(fname_qualities, reads_list):
+
+    with open(fname_qualities, 'rb') as f:
+        qualities = np.load(f, allow_pickle = True)
+
+    # get average of qualties scores for same reads
+    unique_qualities = np.full((len(reads_list), int(qualities.shape[1])),1)
+
+    # get average of qualties scores for same reads
+    for i, temp_read in enumerate(reads_list):
+        unique_qualities[i]+= qualities[i]
+        if len(temp_read.identical_reads) > 0:
+            for j in temp_read.idx_identical_reads:
+                unique_qualities[i]+= qualities[j]
+            unique_qualities[i] = unique_qualities[i]/temp_read.weight
+
+    return unique_qualities
+
+def get_reads_log_error_proba(qualities, reads_seq_binary, size_alphabet):
+    """
+    \log \theta_{n,l}^{r_{nl}^i}  \left( \frac{1-\theta_{n,l}}{B-1}\right)^{(1-r_{nl}^i)} \right)
+    Do I need the weights? No this can be integrated later in update_eqs.py
+    """
+    reads_log_error_proba = 1 - 10**(-qualities/10)
+    reads_log_error_proba = reads_log_error_proba[:,:,np.newaxis]
+    reads_log_error_proba = np.tile(reads_log_error_proba, (1,1,size_alphabet))
+
+    reads_log_inv_error_proba = (10**(-qualities/10)) / (size_alphabet-1)
+    # this was written in the old version I dont know why there is the 1- () in the denominator
+    # reads_log_inv_error_proba = (10**(-qualities/10)) / (1 - (size_alphabet-1))
+    reads_log_inv_error_proba = reads_log_inv_error_proba[:,:,np.newaxis]
+    reads_log_inv_error_proba = np.tile(reads_log_inv_error_proba, (1,1,size_alphabet))
+
+    reads_log_error_proba = np.power(reads_log_error_proba, reads_seq_binary)
+    reads_log_error_proba += np.power(reads_log_inv_error_proba, (1-reads_seq_binary))
+    reads_log_error_proba = np.log(reads_log_error_proba) # dimension: NxLxB
+
+    # if reads_list[n].seq_binary[l].sum(axis=0)=0 then "N" at position l then position l is ignored
+    # there will be a zero in the row n,l
+    # dimension: NL
+    all_N_pos=reads_seq_binary.sum(axis=2)>0
+    all_N_pos= all_N_pos[:,:,np.newaxis]
+    all_N_pos = np.tile(all_N_pos, (1,1,size_alphabet))
+
+    # write zero where there is an "N"  in the position
+    reads_log_error_proba[~all_N_pos]=0
+
+    return reads_log_error_proba # dimension: NxLxB
+
+
 def reads_list_to_array(reads_list):
 
     reads_binary=[reads_list[n].seq_binary for n in range(len(reads_list))]
@@ -54,7 +104,7 @@ def load_fasta2reads_list(reads_fasta_file, alphabet):
         reads_list.append(Read(str(seq),seq.metadata['id']))
         reads_list[-1].seq2binary(alphabet)
     # unique reads_list
-    reads_list = unique_reads_list(reads_list)
+    #reads_list = unique_reads_list(reads_list)
 
     return reads_list
 
