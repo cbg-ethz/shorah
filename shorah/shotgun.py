@@ -185,6 +185,14 @@ def run_dpm(run_setting):
         shutil.move(ref_fstgz, './')
         subprocess.check_call(["gunzip", "%s-ref.gz" % stem])
 
+    fname_qualities = filein.split('.reads.')[0] + str('.qualities.npy')
+    fqual_fstgz = 'raw_reads/%s.qualities.npy.gz' % stem
+    if os.path.exists(fname_qualities):
+        pass
+    elif os.path.exists(fqual_fstgz):
+        shutil.move(fqual_fstgz, './')
+        subprocess.check_call(["gunzip", "%s-qualities.gz" % stem])
+
     if inference_type == '': # run the original sampler of ShoRAH
 
         # dn = sys.path[0]
@@ -224,6 +232,7 @@ def run_dpm(run_setting):
         if inference_type == 'mean_field_approximation':
             run_dpm_mfa.main(freads_in=filein,
                      fref_in=ref_in,
+                     fname_qualities= fname_qualities,
                      output_dir='./',
                      n_starts=int(n_mfa_starts),
                      K=int(n_max_haplotypes),
