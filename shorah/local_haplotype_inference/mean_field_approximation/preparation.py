@@ -44,32 +44,37 @@ def get_reads_log_error_proba(qualities, reads_seq_binary, size_alphabet):
     """
     \log \theta_{n,l}^{r_{nl}^i}  \left( \frac{1-\theta_{n,l}}{B-1}\right)^{(1-r_{nl}^i)} \right)
     Do I need the weights? No this can be integrated later in update_eqs.py
+
+    theta_{n,l} = probabiltiy that at positiion l in read n the base was called without error
+    1 - theta_{n,l} = error probablity, e.g. probablity that at position l in read n the base was called erroneous.
+
+    input-qualities:
+    Q_{n,l} = confidence of the sequencer that base at position l in read n was called correctly.
     """
-    reads_log_error_proba = 1 - 10**(-qualities/10)
-    reads_log_error_proba = reads_log_error_proba[:,:,np.newaxis]
-    reads_log_error_proba = np.tile(reads_log_error_proba, (1,1,size_alphabet))
+    theta =  1 - 10**(-qualities/10) # dimension: N X L
+    one_minus_theta = (1 - theta)/ (size_alphabet-1)
 
-    reads_log_inv_error_proba = (10**(-qualities/10)) / (size_alphabet-1)
-    # this was written in the old version I dont know why there is the 1- () in the denominator
-    # reads_log_inv_error_proba = (10**(-qualities/10)) / (1 - (size_alphabet-1))
-    reads_log_inv_error_proba = reads_log_inv_error_proba[:,:,np.newaxis]
-    reads_log_inv_error_proba = np.tile(reads_log_inv_error_proba, (1,1,size_alphabet))
+    log_theta = np.log(theta)
+    log_theta = log_theta[:,:,np.newaxis]
+    log_theta = np.tile(log_theta, (1,1,size_alphabet))
 
-    reads_log_error_proba = np.power(reads_log_error_proba, reads_seq_binary)
-    reads_log_error_proba += np.power(reads_log_inv_error_proba, (1-reads_seq_binary))
-    reads_log_error_proba = np.log(reads_log_error_proba) # dimension: NxLxB
+    log_one_minus_theta = np.log(one_minus_theta)
+    log_one_minus_theta = log_one_minus_theta[:,:,np.newaxis]
+    log_one_minus_theta = np.tile(log_one_minus_theta, (1,1,size_alphabet))
+
+    final = np.einsum('NLB,NLB->NLB', log_theta, reads_seq_binary)
+    final += np.einsum('NLB,NLB->NLB', log_one_minus_theta, 1 - reads_seq_binary)
 
     # if reads_list[n].seq_binary[l].sum(axis=0)=0 then "N" at position l then position l is ignored
     # there will be a zero in the row n,l
-    # dimension: NL
+    # dimension: NxL
     all_N_pos=reads_seq_binary.sum(axis=2)>0
     all_N_pos= all_N_pos[:,:,np.newaxis]
     all_N_pos = np.tile(all_N_pos, (1,1,size_alphabet))
-
     # write zero where there is an "N"  in the position
-    reads_log_error_proba[~all_N_pos]=0
+    final[~all_N_pos]=0
 
-    return reads_log_error_proba # dimension: NxLxB
+    return final # dimension: NxLxB
 
 
 def reads_list_to_array(reads_list):
