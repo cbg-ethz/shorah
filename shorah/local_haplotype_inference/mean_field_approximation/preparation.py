@@ -109,7 +109,7 @@ def load_fasta2reads_list(reads_fasta_file, alphabet):
         reads_list.append(Read(str(seq),seq.metadata['id']))
         reads_list[-1].seq2binary(alphabet)
     # unique reads_list
-    #reads_list = unique_reads_list(reads_list)
+    reads_list = unique_reads_list(reads_list)
 
     return reads_list
 
