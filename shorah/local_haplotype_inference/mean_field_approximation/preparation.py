@@ -9,7 +9,7 @@ class Read:
         self.weight =1
         self.id = seq_id
         self.seq_binary=[]
-        self.identical_reads = []
+        self.idx_identical_reads = []
         self.n_non_N = len(seq_string) - seq_string.count('N')
 
     def seq2binary(self, alphabet):
@@ -149,7 +149,7 @@ def unique_reads_list(reads_list):
                 hd = hamming(Sequence(temp_read.seq_string), Sequence(reads_list[j].seq_string))
                 if hd==0:
                     temp_read.weight+=1
-                    temp_read.identical_reads.append(reads_list[j].id)
+                    temp_read.idx_identical_reads.append(reads_list[j].id)
                     reads_list[j].weight-=1
 
     # keep only unique reads_list
