@@ -34,7 +34,7 @@ def get_average_qualities(fname_qualities, reads_list):
     # get average of qualties scores for same reads
     for i, temp_read in enumerate(reads_list):
         unique_qualities[i]+= qualities[i]
-        if len(temp_read.identical_reads) > 0:
+        if len(temp_read.idx_identical_reads) > 0:
             for j in temp_read.idx_identical_reads:
                 unique_qualities[i]+= qualities[j]
             unique_qualities[i] = unique_qualities[i]/temp_read.weight
