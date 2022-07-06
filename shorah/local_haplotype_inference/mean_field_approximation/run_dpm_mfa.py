@@ -52,8 +52,11 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
         reads_list= preparation.load_bam2reads_list(freads_in, alphabet)
 
     reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
-    qualities = preparation.get_average_qualities(fname_qualities, reads_list)
-    reads_log_error_proba = preparation.get_reads_log_error_proba(qualities, reads_seq_binary, len(alphabet))
+    unique_theta, unique_one_minus_theta = preparation.get_average_theta(fname_qualities, reads_list, len(alphabet))
+    reads_log_error_proba = preparation.compute_reads_log_error_matrix(unique_theta, unique_one_minus_theta, reads_seq_binary, len(alphabet))
+
+    #qualities = preparation.get_average_qualities(fname_qualities, reads_list)
+    #reads_log_error_proba = preparation.get_reads_log_error_proba(qualities, reads_seq_binary, len(alphabet))
 
     end_time_init = timer()
     dict_runtime.update({'time_preparation': end_time_init-start_time})
