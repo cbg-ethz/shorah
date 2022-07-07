@@ -57,12 +57,12 @@ def get_average_theta(fname_qualities, reads_list, size_alphabet):
     for i, temp_read in enumerate(reads_list):
         unique_theta[i]= theta[i]
         unique_one_minus_theta[i]=one_minus_theta[i]
-        if len(temp_read.idx_identical_reads) > 0:
+        if temp_read.weight > 1:
             for j in temp_read.idx_identical_reads:
-                unique_theta[i]*= theta[j]
-                unique_one_minus_theta[i]*= one_minus_theta[j]
-            unique_theta[i] = (unique_theta[i])**(1/temp_read.weight)
-            unique_one_minus_theta[i] = unique_one_minus_theta[i]**(1/temp_read.weight)
+                unique_theta[i]+= theta[j]
+                unique_one_minus_theta[i]+= one_minus_theta[j]
+            unique_theta[i] = (unique_theta[i])/(temp_read.weight)
+            unique_one_minus_theta[i] = unique_one_minus_theta[i]/(temp_read.weight)
     return unique_theta, unique_one_minus_theta
 
 def compute_reads_log_error_matrix(theta, one_minus_theta, reads_seq_binary, size_alphabet):
