@@ -107,20 +107,6 @@ def update_a_and_b(reference_table,mean_haplo,a,b):
 
     return up_a,up_b
 
-def update_c_and_d(reads_seq_binary, reads_weights, mean_cluster, mean_haplo, c,d):
-
-    mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,mean_cluster)
-
-    up_c = c.copy()
-    temp_c = np.einsum('NLB,KLB->NK',reads_seq_binary,mean_haplo)
-    up_c += np.einsum('NK,NK->',temp_c,mean_cluster_weight)
-
-    up_d = d.copy()
-    temp_c = np.einsum('NLB,KLB->NK',reads_seq_binary,(1-mean_haplo))
-    up_d += np.einsum('NK,NK->',temp_c,mean_cluster_weight)
-
-    return up_c,up_d
-
 def update_alpha(alpha, mean_cluster,reads_weights):
 
     temp_alpha = alpha.copy()
