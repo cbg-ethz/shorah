@@ -10,10 +10,7 @@ class Read:
         self.phred_quality_score = None
         self.id = seq_id
         self.seq_binary=[]
-<<<<<<< HEAD
-=======
         self.identical_reads = []
->>>>>>> d0ae042ea5b95138ed90fb86344549f7d6018a5f
         self.idx_identical_reads = []
         self.n_non_N = len(seq_string) - seq_string.count('N')
 
