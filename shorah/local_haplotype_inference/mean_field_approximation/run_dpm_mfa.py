@@ -6,7 +6,6 @@ import numpy as np
 import sys
 import os
 import pickle
-from timeit import default_timer as timer
 import logging
 logging.basicConfig(filename='shorah_inference.log', encoding='utf-8', level=logging.INFO)
 
@@ -32,11 +31,10 @@ def gzip_file(f_name):
     return f_out.name
 
 def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'):
-    start_time = timer()
 
+    # TODO have the window idea maybe also passed from shotgun
     window_id = freads_in.split('/')[-1][:-4] # freads_in is absolute path
     window=[int(window_id.split('-')[2])-1,int(window_id.split('-')[3].split('.')[0])]
-    dict_runtime={'window_id': window_id}
 
     output_name = output_dir+window_id+'-'
 
@@ -44,25 +42,15 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
         os.makedirs(output_dir) # Create a new directory because it does not exist
 
     # Read in reads
-    reference_seq, ref_id = preparation.load_reference_seq(fref_in)
-    reference_binary = preparation.reference2binary(reference_seq, alphabet)
-    if freads_in.endswith('fasta') or freads_in.endswith('fas'):
-        reads_list= preparation.load_fasta2reads_list(freads_in, alphabet)
-    elif freads_in.endswith('bam'):
-        reads_list= preparation.load_bam2reads_list(freads_in, alphabet)
+    reference_binary, ref_id = preparation.load_reference_seq(fref_in, alphabet)
 
+    reads_list = preparation.load_fasta2reads_list(freads_in, fname_qualities, alphabet)
     reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
-    qualities = preparation.get_average_qualities(fname_qualities, reads_list)
+    #qualities = preparation.get_average_qualities(fname_qualities, reads_list)
+    qualities = preparation.get_qualities(reads_list)
     reads_log_error_proba = preparation.get_reads_log_error_proba(qualities, reads_seq_binary, len(alphabet))
 
-    end_time_init = timer()
-    dict_runtime.update({'time_preparation': end_time_init-start_time})
-    dict_runtime.update({'n_starts': n_starts})
-
-    result_list = cavi.multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_name)
-
-    end_time_optimization = timer()
-    dict_runtime.update({'time_optimization': end_time_optimization-end_time_init})
+    result_list = cavi.multistart_cavi(K, alpha0, alphabet, reference_binary, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_name)
 
     logging.info('reference '+ fref_in)
     logging.info('reads '+ freads_in)
@@ -85,8 +73,6 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
 
     state_curr_dict = result_list[max_idx][1]
     logging.info('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx))
-    # TODO maybe write this to logging
-    # outfile = analyze_results.write_info2file(state_curr_dict, outfile, alphabet, reads_list, reads_seq_binary, reads_weights,reference_binary, reference_seq)
 
     # write output like in original shorah
     analyze_results.haplotypes_to_fasta(state_curr_dict, output_name+'support.fas')
@@ -97,14 +83,6 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
     f_best_run.write(str(max_idx))
     f_best_run.close()
 
-
-    end_time_total = timer()
-    dict_runtime.update({'time_total': end_time_total-start_time})
-
-    f = open(output_name+'runtime.pkl',"wb")
-    pickle.dump(dict_runtime,f)
-    f.close()
-
     # clean up Files
     if os.path.exists(output_dir+'inference/')==False:
         os.makedirs(output_dir+'inference/')
@@ -112,7 +90,7 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
     import glob
     import shutil
 
-    inference_files = glob.glob('./w*best_run.txt') + glob.glob('./w*history_run*.csv') + glob.glob('./w*runtime.pkl') + glob.glob('./w*results*.pkl')
+    inference_files = glob.glob('./w*best_run.txt') + glob.glob('./w*history_run*.csv') + glob.glob('./w*results*.pkl')
 
     for inf_file in inference_files:
         if os.stat(inf_file).st_size > 0:

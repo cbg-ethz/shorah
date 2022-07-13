@@ -7,6 +7,7 @@ class Read:
     def __init__(self, seq_string, seq_id):
         self.seq_string=seq_string
         self.weight =1
+        self.phred_quality_score = None
         self.id = seq_id
         self.seq_binary=[]
         self.identical_reads = []
@@ -21,7 +22,7 @@ class Read:
 
         self.seq_binary = seq_table
 
-
+"""
 def get_average_qualities(fname_qualities, reads_list):
 
     with open(fname_qualities, 'rb') as f:
@@ -39,6 +40,7 @@ def get_average_qualities(fname_qualities, reads_list):
             unique_qualities[i] = unique_qualities[i]/temp_read.weight
 
     return unique_qualities
+"""
 
 def get_reads_log_error_proba(qualities, reads_seq_binary, size_alphabet):
     """
@@ -85,61 +87,23 @@ def reads_list_to_array(reads_list):
     reads_weights = [reads_list[n].weight for n in range(len(reads_list))]
     reads_weights_array = np.asarray(reads_weights)
 
-    """
-    print('number of reads ', len(reads_list))
-    print('lenght of sequence ', reads_list[0].seq_binary.shape[0])
-    print('number of bases ', reads_list[0].seq_binary.shape[1])
-    print('shape of reads_seq_binary ', reads_binary_array.shape)
-    print(' shape weights ', reads_weights_array.shape)
-
-    Output of those prints:
-    number of reads  158
-    lenght of sequence  140
-    number of bases  5
-    shape of reads_seq_binary  (158, 140, 5)
-    shape weights  (158,)
-    """
-
     return reads_binary_array, reads_weights_array
 
-def load_fasta2reads_list(reads_fasta_file, alphabet):
+def load_fasta2reads_list(fname_fasta, fname_qualities, alphabet):
+
+    with open(fname_qualities, 'rb') as f:
+        qualities = np.load(f, allow_pickle = True)
+
     # go through each sequence in fasta file
     reads_list =[]
-    for seq in skbio.io.read(reads_fasta_file, format='fasta'):
+    for idx, seq in enumerate(skbio.io.read(fname_fasta, format='fasta')):
         reads_list.append(Read(str(seq),seq.metadata['id']))
         reads_list[-1].seq2binary(alphabet)
+        reads_list[-1].phred_quality_score = qualities[idx]
     # unique reads_list
     #reads_list = unique_reads_list(reads_list)
 
     return reads_list
-
-def load_bam2reads_list(reads_fasta_file, alphabet):
-    # go through each sequence in fasta file
-    reads_list =[]
-    for seq in skbio.io.read(reads_fasta_file, format='fasta'):
-        reads_list.append(Read(str(seq),seq.metadata['id']))
-        reads_list[-1].seq2binary(alphabet)
-    # unique reads_list
-    reads_list = unique_reads_list(reads_list)
-
-    return reads_list
-
-
-def load_bam2reads_list(bam_file, alphabet):
-    import pysam
-    samfile = pysam.AlignmentFile(bam_file, "rb")
-    reads_list = []
-    for read in samfile:
-        read_dict = read.to_dict()
-        #print(read_dict['flag'])
-        #break
-        reads_list.append(Read(str(read_dict['seq']),read_dict['name']))
-        reads_list[-1].seq2binary(alphabet)
-    # unique reads_list
-    reads_list = unique_reads_list(reads_list)
-
-    return reads_list
-
 
 def unique_reads_list(reads_list):
     # test for unique reads_list
@@ -150,15 +114,20 @@ def unique_reads_list(reads_list):
                 if hd==0:
                     temp_read.weight+=1
                     temp_read.identical_reads.append(reads_list[j].id)
+                    temp_read.phred_quality_score = (temp_read.phred_quality_score + reads_list[j].phred_quality_score) / 2
                     reads_list[j].weight-=1
 
     # keep only unique reads_list
     reads_list=[read for read in reads_list if read.weight>0]
     return reads_list
 
-def load_reference_seq(reference_file):
+def get_qualities(reads_list):
+    qualities = [temp_read.phred_quality_score for temp_read in reads_list]
+    return np.asarray(qualities)
+
+def load_reference_seq(reference_file, alphabet):
     for seq in skbio.io.read(reference_file, format='fasta'):
-         return seq, seq.metadata['id']
+         return reference2binary(seq, alphabet), seq.metadata['id']
 
 def reference2binary(reference_seq, alphabet):
     length_seq = len(reference_seq)

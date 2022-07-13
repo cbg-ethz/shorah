@@ -18,18 +18,18 @@ Parallelizing with Pool following:
 https://www.machinelearningplus.com/python/parallel-processing-python/
 """
 
-results =[]
+results = []
 
 def collect_result(result):
     global results
     results.append(result)
 
 
-def multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list,reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_dir):
+def multistart_cavi(K, alpha0, alphabet, reference_binary, reads_list,reads_seq_binary, reads_weights, reads_log_error_proba, n_starts, output_dir):
 
     pool = mp.Pool(mp.cpu_count())
     for start in range(n_starts):
-        pool.apply_async(run_cavi, args=(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start, output_dir), callback=collect_result)
+        pool.apply_async(run_cavi, args=(K, alpha0, alphabet, reference_binary, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start, output_dir), callback=collect_result)
 
     pool.close()
     pool.join()
@@ -37,7 +37,7 @@ def multistart_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_
     return results
 
 
-def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start_id, output_dir):
+def run_cavi(K, alpha0, alphabet, reference_binary, reads_list, reads_seq_binary, reads_weights, reads_log_error_proba, start_id, output_dir):
     """
     Runs cavi (coordinate ascent variational inference).
     """
@@ -77,7 +77,6 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
     converged=False
     elbo=0
     state_curr_dict = state_init_dict
-    k=0
     while (converged==False):
 
         if iter<=1:
@@ -101,13 +100,9 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                 break
             elif np.abs(elbo-history_elbo[-2]) <1e-03:
                 converged=True
-                k+=1
                 message='ELBO converged.'
                 exitflag=0
-            else:
-                k=0
 
-        #if k%10==0: # every 10th parameter set is saved to history
         state_curr_dict.update({'elbo':elbo})
 
         iter+=1
@@ -134,15 +129,15 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
                         'runtime_total': end_time_optimization-start_time})
 
 
-    #dict_result.update(state_curr_dict)
+
     summary = analyze_results.summarize_results(state_curr_dict,
                                                 alphabet,
                                                 reads_seq_binary,
                                                 reads_weights,
                                                 reads_list,
                                                 reads_log_error_proba,
-                                                reference_binary,
-                                                reference_seq)
+                                                reference_binary)
+
     dict_result.update(summary)
     state_curr_dict.update(summary)
 

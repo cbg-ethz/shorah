@@ -29,7 +29,7 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
 
         SeqIO.write(records, output_dir, "fasta")
 
-def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,reads_list, reads_log_error_proba, reference_binary, reference_seq):
+def summarize_results(state_curr_dict,alphabet, reads_seq_binary, reads_weights,reads_list, reads_log_error_proba, reference_binary):
 
     mean_z = state_curr_dict['mean_cluster']
     mean_h = state_curr_dict['mean_haplo']
