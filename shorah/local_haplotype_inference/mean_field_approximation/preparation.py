@@ -101,7 +101,7 @@ def load_fasta2reads_list(fname_fasta, fname_qualities, alphabet):
         reads_list[-1].seq2binary(alphabet)
         reads_list[-1].phred_quality_score = qualities[idx]
     # unique reads_list
-    #reads_list = unique_reads_list(reads_list)
+    reads_list = unique_reads_list(reads_list)
 
     return reads_list
 
