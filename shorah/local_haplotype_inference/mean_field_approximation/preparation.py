@@ -216,9 +216,13 @@ def unique_reads_list(reads_list):
     reads_list=[read for read in reads_list if read.weight>0]
     return reads_list
 
+def check_qualities(qualities):
+    return np.where(qualities==0, 2, qualities)
+
 def get_qualities(reads_list):
     qualities = [temp_read.phred_quality_score for temp_read in reads_list]
-    return np.asarray(qualities)
+    qualities = np.asarray(qualities)
+    return check_qualities(qualities)
 
 def load_reference_seq(reference_file, alphabet):
     for seq in skbio.io.read(reference_file, format='fasta'):
