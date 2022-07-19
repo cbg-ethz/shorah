@@ -56,29 +56,38 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
 
     # Find best run
     sort_elbo = [(idx,state_run[1]['elbo']) for idx, state_run in enumerate(result_list)]
-    sort_elbo.sort(key=lambda x:x[1], reverse=True) # sort list of tuple by ELBO value
+    # sort list of tuple by ELBO value
+    sort_elbo.sort(key=lambda x:x[1], reverse=True)
 
-    max_idx = sort_elbo[0][0]
-    max_elbo = sort_elbo[0][1]
-    sort_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
+    best_run_idx = sort_elbo[0][0]
+    best_run_elbo = sort_elbo[0][1]
+    logging.info('Maximal ELBO '+str(best_run_elbo) + 'in run '+ str(best_run_idx))
 
-
+    sorted_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
     f2 = open(output_name+'all_results.pkl',"wb")
-    pickle.dump(sort_results,f2)
+    pickle.dump(sorted_results,f2)
     f2.close()
     logging.info("Results dicts of all runs written to " + output_name+'all_results.pkl')
 
-    state_curr_dict = result_list[max_idx][1]
-    logging.info('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx))
+    state_curr_dict = result_list[best_run_idx][0]
+    summary = analyze_results.summarize_results(
+        state_curr_dict,
+        alphabet,
+        reads_seq_binary,
+        reads_weights,
+        reads_list,
+        reads_log_error_proba,
+        reference_binary,
+    )
+    state_curr_dict.update(summary)
 
     # write output like in original shorah
     analyze_results.haplotypes_to_fasta(state_curr_dict, output_name+'support.fas')
     analyze_results.correct_reads(state_curr_dict, output_name+'cor.fas')
 
-    #f_best_run = open(output_dir+'debug/best_run.txt','w')
-    f_best_run = open(output_name+'best_run.txt','w')
-    f_best_run.write(str(max_idx))
-    f_best_run.close()
+    #f_best_run = open(output_name+'best_run.txt','w')
+    #f_best_run.write(str(max_idx))
+    #f_best_run.close()
 
     # clean up Files
     if os.path.exists(output_dir+'inference/')==False:
@@ -87,7 +96,7 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
     import glob
     import shutil
 
-    inference_files = glob.glob('./w*best_run.txt') + glob.glob('./w*history_run*.csv') + glob.glob('./w*results*.pkl')
+    inference_files = glob.glob('./w*history_run*.csv') + glob.glob('./w*results*.pkl')
 
     for inf_file in inference_files:
         if os.stat(inf_file).st_size > 0:

@@ -177,19 +177,6 @@ def run_cavi(
         }
     )
 
-    summary = analyze_results.summarize_results(
-        state_curr_dict,
-        alphabet,
-        reads_seq_binary,
-        reads_weights,
-        reads_list,
-        reads_log_error_proba,
-        reference_binary,
-    )
-
-    dict_result.update(summary)
-    state_curr_dict.update(summary)
-
-    result = (state_init_dict, state_curr_dict, dict_result)
+    result = (state_curr_dict, dict_result)
 
     return result
