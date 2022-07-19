@@ -1,8 +1,6 @@
 from scipy.special import digamma
 from scipy.special import betaln
 import numpy as np
-#from timeit import default_timer as timer
-
 
 def update(reads_seq_binary, reads_weights, reference_binary, reads_log_error_proba, state_init, state_curr):
 

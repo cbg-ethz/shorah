@@ -26,7 +26,7 @@ def collect_result(result):
 
 
 def multistart_cavi(
-    K,
+    n_cluster,
     alpha0,
     alphabet,
     reference_binary,
@@ -43,7 +43,7 @@ def multistart_cavi(
         pool.apply_async(
             run_cavi,
             args=(
-                K,
+                n_cluster,
                 alpha0,
                 alphabet,
                 reference_binary,
@@ -64,7 +64,7 @@ def multistart_cavi(
 
 
 def run_cavi(
-    K,
+    n_cluster,
     alpha0,
     alphabet,
     reference_binary,
@@ -80,23 +80,21 @@ def run_cavi(
     """
     dict_result = {
         "run_id": start_id,
-        "N": len(reads_list),
-        "K": K,
+        "n_reads": len(reads_list),
+        "n_cluster": n_cluster,
         "alpha0": alpha0,
         "alphabet": alphabet,
-    }  # N= #reads, K= #components
+    }
 
     history_alpha = []
     history_mean_log_pi = []
-    history_gamma_a = []
-    history_gamma_b = []
     history_mean_log_gamma = []
     history_mean_haplo = []
     history_mean_cluster = []
     history_elbo = []
 
     state_init_dict = initialization.draw_init_state(
-        K, alpha0, alphabet, reads_list, reference_binary
+        n_cluster, alpha0, alphabet, reads_list, reference_binary
     )
     state_init_dict.update(
         {
@@ -107,20 +105,15 @@ def run_cavi(
         }
     )
 
-    # write initial values to dict
-    dict_result.update(
-        {
-            "gamma0": state_init_dict["mean_log_gamma"][0],
-            "mean_h0": state_init_dict["mean_haplo"],
-            "mean_z0": state_init_dict["mean_cluster"],
-            "mean_log_pi": state_init_dict["mean_log_pi"],
-        }
-    )
+    history_alpha = [state_init_dict['alpha']]
+    history_mean_log_pi = [state_init_dict['mean_log_pi']]
+    history_mean_log_gamma = [state_init_dict['mean_log_gamma']]
+    history_mean_cluster = [state_init_dict['mean_cluster']]
+    history_elbo = []
 
     # Iteratively update mean values
     iter = 0
-    message = ""  # those can be deleted afterwardsd
-    exitflag = ""  # those can be deleted afterwardsd
+    message = ""
     converged = False
     elbo = 0
     state_curr_dict = state_init_dict
@@ -157,13 +150,11 @@ def run_cavi(
 
         if iter > 1:
             if (history_elbo[-2] > elbo) and np.abs(elbo - history_elbo[-2]) > 1e-08:
-                message = "Error: ELBO is decreasing."
-                exitflag = -1
+                exit_message = "Error: ELBO is decreasing."
                 break
             elif np.abs(elbo - history_elbo[-2]) < 1e-03:
                 converged = True
-                message = "ELBO converged."
-                exitflag = 0
+                exit_message = "ELBO converged."
 
         state_curr_dict.update({"elbo": elbo})
 
@@ -174,19 +165,14 @@ def run_cavi(
 
     dict_result.update(
         {
-            "exit_message": message,
-            "exitflag": exitflag,
+            "exit_message": exit_message,
             "n_iterations": iter,
             "converged": converged,
             "elbo": elbo,
             "history_elbo": history_elbo,
             "history_alpha": history_alpha,
             "history_mean_log_pi": history_mean_log_pi,
-            "history_alpha": history_alpha,
-            "history_gamma_a": history_gamma_a,
-            "history_gamma_b": history_gamma_b,
             "history_mean_log_gamma": history_mean_log_gamma,
-            "history_mean_haplo": history_mean_haplo,
             "history_mean_cluster": history_mean_cluster,
         }
     )

@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.special import digamma
-
 from . import update_eqs as update_eqs
-
 
 def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary):
 
