@@ -227,41 +227,17 @@ def run_dpm(run_setting):
         except Exception as e:
             logging.error(f'{filein} - Run failed: {e}')
 
-    else:
-
-        if inference_type == 'mean_field_approximation':
-            run_dpm_mfa.main(freads_in=filein,
-                     fref_in=ref_in,
-                     fname_qualities= fname_qualities,
-                     output_dir='./',
-                     n_starts=int(n_mfa_starts),
-                     K=int(n_max_haplotypes),
-                     alpha0=float(a),
-                     alphabet = 'ACGT-')
-        """
-        Outdated
-        elif inference_type == 'gibbs_sampling':
-            run_gibbs.main(freads_in=filein,
-                           fref_in=ref_in,
-                           output_dir='./',
-                           alpha= float(inference_config['alpha0']),
-                           max_iter=int(inference_config['max_n_iterations']),
-                           thres_ess_max = float(inference_config['threshold_ess_max']),
-                           thres_rhat = float(inference_config['threshold_rhat'])
-                           )
-        elif inference_type == 'numpyro_finiteDPM':
-            run_mcmc.main(freads_in = filein,
-                           fref_in = ref_in,
-                           output_dir = './',
-                           alpha0 = float(inference_config['alpha0']),
-                           max_num_samples = int(inference_config['max_n_iterations']),
-                           cluster_num = int(inference_config['n_cluster']),
-                           str_model = 'finiteDPM',
-                           alphabet = 'ACGT-',
-                           thres_ess_max = float(inference_config['threshold_ess_max']),
-                           thres_rhat = float(inference_config['threshold_rhat'])
-                           )
-        """
+    elif inference_type == 'mean_field_approximation':
+        run_dpm_mfa.main(
+                 freads_in=filein,
+                 fref_in=ref_in,
+                 fname_qualities= fname_qualities,
+                 output_dir='./',
+                 n_starts=int(n_mfa_starts),
+                 K=int(n_max_haplotypes),
+                 alpha0=float(a),
+                 alphabet = 'ACGT-'
+                 )
 
     return
 

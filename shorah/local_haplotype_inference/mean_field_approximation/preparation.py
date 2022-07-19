@@ -23,48 +23,6 @@ class Read:
 
         self.seq_binary = seq_table
 
-"""
-def get_average_qualities(fname_qualities, reads_list):
-
-    with open(fname_qualities, 'rb') as f:
-        qualities = np.load(f, allow_pickle = True)
-
-    # get average of qualties scores for same reads
-    unique_qualities = np.full((len(reads_list), int(qualities.shape[1])),1)
-    # average qualtiies are not so good performing.
-    # get average of qualties scores for same reads
-    for i, temp_read in enumerate(reads_list):
-        unique_qualities[i]+= qualities[i]
-        if len(temp_read.idx_identical_reads) > 0:
-            for j in temp_read.idx_identical_reads:
-                unique_qualities[i]+= qualities[j]
-            unique_qualities[i] = unique_qualities[i]/temp_read.weight
-
-    return unique_qualities
-"""
-
-def get_average_theta(fname_qualities, reads_list, size_alphabet):
-    with open(fname_qualities, 'rb') as f:
-        qualities = np.load(f, allow_pickle = True)
-
-    theta =  1 - 10**(-qualities/10) # dimension: N X L
-    one_minus_theta = (1 - theta)/ (size_alphabet-1)
-
-    # get average of qualties scores for same reads
-    unique_theta = np.full((len(reads_list), int(qualities.shape[1])),0.0)
-    unique_one_minus_theta = np.full((len(reads_list), int(qualities.shape[1])),0.0)
-
-    # get average of qualties scores for same reads
-    for i, temp_read in enumerate(reads_list):
-        unique_theta[i]= theta[i]
-        unique_one_minus_theta[i]=one_minus_theta[i]
-        if temp_read.weight > 1:
-            for j in temp_read.idx_identical_reads:
-                unique_theta[i]+= theta[j]
-                unique_one_minus_theta[i]+= one_minus_theta[j]
-            unique_theta[i] = (unique_theta[i])/(temp_read.weight)
-            unique_one_minus_theta[i] = unique_one_minus_theta[i]/(temp_read.weight)
-    return unique_theta, unique_one_minus_theta
 
 def compute_reads_log_error_matrix(theta, one_minus_theta, reads_seq_binary, size_alphabet):
     log_theta = np.log(theta)
@@ -89,55 +47,7 @@ def compute_reads_log_error_matrix(theta, one_minus_theta, reads_seq_binary, siz
 
     return final # dimension: NxLxB
 
-
-def get_average_theta(fname_qualities, reads_list, size_alphabet):
-    with open(fname_qualities, 'rb') as f:
-        qualities = np.load(f, allow_pickle = True)
-
-    theta =  1 - 10**(-qualities/10) # dimension: N X L
-    one_minus_theta = (1 - theta)/ (size_alphabet-1)
-
-    # get average of qualties scores for same reads
-    unique_theta = np.full((len(reads_list), int(qualities.shape[1])),0.0)
-    unique_one_minus_theta = np.full((len(reads_list), int(qualities.shape[1])),0.0)
-
-    # get average of qualties scores for same reads
-    for i, temp_read in enumerate(reads_list):
-        unique_theta[i]= theta[i]
-        unique_one_minus_theta[i]=one_minus_theta[i]
-        if temp_read.weight > 1:
-            for j in temp_read.idx_identical_reads:
-                unique_theta[i]+= theta[j]
-                unique_one_minus_theta[i]+= one_minus_theta[j]
-            unique_theta[i] = (unique_theta[i])/(temp_read.weight)
-            unique_one_minus_theta[i] = unique_one_minus_theta[i]/(temp_read.weight)
-    return unique_theta, unique_one_minus_theta
-
-def compute_reads_log_error_matrix(theta, one_minus_theta, reads_seq_binary, size_alphabet):
-    log_theta = np.log(theta)
-    log_theta = log_theta[:,:,np.newaxis]
-    log_theta = np.tile(log_theta, (1,1,size_alphabet))
-
-    log_one_minus_theta = np.log(one_minus_theta)
-    log_one_minus_theta = log_one_minus_theta[:,:,np.newaxis]
-    log_one_minus_theta = np.tile(log_one_minus_theta, (1,1,size_alphabet))
-
-    final = np.einsum('NLB,NLB->NLB', log_theta, reads_seq_binary)
-    final += np.einsum('NLB,NLB->NLB', log_one_minus_theta, 1 - reads_seq_binary)
-
-    # if reads_list[n].seq_binary[l].sum(axis=0)=0 then "N" at position l then position l is ignored
-    # there will be a zero in the row n,l
-    # dimension: NxL
-    all_N_pos=reads_seq_binary.sum(axis=2)>0
-    all_N_pos= all_N_pos[:,:,np.newaxis]
-    all_N_pos = np.tile(all_N_pos, (1,1,size_alphabet))
-    # write zero where there is an "N"  in the position
-    final[~all_N_pos]=0
-
-    return final # dimension: NxLxB
-
-
-def get_reads_log_error_proba(qualities, reads_seq_binary, size_alphabet):
+def compute_reads_log_error_proba(qualities, reads_seq_binary, size_alphabet):
     """
     \log \theta_{n,l}^{r_{nl}^i}  \left( \frac{1-\theta_{n,l}}{B-1}\right)^{(1-r_{nl}^i)} \right)
     Do I need the weights? No this can be integrated later in update_eqs.py
@@ -184,7 +94,7 @@ def reads_list_to_array(reads_list):
 
     return reads_binary_array, reads_weights_array
 
-def load_fasta2reads_list(fname_fasta, fname_qualities, alphabet):
+def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet):
 
     with open(fname_qualities, 'rb') as f:
         qualities = np.load(f, allow_pickle = True)
@@ -195,10 +105,11 @@ def load_fasta2reads_list(fname_fasta, fname_qualities, alphabet):
         reads_list.append(Read(str(seq),seq.metadata['id']))
         reads_list[-1].seq2binary(alphabet)
         reads_list[-1].phred_quality_score = qualities[idx]
-    # unique reads_list
-    reads_list = unique_reads_list(reads_list)
 
-    return reads_list
+    reads_list = unique_reads_list(reads_list)
+    qualities = get_qualities(reads_list)
+
+    return reads_list, qualities
 
 def unique_reads_list(reads_list):
     # test for unique reads_list
@@ -213,7 +124,7 @@ def unique_reads_list(reads_list):
                     reads_list[j].weight-=1
 
     # keep only unique reads_list
-    reads_list=[read for read in reads_list if read.weight>0]
+    reads_list = [read for read in reads_list if read.weight>0]
     return reads_list
 
 def check_qualities(qualities):
