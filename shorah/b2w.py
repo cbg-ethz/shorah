@@ -33,6 +33,8 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
     for idx, read in enumerate(iter):
 
+        if (read.reference_start is None) or (read.reference_end is None):
+            continue
         first_aligned_pos = read.reference_start
         last_aligned_post = read.reference_end - 1 #reference_end is exclusive
 
