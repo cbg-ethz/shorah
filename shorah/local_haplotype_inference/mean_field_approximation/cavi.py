@@ -152,6 +152,7 @@ def run_cavi(
 
         if iter > 1:
             if np.isnan(elbo):
+                print('elbo ', elbo)
                 exit_message = "Error: ELBO is nan."
                 print(exit_message)
                 break
