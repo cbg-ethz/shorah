@@ -68,6 +68,7 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
     pickle.dump(sorted_results,f2)
     f2.close()
     logging.info("Results dicts of all runs written to " + output_name+'all_results.pkl')
+    print("Results dicts of all runs written to " , output_name, 'all_results.pkl')
 
     state_curr_dict = result_list[best_run_idx][0]
     summary = analyze_results.summarize_results(
