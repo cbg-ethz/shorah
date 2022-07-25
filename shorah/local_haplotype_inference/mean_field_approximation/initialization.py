@@ -27,7 +27,8 @@ def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary):
     mean_h = init_mean_haplo(
         n_clusters, genome_length, size_alphabet, mean_log_gamma, reference_binary
     )
-    mean_z = np.random.dirichlet(alpha_temp, size=n_reads)
+
+    mean_z = np.random.dirichlet(np.ones(n_clusters), size=n_reads)
 
     state_init_dict = dict(
         {
@@ -67,11 +68,13 @@ def init_mean_haplo(
     base_true = np.exp(mean_log_gamma[0]) * np.ones(
         (n_clusters, genome_length, size_alphabet)
     )
+
     base_false = (
         (1.0 - np.exp(mean_log_gamma[1]))
         / (size_alphabet - 1)
         * np.ones((n_clusters, genome_length, size_alphabet))
     )
-    return np.power(base_true, reference_table) * np.power(
+
+    return np.multiply(np.power(base_true, reference_table), np.power(
         base_false, 1 - reference_table
-    )
+    ))
