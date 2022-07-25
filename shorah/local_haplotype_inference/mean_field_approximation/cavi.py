@@ -96,17 +96,16 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
         state_curr_dict = update_eqs.update(reads_seq_binary, reads_weights,reads_list, reference_binary, state_init_dict, state_curr_dict)
         elbo = elbo_eqs.compute_elbo(reads_weights,reads_seq_binary,reference_binary, state_init_dict, state_curr_dict)
 
-        history_elbo.append(elbo)
-        #history_alpha.append(state_curr_dict['alpha'])
-        history_mean_log_pi.append(state_curr_dict['mean_log_pi'])
-        #history_theta_c.append(state_curr_dict['theta_c'])
-        #history_theta_d.append(state_curr_dict['theta_d'])
-        history_mean_log_theta.append(state_curr_dict['mean_log_theta'])
-        #history_gamma_a.append(state_curr_dict['gamma_a'])
-        #history_gamma_b.append(state_curr_dict['gamma_b'])
-        history_mean_log_gamma.append(state_curr_dict['mean_log_gamma'])
-        #history_mean_haplo.append(state_curr_dict['mean_haplo'])
-        history_mean_cluster.append(state_curr_dict['mean_cluster'])
+        if iter%2==0:
+            history_elbo.append(elbo)
+            history_mean_log_pi.append(state_curr_dict["mean_log_pi"])
+            history_mean_log_gamma.append(state_curr_dict["mean_log_gamma"])
+            history_mean_log_theta.append(state_curr_dict['mean_log_theta'])
+            history_mean_cluster.append(state_curr_dict["mean_cluster"])
+
+        if np.isnan(elbo):
+            exit_message = "Error: ELBO is nan."
+            break
 
         if iter>1:
             if (history_elbo[-2]>elbo) and np.abs(elbo-history_elbo[-2])>1e-08 :
