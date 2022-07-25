@@ -143,11 +143,16 @@ def run_cavi(
             state_curr_dict,
         )
 
-        history_elbo.append(elbo)
-        history_mean_log_pi.append(state_curr_dict["mean_log_pi"])
-        history_mean_log_gamma.append(state_curr_dict["mean_log_gamma"])
-        history_mean_cluster.append(state_curr_dict["mean_cluster"])
 
+        if iter%2==0:
+            history_elbo.append(elbo)
+            history_mean_log_pi.append(state_curr_dict["mean_log_pi"])
+            history_mean_log_gamma.append(state_curr_dict["mean_log_gamma"])
+            history_mean_cluster.append(state_curr_dict["mean_cluster"])
+
+        if np.isnan(elbo):
+            exit_message = "Error: ELBO is nan."
+            break
         if iter > 1:
             if (history_elbo[-2] > elbo) and np.abs(elbo - history_elbo[-2]) > 1e-08:
                 exit_message = "Error: ELBO is decreasing."
