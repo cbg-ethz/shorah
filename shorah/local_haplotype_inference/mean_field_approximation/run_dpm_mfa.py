@@ -80,6 +80,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     pickle.dump(sort_results,f2)
     f2.close()
     logging.info("Results dicts of all runs written to " + output_name+'all_results.pkl')
+    print("Results dicts of all runs written to ", output_name, 'all_results.pkl')
 
     state_curr_dict = result_list[max_idx][1]
     logging.info('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx))
