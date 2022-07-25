@@ -105,6 +105,7 @@ def run_cavi(K, alpha0, alphabet, reference_binary, reference_seq, reads_list, r
 
         if np.isnan(elbo):
             exit_message = "Error: ELBO is nan."
+            print(exit_message)
             break
 
         if iter>1:
