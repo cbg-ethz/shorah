@@ -64,6 +64,9 @@ def main(freads_in, fref_in, fname_qualities, output_dir, n_starts, K, alpha0, a
     logging.info('Maximal ELBO '+str(best_run_elbo) + 'in run '+ str(best_run_idx))
 
     sorted_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
+    exit_meassage = sorted_results[0][1]['exit_message']
+    logging.info('CAVI termination '+ str(exit_meassage))
+
     f2 = open(output_name+'all_results.pkl',"wb")
     pickle.dump(sorted_results,f2)
     f2.close()
