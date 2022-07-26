@@ -75,12 +75,14 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet = 'ACGT-'
     max_elbo = sort_elbo[0][1]
     sort_results = [result_list[tuple_idx_elbo[0]] for tuple_idx_elbo in sort_elbo]
 
+    exit_meassage = sort_results[0][1]['exit_message']
+    logging.info('CAVI termination '+ str(exit_meassage))
+
 
     f2 = open(output_name+'all_results.pkl',"wb")
     pickle.dump(sort_results,f2)
     f2.close()
     logging.info("Results dicts of all runs written to " + output_name+'all_results.pkl')
-    print("Results dicts of all runs written to ", output_name, 'all_results.pkl')
 
     state_curr_dict = result_list[max_idx][1]
     logging.info('Maximal ELBO '+str(max_elbo) + 'in run '+ str(max_idx))
