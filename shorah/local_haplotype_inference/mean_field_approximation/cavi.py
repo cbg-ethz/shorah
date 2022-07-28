@@ -1,6 +1,4 @@
 import numpy as np
-import pickle
-import pandas as pd
 import multiprocessing as mp
 from scipy.special import digamma
 from scipy.stats._multivariate import _lnB as lnB
@@ -10,7 +8,6 @@ from scipy.special import betaln
 from . import initialization
 from . import update_eqs
 from . import elbo_eqs
-from . import analyze_results
 
 """
 Parallelizing with Pool following:
@@ -89,7 +86,6 @@ def run_cavi(
     history_alpha = []
     history_mean_log_pi = []
     history_mean_log_gamma = []
-    history_mean_haplo = []
     history_mean_cluster = []
     history_elbo = []
 
@@ -105,19 +101,18 @@ def run_cavi(
         }
     )
 
-    history_alpha = [state_init_dict['alpha']]
-    history_mean_log_pi = [state_init_dict['mean_log_pi']]
-    history_mean_log_gamma = [state_init_dict['mean_log_gamma']]
-    history_mean_cluster = [state_init_dict['mean_cluster']]
+    history_alpha = [state_init_dict["alpha"]]
+    history_mean_log_pi = [state_init_dict["mean_log_pi"]]
+    history_mean_log_gamma = [state_init_dict["mean_log_gamma"]]
+    history_mean_cluster = [state_init_dict["mean_cluster"]]
     history_elbo = []
 
     # Iteratively update mean values
     iter = 0
-    message = ""
     converged = False
     elbo = 0
     state_curr_dict = state_init_dict
-    while converged == False:
+    while converged is False:
 
         if iter <= 1:
             digamma_alpha_sum = digamma(state_curr_dict["alpha"].sum(axis=0))
@@ -143,8 +138,7 @@ def run_cavi(
             state_curr_dict,
         )
 
-
-        if iter%2==0:
+        if iter % 2 == 0:
             history_elbo.append(elbo)
             history_mean_log_pi.append(state_curr_dict["mean_log_pi"])
             history_mean_log_gamma.append(state_curr_dict["mean_log_gamma"])
@@ -152,7 +146,7 @@ def run_cavi(
 
         if iter > 1:
             if np.isnan(elbo):
-                print('elbo ', elbo)
+                print("elbo ", elbo)
                 exit_message = "Error: ELBO is nan."
                 print(exit_message)
                 break
