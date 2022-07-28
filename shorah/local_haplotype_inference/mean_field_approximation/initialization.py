@@ -28,10 +28,7 @@ def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary):
         n_clusters, genome_length, size_alphabet, mean_log_gamma, reference_binary
     )
 
-    mean_z = np.random.dirichlet(np.ones(n_clusters), size=n_reads)
-    mean_z = np.ones((n_reads,n_clusters))/n_clusters
-    for n in range(n_reads):
-        mean_z[n]=np.random.dirichlet((alpha_temp)*100)
+    mean_z = init_mean_cluster(n_clusters, n_reads, alpha0)
 
     state_init_dict = dict(
         {
@@ -64,6 +61,15 @@ def count_mis_and_matches_wrt_ref(reads_list, reference_table):
 
     return matches, mismatch
 
+def init_mean_cluster(n_clusters, n_reads, alpha0):
+
+    mean_z = np.random.dirichlet(np.ones(n_clusters)*alpha0, size=n_reads)
+
+    if np.any(np.isnan(mean_z)):
+        alpha_new = alpha0 * 10
+        mean_z = init_mean_cluster(n_clusters, n_reads, alpha_new)
+
+    return mean_z
 
 def init_mean_haplo(
     n_clusters, genome_length, size_alphabet, mean_log_gamma, reference_table
