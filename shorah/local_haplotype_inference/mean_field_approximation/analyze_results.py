@@ -1,4 +1,5 @@
 import numpy as np
+from skbio.sequence.distance import hamming
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
