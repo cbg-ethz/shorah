@@ -4,6 +4,7 @@ import sys
 import os
 import pickle
 import logging
+import skbio
 
 # my python-scripts
 from . import preparation
