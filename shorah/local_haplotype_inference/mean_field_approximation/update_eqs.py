@@ -1,4 +1,5 @@
 from scipy.special import digamma
+from scipy.special import betaln
 import numpy as np
 
 

@@ -4,10 +4,16 @@ import sys
 import os
 import pickle
 import logging
+import pandas as pd
+import skbio
+import numpy as np
 
 # my python-scripts
 from . import preparation
+from . import update_eqs as update_eqs
+from . import initialization
 from . import analyze_results
+from . import elbo_eqs
 from . import cavi
 
 logging.basicConfig(
