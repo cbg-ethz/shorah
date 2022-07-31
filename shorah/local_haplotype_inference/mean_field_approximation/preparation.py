@@ -1,4 +1,3 @@
-import skbio
 import numpy as np
 from skbio.sequence.distance import hamming
 from skbio import Sequence
