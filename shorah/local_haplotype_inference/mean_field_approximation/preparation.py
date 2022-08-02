@@ -1,6 +1,6 @@
 import numpy as np
-from skbio.sequence.distance import hamming
-from skbio import Sequence
+from Bio import SeqIO
+from scipy.spatial.distance import hamming
 
 
 class Read:
@@ -51,24 +51,11 @@ def reads_list_to_array(reads_list):
 def load_fasta2reads_list(reads_fasta_file, alphabet):
     # go through each sequence in fasta file
     reads_list = []
-    for seq in skbio.io.read(reads_fasta_file, format="fasta"):
-        reads_list.append(Read(str(seq), seq.metadata["id"]))
+    for idx, seq in enumerate(SeqIO.parse(reads_fasta_file, "fasta")):
+        reads_list.append(Read(seq.seq, seq.id))
         reads_list[-1].seq2binary(alphabet)
     # unique reads_list
     reads_list = unique_reads_list(reads_list)
-
-    return reads_list
-
-
-def load_bam2reads_list(reads_fasta_file, alphabet):
-    # go through each sequence in fasta file
-    reads_list = []
-    for seq in skbio.io.read(reads_fasta_file, format="fasta"):
-        reads_list.append(Read(str(seq), seq.metadata["id"]))
-        reads_list[-1].seq2binary(alphabet)
-    # unique reads_list
-    reads_list = unique_reads_list(reads_list)
-
     return reads_list
 
 def load_bam2reads_list(bam_file, alphabet):
@@ -94,7 +81,7 @@ def unique_reads_list(reads_list):
         if temp_read.weight > 0.0:
             for j in range(i + 1, len(reads_list)):
                 hd = hamming(
-                    Sequence(temp_read.seq_string), Sequence(reads_list[j].seq_string)
+                        temp_read.seq_string, reads_list[j].seq_string
                 )
                 if hd == 0:
                     temp_read.weight += 1
@@ -107,8 +94,8 @@ def unique_reads_list(reads_list):
 
 
 def load_reference_seq(reference_file):
-    for seq in skbio.io.read(reference_file, format="fasta"):
-        return seq, seq.metadata["id"]
+    for seq in SeqIO.parse(reference_file, "fasta"):
+        return seq.seq, seq.id
 
 
 def reference2binary(reference_seq, alphabet):
