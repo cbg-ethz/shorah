@@ -1,5 +1,4 @@
 from scipy.special import betaln
-from scipy.special import digamma
 import numpy as np
 from scipy.stats._multivariate import _lnB as lnB
 
