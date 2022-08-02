@@ -1,7 +1,6 @@
-import skbio
 import numpy as np
-from skbio.sequence.distance import hamming
-from skbio import Sequence
+from Bio import SeqIO
+from scipy.spatial.distance import hamming
 
 
 class Read:
@@ -106,8 +105,8 @@ def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet):
 
     # go through each sequence in fasta file
     reads_list = []
-    for idx, seq in enumerate(skbio.io.read(fname_fasta, format="fasta")):
-        reads_list.append(Read(str(seq), seq.metadata["id"]))
+    for idx, seq in enumerate(SeqIO.parse(fname_fasta, "fasta")):
+        reads_list.append(Read(seq.seq, seq.id))
         reads_list[-1].seq2binary(alphabet)
         reads_list[-1].phred_quality_score = qualities[idx]
 
@@ -123,7 +122,7 @@ def unique_reads_list(reads_list):
         if temp_read.weight > 0.0:
             for j in range(i + 1, len(reads_list)):
                 hd = hamming(
-                    Sequence(temp_read.seq_string), Sequence(reads_list[j].seq_string)
+                    temp_read.seq_string, reads_list[j].seq_string
                 )
                 if hd == 0:
                     temp_read.weight += 1
@@ -150,8 +149,8 @@ def get_qualities(reads_list):
 
 
 def load_reference_seq(reference_file, alphabet):
-    for seq in skbio.io.read(reference_file, format="fasta"):
-        return reference2binary(seq, alphabet), seq.metadata["id"]
+    for seq in SeqIO.parse(reference_file, "fasta"):
+        return reference2binary(seq.seq, alphabet), seq.id
 
 
 def reference2binary(reference_seq, alphabet):
