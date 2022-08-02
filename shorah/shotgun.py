@@ -52,8 +52,7 @@ else:
 
 # import local haplotype inference methods
 from .local_haplotype_inference.mean_field_approximation import run_dpm_mfa
-from .local_haplotype_inference.CRP_gibbs_sampling import sampling_main as run_gibbs
-from .local_haplotype_inference.numpyro_implementation import run_mcmc
+
 
 #################################################
 # a common user should not edit above this line #
