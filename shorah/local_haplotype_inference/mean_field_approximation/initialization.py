@@ -10,7 +10,7 @@ def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary):
     n_reads = len(reads_list)  # number of reads
     # fixed parameters
     alpha_temp = alpha0 * np.ones(
-        n_cluster
+        n_clusters
     )  # concentration parameter for Dirichlet prior of components
 
     # initialization of mean values
