@@ -4,13 +4,13 @@ from scipy.special import digamma
 from . import update_eqs as update_eqs
 
 
-def draw_init_state(K, alpha0, alphabet, reads_list, reference_binary):
+def draw_init_state(n_cluster, alpha0, alphabet, reads_list, reference_binary):
 
     genome_length = reads_list[0].seq_binary.shape[0]  # length of seq
     n_reads = len(reads_list)  # number of reads
     # fixed parameters
     alpha_temp = alpha0 * np.ones(
-        K
+        n_cluster
     )  # concentration parameter for Dirichlet prior of components
 
     # initialization of mean values
@@ -30,11 +30,11 @@ def draw_init_state(K, alpha0, alphabet, reads_list, reference_binary):
     mean_log_gamma = np.log(gamma0), np.log(1 - gamma0)
     mean_log_theta = np.log(theta0), np.log(1 - theta0)
 
-    mean_h = init_mean_haplo(K, genome_length, alphabet, mean_log_gamma, reference_binary)
+    mean_h = init_mean_haplo(
+        n_clusters, genome_length, size_alphabet, mean_log_gamma, reference_binary
+    )
 
-    mean_z = np.ones((n_reads, K)) / K
-    for n in range(n_reads):
-        mean_z[n] = np.random.dirichlet((alpha_temp) * 100)
+    mean_z = init_mean_cluster(n_clusters, n_reads, alpha0)
 
     state_init_dict = dict(
         {
@@ -71,14 +71,30 @@ def count_mis_and_matches_wrt_ref(reads_list, reference_table):
     return matches, mismatch
 
 
-def init_mean_haplo(K, L, alphabet, mean_log_gamma, reference_table):
-    base_true = np.exp(mean_log_gamma[0])
-    base_false = (1.0 - np.exp(mean_log_gamma[1])) / (len(alphabet) - 1)
-    mean_haplo = np.ones((K, L, len(alphabet)))
-    for k in range(K):
-        for position in range(L):
-            for base in range(len(alphabet)):
-                mean_haplo[k][position][base] = (
-                    base_true ** reference_table[position][base]
-                ) * (base_false ** (1 - reference_table[position][base]))
-    return mean_haplo
+def init_mean_cluster(n_clusters, n_reads, alpha0):
+
+    mean_z = np.random.dirichlet(np.ones(n_clusters) * alpha0, size=n_reads)
+
+    if np.any(np.isnan(mean_z)):
+        alpha_new = alpha0 * 10
+        mean_z = init_mean_cluster(n_clusters, n_reads, alpha_new)
+
+    return mean_z
+
+
+def init_mean_haplo(
+    n_clusters, genome_length, size_alphabet, mean_log_gamma, reference_table
+):
+    base_true = np.exp(mean_log_gamma[0]) * np.ones(
+        (n_clusters, genome_length, size_alphabet)
+    )
+
+    base_false = (
+        (1.0 - np.exp(mean_log_gamma[1]))
+        / (size_alphabet - 1)
+        * np.ones((n_clusters, genome_length, size_alphabet))
+    )
+
+    return np.multiply(
+        np.power(base_true, reference_table), np.power(base_false, 1 - reference_table)
+    )
