@@ -8,6 +8,7 @@ def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary):
 
     genome_length = reads_list[0].seq_binary.shape[0]  # length of seq
     n_reads = len(reads_list)  # number of reads
+    size_alphabet = len(alphabet)
     # fixed parameters
     alpha_temp = alpha0 * np.ones(
         n_clusters
