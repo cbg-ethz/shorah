@@ -28,13 +28,19 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
     records = []
     for k in range(len(haplo_list)):
         # ave_reads = assignedReads
+        ave_reads = state_curr_dict["weight" + str(k)]
+        if ave_reads==0:
+            # this haplotype will not be reported as there are no reads
+            # supporting it. 
+            continue
+
         head = (
             "hap_"
             + str(k)
             + " | posterior="
             + str(state_curr_dict["approximatePosterior" + str(k)])
             + " ave_reads="
-            + str(state_curr_dict["weight" + str(k)])
+            + str(ave_reads)
         )
         records.append(
             SeqRecord(
