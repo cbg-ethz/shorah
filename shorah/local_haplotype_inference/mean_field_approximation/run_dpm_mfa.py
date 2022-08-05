@@ -129,7 +129,7 @@ def main(
     import glob
     import shutil
 
-    inference_files = glob.glob("./w*history_run*.csv") + glob.glob("./w*results*.pkl")
+    inference_files = glob.glob("./w*results*.pkl")
 
     for inf_file in inference_files:
         if os.stat(inf_file).st_size > 0:
@@ -140,7 +140,10 @@ def main(
                 pass
             shutil.move(gzf, "inference/")
         else:
-            os.remove(inf_file)
+            try:
+                os.remove(inf_file)
+            except OSError:
+                pass
 
     logging.info("Files cleaned up.")
 
