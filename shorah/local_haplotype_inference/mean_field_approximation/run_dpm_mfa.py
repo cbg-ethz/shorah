@@ -106,7 +106,10 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet="ACGT-"):
                 pass
             shutil.move(gzf, "inference/")
         else:
-            os.remove(inf_file)
+            try:
+                os.remove(inf_file)
+            except OSError:
+                pass
 
     logging.info("Files cleaned up.")
 
