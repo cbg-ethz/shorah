@@ -556,7 +556,7 @@ def main(args):
     # prepare directories
     if keep_all_files:
         for sd_name in ['debug', 'sampling', 'freq', 'support',
-                        'corrected', 'raw_reads']:
+                        'corrected', 'raw_reads', 'inference']:
             try:
                 os.mkdir(sd_name)
             except OSError:
@@ -668,6 +668,25 @@ def main(args):
                 shutil.move(gzf, 'raw_reads/')
             else:
                 os.remove(raw_file)
+
+        # collect files from inference
+        inference_files = (
+            glob.glob("./w*best_run.txt")
+            + glob.glob("./w*history_run*.csv")
+            + glob.glob("./w*results*.pkl")
+        )
+        
+        for inf_file in inference_files:
+            if os.stat(inf_file).st_size > 0:
+                gzf = gzip_file(inf_file)
+                try:
+                    os.remove("inference/%s" % gzf)
+                except OSError:
+                    pass
+                shutil.move(gzf, "inference/")
+            else:
+                os.remove(inf_file)
+
 
     ############################################
     ##      Print the corrected reads         ##

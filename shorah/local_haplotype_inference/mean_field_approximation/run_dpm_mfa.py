@@ -85,34 +85,6 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet="ACGT-"):
     analyze_results.haplotypes_to_fasta(state_curr_dict, output_name + "support.fas")
     analyze_results.correct_reads(state_curr_dict, output_name + "cor.fas")
 
-    # clean up Files
-    os.makedirs(output_dir + "inference/", exist_ok=True)
-
-    import glob
-    import shutil
-
-    inference_files = (
-        glob.glob("./w*best_run.txt")
-        + glob.glob("./w*history_run*.csv")
-        + glob.glob("./w*results*.pkl")
-    )
-
-    for inf_file in inference_files:
-        if os.stat(inf_file).st_size > 0:
-            gzf = gzip_file(inf_file)
-            try:
-                os.remove("inference/%s" % gzf)
-            except OSError:
-                pass
-            shutil.move(gzf, "inference/")
-        else:
-            try:
-                os.remove(inf_file)
-            except FileNotFoundError:
-                pass
-
-    logging.info("Files cleaned up.")
-
 
 if __name__ == "__main__":
     main(
