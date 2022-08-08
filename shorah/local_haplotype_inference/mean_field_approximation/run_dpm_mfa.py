@@ -108,7 +108,7 @@ def main(freads_in, fref_in, output_dir, n_starts, K, alpha0, alphabet="ACGT-"):
         else:
             try:
                 os.remove(inf_file)
-            except OSError:
+            except FileNotFoundError:
                 pass
 
     logging.info("Files cleaned up.")
