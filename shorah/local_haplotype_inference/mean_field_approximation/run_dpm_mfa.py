@@ -15,20 +15,6 @@ logging.basicConfig(
 )
 
 
-def gzip_file(f_name):
-    """Gzip a file and return the name of the gzipped, removing the original"""
-    import gzip
-
-    f_in = open(f_name, "rb")
-    f_out = gzip.open(f_name + ".gz", "wb")
-    f_out.writelines(f_in)
-    f_out.close()
-    f_in.close()
-    os.remove(f_in.name)
-
-    return f_out.name
-
-
 def main(
     freads_in,
     fref_in,
@@ -122,30 +108,6 @@ def main(
     # f_best_run = open(output_name+'best_run.txt','w')
     # f_best_run.write(str(max_idx))
     # f_best_run.close()
-
-    # clean up Files
-    os.makedirs(output_dir + "inference/", exist_ok=True)
-
-    import glob
-    import shutil
-
-    inference_files = glob.glob("./w*results*.pkl")
-
-    for inf_file in inference_files:
-        if os.stat(inf_file).st_size > 0:
-            gzf = gzip_file(inf_file)
-            try:
-                os.remove("inference/%s" % gzf)
-            except OSError:
-                pass
-            shutil.move(gzf, "inference/")
-        else:
-            try:
-                os.remove(inf_file)
-            except OSError:
-                pass
-
-    logging.info("Files cleaned up.")
 
 
 if __name__ == "__main__":
