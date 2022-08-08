@@ -177,7 +177,10 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
         file_name = f'w-{reference_name}-{window_start}-{window_end}'
 
         # TODO solution for backward conformance
-        end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
+        if len(tiling) > 1:
+            end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
+        else:
+            end_extended_by_a_window = region_end + window_length*3
         for read in arr_read_summary:
             if idx == len(tiling) - 1 and read[1] > end_extended_by_a_window:
                 continue
@@ -189,7 +192,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             )
 
         if (idx != len(tiling) - 1 # except last
-            and len(arr) > 0): # suppress output if window empty
+            and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
 
             _write_to_file(arr, file_name + '.reads.fas')
             with open(file_name + '.qualities.npy', 'wb') as f:
