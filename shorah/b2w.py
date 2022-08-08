@@ -145,7 +145,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     reference_name = tiling_strategy.get_reference_name()
     tiling = tiling_strategy.get_window_tilings()
     region_end = tiling_strategy.get_region_end()
-
+    print(tiling)
     permitted_reads_per_location = _calc_location_maximum_reads(
         samfile,
         reference_name,
@@ -168,7 +168,11 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
         file_name = f'w-{reference_name}-{window_start}-{window_end}'
 
         # TODO solution for backward conformance
-        end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
+        if len(tiling) > 1:
+            end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
+        else:
+            end_extended_by_a_window = region_end + window_length*3
+
         for read in arr_read_summary:
             if idx == len(tiling) - 1 and read[1] > end_extended_by_a_window:
                 continue
@@ -178,9 +182,9 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             reads.write(
                 f'{read[0]}\t{tiling[0][0]-1}\t{end_extended_by_a_window}\t{read[1]}\t{read[2]}\t{read[3]}\n'
             )
-
+        
         if (idx != len(tiling) - 1 # except last
-            and len(arr) > 0): # suppress output if window empty
+            and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
 
             _write_to_file(arr, file_name + '.reads.fas')
             _write_to_file([
