@@ -98,7 +98,7 @@ def reads_list_to_array(reads_list):
     return reads_binary_array, reads_weights_array
 
 
-def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet):
+def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet,unique_modus):
 
     with open(fname_qualities, "rb") as f:
         qualities = np.load(f, allow_pickle=True)
@@ -110,7 +110,8 @@ def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet):
         reads_list[-1].seq2binary(alphabet)
         reads_list[-1].phred_quality_score = qualities[idx]
 
-    reads_list = unique_reads_list(reads_list)
+    if unique_modus:
+        reads_list = unique_reads_list(reads_list)
     qualities = get_qualities(reads_list)
 
     return reads_list, qualities

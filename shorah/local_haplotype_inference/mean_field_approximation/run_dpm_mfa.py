@@ -24,6 +24,7 @@ def main(
     K,
     alpha0,
     alphabet="ACGT-",
+    unique_modus = True,
 ):
 
     window_id = freads_in.split("/")[-1][:-4]  # freads_in is absolute path
@@ -35,7 +36,7 @@ def main(
     reference_binary, ref_id = preparation.load_reference_seq(fref_in, alphabet)
 
     reads_list, qualities = preparation.load_fasta_and_qualities(
-        freads_in, fname_qualities, alphabet
+        freads_in, fname_qualities, alphabet, unique_modus
     )
     reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
     reads_log_error_proba = preparation.compute_reads_log_error_proba(
