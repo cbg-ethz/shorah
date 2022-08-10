@@ -71,6 +71,7 @@ def run_cavi(
     reads_log_error_proba,
     start_id,
     output_dir,
+    convergence_threshold,
 ):
     """
     Runs cavi (coordinate ascent variational inference).
@@ -153,7 +154,7 @@ def run_cavi(
             elif (history_elbo[-2] > elbo) and np.abs(elbo - history_elbo[-2]) > 1e-08:
                 exit_message = "Error: ELBO is decreasing."
                 break
-            elif np.abs(elbo - history_elbo[-2]) < 1e-03:
+            elif np.abs(elbo - history_elbo[-2]) < convergence_threshold:
                 converged = True
                 exit_message = "ELBO converged."
 
@@ -177,6 +178,7 @@ def run_cavi(
             "history_mean_cluster": history_mean_cluster,
         }
     )
+    dict_result.update(state_curr_dict)
 
     result = (state_curr_dict, dict_result)
 

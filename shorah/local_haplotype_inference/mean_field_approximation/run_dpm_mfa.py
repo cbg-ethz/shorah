@@ -2,8 +2,9 @@
 
 import sys
 import os
-import pickle
 import logging
+import json
+import numpy as np
 
 # my python-scripts
 from . import preparation
@@ -15,6 +16,13 @@ logging.basicConfig(
 )
 
 
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+
 def main(
     freads_in,
     fref_in,
@@ -24,7 +32,8 @@ def main(
     K,
     alpha0,
     alphabet="ACGT-",
-    unique_modus = True,
+    unique_modus=True,
+    convergence_threshold=1e-03,
 ):
 
     window_id = freads_in.split("/")[-1][:-4]  # freads_in is absolute path
@@ -55,6 +64,7 @@ def main(
             reads_log_error_proba,
             0,
             output_name,
+            convergence_threshold,
         )
     ]
 
@@ -78,12 +88,12 @@ def main(
     exit_meassage = sorted_results[0][1]["exit_message"]
     logging.info("CAVI termination " + str(exit_meassage))
 
-    with open(output_name + "all_results.pkl", "wb") as f:
-        pickle.dump(sorted_results,f)
+    with open(output_name + "all_results.json", "w") as f:
+        json.dump(sorted_results[0][1], f, cls=NumpyEncoder)
 
     # TODO: Would be nicer to use json dump.
-    #import json
-    #with open(output_name + "all_results.pkl", "wb") as fp:
+    # import json
+    # with open(output_name + "all_results.pkl", "wb") as fp:
     #    json.dump(sorted_results, fp)
 
     logging.info(
