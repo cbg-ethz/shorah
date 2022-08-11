@@ -149,7 +149,7 @@ def run_dpm(run_setting):
     """
     import subprocess
 
-    filein, j, a, seed, inference_type, n_max_haplotypes, n_mfa_starts, inference_convergence_threshold = run_setting
+    filein, j, a, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold = run_setting
 
     # if cor.fas.gz exists, skip
     # greedy re match to handle situation where '.reads' appears in the ID
@@ -236,6 +236,7 @@ def run_dpm(run_setting):
                  K=int(n_max_haplotypes),
                  alpha0=float(a),
                  alphabet = 'ACGT-',
+                 unique_modus = unique_modus,
                  convergence_threshold = inference_convergence_threshold,
                  )
 
@@ -338,7 +339,7 @@ def base_break(baselist):
     return rc
 
 
-def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, inference_convergence_threshold):
+def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold):
     """Return windows to run on diri_sampler."""
 
     rn_list = []
@@ -350,7 +351,7 @@ def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, in
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 20)
-        rn_list.append((winFile, j, alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, inference_convergence_threshold))
+        rn_list.append((winFile, j, alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold))
 
     del end
     del(beg, chr1)
@@ -434,6 +435,7 @@ def main(args):
     inference_type = args.inference_type
     n_max_haplotypes = args.n_max_haplotypes
     n_mfa_starts = args.n_mfa_starts
+    unique_modus = args.unique_modus
     inference_convergence_threshold = args.conv_thres
 
     logging.info(' '.join(sys.argv))
@@ -525,7 +527,7 @@ def main(args):
     # Now the windows and the error correction #
     ############################################
 
-    runlist = win_to_run(alpha, seed, inference_type, n_max_haplotypes, n_mfa_starts, inference_convergence_threshold)
+    runlist = win_to_run(alpha, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
@@ -553,7 +555,7 @@ def main(args):
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts, inference_convergence_threshold = i
+        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus,inference_convergence_threshold = i
         del a  # in future alpha might be different on each window
         del s
         # greedy re match to handle situation where '.' or '-' appears in the
