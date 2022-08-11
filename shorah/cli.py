@@ -176,9 +176,14 @@ def main():
                                 required=False, default=100, dest="n_max_haplotypes",
                                 help="Guess of maximal guess of haplotypes.")
 
+    parser_shotgun.add_argument("--conv_thres", metavar='FLOAT', type=float,
+                            required=False, default=1e-03, dest="conv_thres",
+                            help="convergence threshold for inference.")
+
     parser_shotgun.add_argument("--n_mfa_starts", metavar='INT', type=int,
                                 required=False, default=1, dest="n_mfa_starts",
                                 help="Number of starts for inference type mean_field_approximation.")
+
 
 
     parser_shotgun.set_defaults(func=shotgun_run)
