@@ -184,8 +184,7 @@ def main():
                                 required=False, default=1, dest="n_mfa_starts",
                                 help="Number of starts for inference type mean_field_approximation.")
 
-    parser_shotgun.add_argument("--unique_modus", metavar='Bool', type=bool,
-                                required=False, default=True, dest="unique_modus",
+    parser_shotgun.add_argument('--non-unique_modus', action='store_false', dest="unique_modus",
                                 help="For inference: Make read set unique with read weights.")
 
 
