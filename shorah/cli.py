@@ -187,6 +187,16 @@ def main():
     parser_shotgun.add_argument('--non-unique_modus', action='store_false', dest="unique_modus",
                                 help="For inference: Make read set unique with read weights.")
 
+    parser_shotgun.add_argument('--shorah', action='store_const', const='shorah', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+    parser_shotgun.add_argument('--learn_error_params', action='store_const', const='learn_error_params', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+    parser_shotgun.add_argument('--use_quality_scores', action='store_const', const='use_quality_scores', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+
 
     parser_shotgun.set_defaults(func=shotgun_run)
 

@@ -192,7 +192,7 @@ def run_dpm(run_setting):
         shutil.move(fqual_fstgz, './')
         subprocess.check_call(["gunzip", "%s-qualities.gz" % stem])
 
-    if inference_type == '': # run the original sampler of ShoRAH
+    if inference_type == 'shorah': # run the original sampler of ShoRAH
 
         # dn = sys.path[0]
         #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
@@ -226,11 +226,24 @@ def run_dpm(run_setting):
         except Exception as e:
             logging.error(f'{filein} - Run failed: {e}')
 
-    elif inference_type == 'mean_field_approximation':
+    elif inference_type == 'use_quality_scores':
         run_dpm_mfa.main(
                  freads_in=filein,
                  fref_in=ref_in,
                  fname_qualities= fname_qualities,
+                 output_dir='./',
+                 n_starts=int(n_mfa_starts),
+                 K=int(n_max_haplotypes),
+                 alpha0=float(a),
+                 alphabet = 'ACGT-',
+                 unique_modus = unique_modus,
+                 convergence_threshold = inference_convergence_threshold,
+                 )
+    elif inference_type == 'learn_error_params':
+        run_dpm_mfa.main(
+                 freads_in=filein,
+                 fref_in=ref_in,
+                 fname_qualities=None,
                  output_dir='./',
                  n_starts=int(n_mfa_starts),
                  K=int(n_max_haplotypes),
