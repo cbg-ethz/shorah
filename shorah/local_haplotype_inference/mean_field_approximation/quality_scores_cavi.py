@@ -6,8 +6,8 @@ from scipy.special import betaln
 
 # my python scripts
 from . import initialization
-from . import update_eqs
-from . import elbo_eqs
+from . import quality_scores_update_eqs
+from . import quality_scores_elbo_eqs
 
 """
 Parallelizing with Pool following:
@@ -32,7 +32,8 @@ def multistart_cavi(
     reads_weights,
     reads_log_error_proba,
     n_starts,
-    output_dir,
+    output_name,
+    convergence_threshold,
 ):
 
     pool = mp.Pool(mp.cpu_count())
@@ -50,6 +51,7 @@ def multistart_cavi(
                 reads_log_error_proba,
                 start,
                 output_dir,
+                convergence_threshold,
             ),
             callback=collect_result,
         )
@@ -91,7 +93,7 @@ def run_cavi(
     history_elbo = []
 
     state_init_dict = initialization.draw_init_state(
-        n_cluster, alpha0, alphabet, reads_list, reference_binary
+        n_cluster, alpha0, alphabet, reads_list, reference_binary, qualities = True,
     )
     state_init_dict.update(
         {
