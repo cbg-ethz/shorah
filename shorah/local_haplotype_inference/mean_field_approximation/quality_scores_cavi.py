@@ -6,8 +6,8 @@ from scipy.special import betaln
 
 # my python scripts
 from . import initialization
-from . import quality_scores_update_eqs
-from . import quality_scores_elbo_eqs
+from . import quality_scores_update_eqs as update_eqs
+from . import quality_scores_elbo_eqs as elbo_eqs
 
 """
 Parallelizing with Pool following:

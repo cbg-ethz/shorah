@@ -8,8 +8,8 @@ import numpy as np
 
 # my python-scripts
 from . import preparation
-from . import analyze_results
-from . import cavi
+from . import quality_scores_analyze_results as analyze_results
+#from . import cavi
 
 logging.basicConfig(
     filename="shorah_inference.log", encoding="utf-8", level=logging.INFO
@@ -44,16 +44,40 @@ def main(
     # Read in reads
     reference_binary, ref_id = preparation.load_reference_seq(fref_in, alphabet)
 
-    reads_list, qualities = preparation.load_fasta_and_qualities(
-        freads_in, fname_qualities, alphabet, unique_modus
-    )
-    reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
-    reads_log_error_proba = preparation.compute_reads_log_error_proba(
-        qualities, reads_seq_binary, len(alphabet)
-    )
+    if fname_qualities is None:
+        reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
+        reads_log_error_proba = None
+        from . import learn_error_params_cavi as cavi
+    else:
+        # prepare quality scores
+        reads_list, qualities = preparation.load_fasta_and_qualities(
+            freads_in, fname_qualities, alphabet, unique_modus
+        )
+        reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
+        reads_log_error_proba = preparation.compute_reads_log_error_proba(
+            qualities, reads_seq_binary, len(alphabet)
+        )
+        from . import quality_scores_cavi as cavi
 
-    result_list = [
-        cavi.run_cavi(
+    if n_starts == 1:
+        result_list = [
+            cavi.run_cavi(
+                K,
+                alpha0,
+                alphabet,
+                reference_binary,
+                reads_list,
+                reads_seq_binary,
+                reads_weights,
+                reads_log_error_proba,
+                0,
+                output_name,
+                convergence_threshold,
+            )
+        ]
+
+    elif n_starts > 1:
+        cavi.multistart_cavi(
             K,
             alpha0,
             alphabet,
@@ -62,11 +86,10 @@ def main(
             reads_seq_binary,
             reads_weights,
             reads_log_error_proba,
-            0,
+            n_starts,
             output_name,
             convergence_threshold,
         )
-    ]
 
     logging.info("reference " + fref_in)
     logging.info("reads " + freads_in)

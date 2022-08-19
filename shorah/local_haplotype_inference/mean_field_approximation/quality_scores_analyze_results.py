@@ -3,7 +3,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from . import update_eqs as update_eqs
+from . import quality_scores_update_eqs as update_eqs
 
 
 def correct_reads(state_curr_dict, fname_output_corr):
@@ -31,7 +31,7 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
         ave_reads = state_curr_dict["weight" + str(k)]
         if ave_reads==0:
             # this haplotype will not be reported as there are no reads
-            # supporting it. 
+            # supporting it.
             continue
 
         head = (

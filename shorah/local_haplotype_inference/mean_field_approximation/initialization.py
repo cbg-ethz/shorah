@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import digamma
-from . import update_eqs as update_eqs
+from . import quality_scores_update_eqs as update_eqs
 
 
 def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary, qualities):
@@ -42,7 +42,7 @@ def draw_init_state(n_clusters, alpha0, alphabet, reads_list, reference_binary, 
         }
     )
 
-    if not qualites:
+    if not qualities:
         # draw the error params
         k = np.random.uniform(low=0.5, high=1.0, size=2)
         a, b = matches * k[0], mismatch * k[1]
