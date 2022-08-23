@@ -53,7 +53,10 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
         s = slice(max(0, start_cut_out), end_cut_out)
         full_read = list(read.query_sequence)
+<<<<<<< HEAD
         full_qualities = list(read.query_qualities)
+=======
+>>>>>>> feature-new-inference
 
         diff_counter = 0
         for idx, pair in enumerate(read.get_aligned_pairs()):
@@ -78,9 +81,12 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
             k = (window_start + window_length) - last_aligned_post - 2
             if k > 0:
                 cut_out_read = cut_out_read + k * "N"
+<<<<<<< HEAD
                 cut_out_qualities = cut_out_qualities + k * [2]
                 # Phred scores have a minimal value of 2, where an “N” is inserted
                 # https://www.zymoresearch.com/blogs/blog/what-are-phred-scores
+=======
+>>>>>>> feature-new-inference
             if start_cut_out < 0:
                 cut_out_read = -start_cut_out * "N" + cut_out_read
                 cut_out_qualities = -start_cut_out * [2] + cut_out_qualities
@@ -115,12 +121,24 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     reference_filename: str,
     exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False) -> None:
     """Summarizes reads aligned to reference into windows.
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature-new-inference
     Three products are created:
     #. Multiple FASTA files (one for each window position)
     #. A coverage file that lists all files in (1)
     #. A FASTA file that lists all reads used in (1)
+<<<<<<< HEAD
         .. caution::
             ``reads.fas`` does not comply with the FASTA format.
+=======
+
+        .. caution::
+            ``reads.fas`` does not comply with the FASTA format.
+
+
+>>>>>>> feature-new-inference
     Args:
         alignment_file: Path to the alignment file in CRAM format.
         tiling_strategy: A strategy on how the genome is partitioned.
@@ -162,7 +180,11 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     )
 
     for idx, (window_start, window_length) in enumerate(tiling):
+<<<<<<< HEAD
         arr, arr_read_qualities_summary, arr_read_summary, counter = _run_one_window(
+=======
+        arr, arr_read_summary, counter = _run_one_window(
+>>>>>>> feature-new-inference
             samfile,
             window_start,
             reference_name,
@@ -181,6 +203,10 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
         else:
             end_extended_by_a_window = region_end + window_length*3
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature-new-inference
         for read in arr_read_summary:
             if idx == len(tiling) - 1 and read[1] > end_extended_by_a_window:
                 continue
@@ -190,6 +216,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             reads.write(
                 f'{read[0]}\t{tiling[0][0]-1}\t{end_extended_by_a_window}\t{read[1]}\t{read[2]}\t{read[3]}\n'
             )
+<<<<<<< HEAD
 
         if (idx != len(tiling) - 1 # except last
             and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
@@ -198,6 +225,13 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             with open(file_name + '.qualities.npy', 'wb') as f:
                 np.save(f, np.asarray(arr_read_qualities_summary, dtype=np.int64), allow_pickle=True)
 
+=======
+        
+        if (idx != len(tiling) - 1 # except last
+            and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
+
+            _write_to_file(arr, file_name + '.reads.fas')
+>>>>>>> feature-new-inference
             _write_to_file([
                 f'>{reference_name} {window_start}\n' + # window_start is 1-based
                 reffile.fetch(reference=reference_name, start=window_start-1, end=window_end)

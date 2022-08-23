@@ -53,7 +53,6 @@ else:
 # import local haplotype inference methods
 from .local_haplotype_inference.mean_field_approximation import run_dpm_mfa
 
-
 #################################################
 # a common user should not edit above this line #
 #################################################
