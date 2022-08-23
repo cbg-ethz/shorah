@@ -45,6 +45,7 @@ def main(
     reference_binary, ref_id = preparation.load_reference_seq(fref_in, alphabet)
 
     if fname_qualities is None:
+        reads_list = preparation.load_reads_fasta(freads_in, alphabet,unique_modus)
         reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
         reads_log_error_proba = None
         from . import learn_error_params_cavi as cavi
