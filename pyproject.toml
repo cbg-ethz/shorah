@@ -22,14 +22,6 @@ PyYAML = "^6.0"
 scipy = "^1.7.3"
 bio = "^1.3.3"
 pandas = "^1.3.5"
-<<<<<<< HEAD
-=======
-pypesto = "^0.2.11"
-tensorflow-cpu = "^2.8.0"
-tensorflow-probability = "^0.15.0"
-jax = "^0.3.0"
-numpyro = "^0.9.0"
->>>>>>> feature-new-inference
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
