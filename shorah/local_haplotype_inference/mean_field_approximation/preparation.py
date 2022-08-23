@@ -147,6 +147,7 @@ def load_reads_fasta(fname_fasta, alphabet,unique_modus):
 
     if unique_modus:
         reads_list = unique_reads_list(reads_list)
+    return reads_list
 
 def unique_reads_list(reads_list):
     # test for unique reads_list

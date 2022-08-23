@@ -49,6 +49,7 @@ def main(
         reads_seq_binary, reads_weights = preparation.reads_list_to_array(reads_list)
         reads_log_error_proba = None
         from . import learn_error_params_cavi as cavi
+        from . import analyze_results as analyze_results
     else:
         # prepare quality scores
         reads_list, qualities = preparation.load_fasta_and_qualities(
@@ -59,6 +60,7 @@ def main(
             qualities, reads_seq_binary, len(alphabet)
         )
         from . import quality_scores_cavi as cavi
+        from . import quality_scores_analyze_results as analyze_results
 
     if n_starts == 1:
         result_list = [
