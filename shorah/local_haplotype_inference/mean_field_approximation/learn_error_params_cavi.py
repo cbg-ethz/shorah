@@ -8,7 +8,6 @@ from scipy.special import betaln
 from . import initialization
 from . import learn_error_params_update_eqs as update_eqs
 from . import learn_error_params_elbo_eqs as elbo_eqs
-from . import learn_error_params_analyze_results as analyze_results
 
 """
 Parallelizing with Pool following:
@@ -24,16 +23,17 @@ def collect_result(result):
 
 
 def multistart_cavi(
-    K,
+    n_cluster,
     alpha0,
     alphabet,
     reference_binary,
-    reference_seq,
     reads_list,
     reads_seq_binary,
     reads_weights,
+    reads_log_error_proba,
     n_starts,
     output_dir,
+    convergence_threshold,
 ):
 
     pool = mp.Pool(mp.cpu_count())
@@ -41,14 +41,14 @@ def multistart_cavi(
         pool.apply_async(
             run_cavi,
             args=(
-                K,
+                n_cluster,
                 alpha0,
                 alphabet,
                 reference_binary,
-                reference_seq,
                 reads_list,
                 reads_seq_binary,
                 reads_weights,
+                reads_log_error_proba,
                 start,
                 output_dir,
                 convergence_threshold,
@@ -67,10 +67,10 @@ def run_cavi(
     alpha0,
     alphabet,
     reference_binary,
-    reference_seq,
     reads_list,
     reads_seq_binary,
     reads_weights,
+    reads_log_error_proba,
     start_id,
     output_dir,
     convergence_threshold,
@@ -95,12 +95,16 @@ def run_cavi(
     history_gamma_a = []
     history_gamma_b = []
     history_mean_log_gamma = []
-    history_mean_haplo = []
     history_mean_cluster = []
     history_elbo = []
 
     state_init_dict = initialization.draw_init_state(
-        K, alpha0, alphabet, reads_list, reference_binary
+        K,
+        alpha0,
+        alphabet,
+        reads_list,
+        reference_binary,
+        qualities=False,
     )
     state_init_dict.update(
         {
@@ -174,10 +178,22 @@ def run_cavi(
             if np.isnan(elbo):
                 exit_message = "Error: ELBO is nan."
                 print(exit_message)
-                print("mean_log_pi is nan", np.any(np.isnan(state_curr_dict["mean_log_pi"])))
-                print("mean_log_gamma is nan", np.any(np.isnan(state_curr_dict["mean_log_gamma"])))
-                print("mean_log_theta is nan", np.any(np.isnan(state_curr_dict["mean_log_theta"])))
-                print("mean_cluster is nan", np.any(np.isnan(state_curr_dict["mean_cluster"])))
+                print(
+                    "mean_log_pi is nan",
+                    np.any(np.isnan(state_curr_dict["mean_log_pi"])),
+                )
+                print(
+                    "mean_log_gamma is nan",
+                    np.any(np.isnan(state_curr_dict["mean_log_gamma"])),
+                )
+                print(
+                    "mean_log_theta is nan",
+                    np.any(np.isnan(state_curr_dict["mean_log_theta"])),
+                )
+                print(
+                    "mean_cluster is nan",
+                    np.any(np.isnan(state_curr_dict["mean_cluster"])),
+                )
 
                 break
             elif (history_elbo[-2] > elbo) and np.abs(elbo - history_elbo[-2]) > 1e-08:
@@ -218,24 +234,12 @@ def run_cavi(
             "history_gamma_a": history_gamma_a,
             "history_gamma_b": history_gamma_b,
             "history_mean_log_gamma": history_mean_log_gamma,
-            "history_mean_haplo": history_mean_haplo,
             "history_mean_cluster": history_mean_cluster,
         }
     )
 
-    # dict_result.update(state_curr_dict)
-    summary = analyze_results.summarize_results(
-        state_curr_dict,
-        alphabet,
-        reads_seq_binary,
-        reads_weights,
-        reads_list,
-        reference_binary,
-        reference_seq,
-    )
-    dict_result.update(summary)
-    state_curr_dict.update(summary)
+    dict_result.update(state_curr_dict)
 
-    result = (state_init_dict, state_curr_dict, dict_result)
+    result = (state_curr_dict, dict_result)
 
     return result

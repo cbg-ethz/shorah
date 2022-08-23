@@ -1,4 +1,5 @@
 import numpy as np
+from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -28,7 +29,7 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
     for k in range(len(haplo_list)):
         # ave_reads = assignedReads
         ave_reads = state_curr_dict["weight" + str(k)]
-        if ave_reads==0:
+        if ave_reads == 0:
             # this haplotype will not be reported as there are no reads
             # supporting it.
             continue
@@ -57,8 +58,8 @@ def summarize_results(
     reads_seq_binary,
     reads_weights,
     reads_list,
+    reads_log_error_proba,
     reference_binary,
-    reference_seq,
 ):
 
     mean_z = state_curr_dict["mean_cluster"]
@@ -98,7 +99,7 @@ def summarize_results(
         )
 
     return dict_summary
- 
+
 
 def get_haplotype(mean_h_k, alphabet):
     haplotype_sequence = []
