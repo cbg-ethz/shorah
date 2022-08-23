@@ -53,10 +53,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
         s = slice(max(0, start_cut_out), end_cut_out)
         full_read = list(read.query_sequence)
-<<<<<<< HEAD
         full_qualities = list(read.query_qualities)
-=======
->>>>>>> feature-new-inference
 
         diff_counter = 0
         for idx, pair in enumerate(read.get_aligned_pairs()):
