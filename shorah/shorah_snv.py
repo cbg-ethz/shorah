@@ -351,6 +351,7 @@ def main(args):
     all_SNVs = getSNV(ref_m, posterior_thresh)
     if path_insert_file is None:
         min_windows_coverage=2
+        min_windows_coverage=1 # just for one amplicon mode
     else:
         min_windows_coverage=1
     writeRaw(all_SNVs, min_windows_coverage=min_windows_coverage)

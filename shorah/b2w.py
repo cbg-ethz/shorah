@@ -1,6 +1,7 @@
 import pysam
 from typing import Optional
 from shorah.tiling import TilingStrategy, EquispacedTilingStrategy
+import numpy as np
 
 def _write_to_file(lines, file_name):
     with open(file_name, "w") as f:
@@ -22,6 +23,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
     arr = []
     arr_read_summary = []
+    arr_read_qualities_summary = []
 
     iter = samfile.fetch(
         reference_name,
@@ -51,13 +53,16 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
         s = slice(max(0, start_cut_out), end_cut_out)
         full_read = list(read.query_sequence)
+        full_qualities = list(read.query_qualities)
 
         diff_counter = 0
         for idx, pair in enumerate(read.get_aligned_pairs()):
             if pair[0] == None:
                 full_read.insert(idx - diff_counter, "-")
+                full_qualities.insert(idx - diff_counter, "2") #TODO: We need to give a quality score to the deletions
             if pair[1] == None:
                 full_read.pop(idx - diff_counter)
+                full_qualities.pop(idx - diff_counter)
                 diff_counter = diff_counter + 1
 
         full_read = ("".join(full_read))
@@ -67,16 +72,24 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
                 and len(full_read) >= minimum_overlap):
 
             cut_out_read = full_read[s]
+            cut_out_qualities = full_qualities[s]
 
             # TODO justify 2
             k = (window_start + window_length) - last_aligned_post - 2
             if k > 0:
                 cut_out_read = cut_out_read + k * "N"
+                cut_out_qualities = cut_out_qualities + k * [2]
+                # Phred scores have a minimal value of 2, where an “N” is inserted
+                # https://www.zymoresearch.com/blogs/blog/what-are-phred-scores
             if start_cut_out < 0:
                 cut_out_read = -start_cut_out * "N" + cut_out_read
+                cut_out_qualities = -start_cut_out * [2] + cut_out_qualities
 
             assert len(cut_out_read) == window_length, (
                 "read unequal window size"
+            )
+            assert len(cut_out_qualities) == window_length, (
+                "quality unequal window size"
             )
 
             if exact_conformance_fix_0_1_basing_in_reads == False:
@@ -85,6 +98,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
                 arr_line = f'>{read.query_name} {first_aligned_pos+1}\n{cut_out_read}'
 
             arr.append(arr_line)
+            arr_read_qualities_summary.append(np.asarray(cut_out_qualities))
 
         if read.reference_start >= counter and len(full_read) >= minimum_overlap:
             arr_read_summary.append(
@@ -93,7 +107,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
     counter = window_start + window_length
 
-    return arr, arr_read_summary, counter
+    return arr, arr_read_qualities_summary, arr_read_summary, counter
 
 
 def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
@@ -101,17 +115,12 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     reference_filename: str,
     exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False) -> None:
     """Summarizes reads aligned to reference into windows.
-
     Three products are created:
-
     #. Multiple FASTA files (one for each window position)
     #. A coverage file that lists all files in (1)
     #. A FASTA file that lists all reads used in (1)
-
         .. caution::
             ``reads.fas`` does not comply with the FASTA format.
-
-
     Args:
         alignment_file: Path to the alignment file in CRAM format.
         tiling_strategy: A strategy on how the genome is partitioned.
@@ -153,7 +162,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     )
 
     for idx, (window_start, window_length) in enumerate(tiling):
-        arr, arr_read_summary, counter = _run_one_window(
+        arr, arr_read_qualities_summary, arr_read_summary, counter = _run_one_window(
             samfile,
             window_start,
             reference_name,
@@ -172,7 +181,6 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             end_extended_by_a_window = region_end + (tiling[1][0]-tiling[0][0])*3
         else:
             end_extended_by_a_window = region_end + window_length*3
-
         for read in arr_read_summary:
             if idx == len(tiling) - 1 and read[1] > end_extended_by_a_window:
                 continue
@@ -187,6 +195,9 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
 
             _write_to_file(arr, file_name + '.reads.fas')
+            with open(file_name + '.qualities.npy', 'wb') as f:
+                np.save(f, np.asarray(arr_read_qualities_summary, dtype=np.int64), allow_pickle=True)
+
             _write_to_file([
                 f'>{reference_name} {window_start}\n' + # window_start is 1-based
                 reffile.fetch(reference=reference_name, start=window_start-1, end=window_end)

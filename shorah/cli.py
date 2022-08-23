@@ -24,18 +24,14 @@
 # along with ShoRAH.  If not, see <http://www.gnu.org/licenses/>.
 """
 Module that contains the command line app.
-
 Why does this file exist, and why not put this in __main__?
-
   You might be tempted to import things from __main__ later, but that will cause
   problems: the code will get executed twice:
-
   - When you run `python -mminvar` python will execute
     ``__main__.py`` as a script. That means there won't be any
     ``minvar.__main__`` in ``sys.modules``.
   - When you import __main__ it will get executed again (as a module) because
     there's no ``minvar.__main__`` in ``sys.modules``.
-
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import os
@@ -171,6 +167,36 @@ def main():
     parser_shotgun.add_argument("-z", "--insert-file", metavar='INSERT_FILE', type=str,
                                 required=False, default=None, dest="path_insert_file",
                                 help="path to an (optional) insert file (primer tiling strategy)")
+
+    parser_shotgun.add_argument("--inference", metavar='INFERENCE', type=str,
+                                required=False, default='', dest="inference_type",
+                                help="inference_type: mean_field_approximation")
+
+    parser_shotgun.add_argument("--n_max_haplotypes", metavar='INT', type=int,
+                                required=False, default=100, dest="n_max_haplotypes",
+                                help="Guess of maximal guess of haplotypes.")
+
+    parser_shotgun.add_argument("--conv_thres", metavar='FLOAT', type=float,
+                            required=False, default=1e-03, dest="conv_thres",
+                            help="convergence threshold for inference.")
+
+    parser_shotgun.add_argument("--n_mfa_starts", metavar='INT', type=int,
+                                required=False, default=1, dest="n_mfa_starts",
+                                help="Number of starts for inference type mean_field_approximation.")
+
+    parser_shotgun.add_argument('--non-unique_modus', action='store_false', dest="unique_modus",
+                                help="For inference: Make read set unique with read weights.")
+
+    parser_shotgun.add_argument('--shorah', action='store_const', const='shorah', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+    parser_shotgun.add_argument('--learn_error_params', action='store_const', const='learn_error_params', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+    parser_shotgun.add_argument('--use_quality_scores', action='store_const', const='use_quality_scores', dest="inference_type",
+                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+
+
 
     parser_shotgun.set_defaults(func=shotgun_run)
 

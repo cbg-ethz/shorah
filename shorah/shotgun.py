@@ -50,6 +50,10 @@ else:
     from . import b2w
     from . import tiling
 
+# import local haplotype inference methods
+from .local_haplotype_inference.mean_field_approximation import run_dpm_mfa
+
+
 #################################################
 # a common user should not edit above this line #
 #################################################
@@ -145,7 +149,7 @@ def run_dpm(run_setting):
     """
     import subprocess
 
-    filein, j, a, seed = run_setting
+    filein, j, a, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold = run_setting
 
     # if cor.fas.gz exists, skip
     # greedy re match to handle situation where '.reads' appears in the ID
@@ -163,38 +167,91 @@ def run_dpm(run_setting):
         shutil.move(fstgz, './')
         subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
 
-    # dn = sys.path[0]
-    #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
-    #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
-    #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
+    ref_in = filein.split('.reads.')[0] + str('.ref.fas')
 
-    # TODO integration
-    logging.debug('Exec dpm_sampler')
-    try:
-        os.remove('./corrected.tmp')
-        # os.remove('./assignment.tmp')
-    except OSError:
+    # if already run before, extract the read file
+    fstgz = 'raw_reads/%s.reads.fas.gz' % stem
+    if os.path.exists(filein):
         pass
+    elif os.path.exists(fstgz):
+        shutil.move(fstgz, './')
+        subprocess.check_call(["gunzip", "%s-reads.gz" % stem])
+
+    ref_fstgz = 'raw_reads/%s.ref.fas.gz' % stem
+    if os.path.exists(ref_in):
+        pass
+    elif os.path.exists(ref_fstgz):
+        shutil.move(ref_fstgz, './')
+        subprocess.check_call(["gunzip", "%s-ref.gz" % stem])
+
+    fname_qualities = filein.split('.reads.')[0] + str('.qualities.npy')
+    fqual_fstgz = 'raw_reads/%s.qualities.npy.gz' % stem
+    if os.path.exists(fname_qualities):
+        pass
+    elif os.path.exists(fqual_fstgz):
+        shutil.move(fqual_fstgz, './')
+        subprocess.check_call(["gunzip", "%s-qualities.gz" % stem])
+
+    if inference_type == 'shorah': # run the original sampler of ShoRAH
+
+        # dn = sys.path[0]
+        #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
+        #my_arg = ' -i %s -j %i -t %i -a %f -K %d -R %d' % \
+        #    (pipes.quote(filein), j, int(j * hist_fraction), a, init_K, seed)
+
+        # TODO integration
+        logging.debug('Exec dpm_sampler')
+        try:
+            os.remove('./corrected.tmp')
+            # os.remove('./assignment.tmp')
+        except OSError:
+            pass
 
 
-    # runs the gibbs sampler for the dirichlet process mixture
-    try:
-        logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
-        retcode = libshorah.exec_dpm_sampler(
-            pipes.quote(filein),
-            j,
-            a,
-            int(j * hist_fraction),
-            K_cluster_start=init_K,
-            R_seed=seed
-        )
-        if retcode == 0:
-            logging.debug(f'{filein} - Run finished successfully.')
-        else:
-            logging.error(f'{filein} - Run failed with return code %i.', retcode)
-    except Exception as e:
-        logging.error(f'{filein} - Run failed: {e}')
+        # runs the gibbs sampler for the dirichlet process mixture
+        try:
+            logging.debug(f"{filein} {j} {a} {int(j * hist_fraction)} {init_K} {seed}")
+            retcode = libshorah.exec_dpm_sampler(
+                pipes.quote(filein),
+                j,
+                a,
+                int(j * hist_fraction),
+                K_cluster_start=init_K,
+                R_seed=seed
+            )
+            if retcode == 0:
+                logging.debug(f'{filein} - Run finished successfully.')
+            else:
+                logging.error(f'{filein} - Run failed with return code %i.', retcode)
+        except Exception as e:
+            logging.error(f'{filein} - Run failed: {e}')
 
+    elif inference_type == 'use_quality_scores':
+        run_dpm_mfa.main(
+                 freads_in=filein,
+                 fref_in=ref_in,
+                 fname_qualities= fname_qualities,
+                 output_dir='./',
+                 n_starts=int(n_mfa_starts),
+                 K=int(n_max_haplotypes),
+                 alpha0=float(a),
+                 alphabet = 'ACGT-',
+                 unique_modus = unique_modus,
+                 convergence_threshold = inference_convergence_threshold,
+                 )
+    elif inference_type == 'learn_error_params':
+        run_dpm_mfa.main(
+                 freads_in=filein,
+                 fref_in=ref_in,
+                 fname_qualities=None,
+                 output_dir='./',
+                 n_starts=int(n_mfa_starts),
+                 K=int(n_max_haplotypes),
+                 alpha0=float(a),
+                 alphabet = 'ACGT-',
+                 unique_modus = unique_modus,
+                 convergence_threshold = inference_convergence_threshold,
+                 )
 
     return
 
@@ -295,7 +352,7 @@ def base_break(baselist):
     return rc
 
 
-def win_to_run(alpha_w, seed):
+def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold):
     """Return windows to run on diri_sampler."""
 
     rn_list = []
@@ -307,7 +364,7 @@ def win_to_run(alpha_w, seed):
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
         j = min(300000, int(cov) * 20)
-        rn_list.append((winFile, j, alpha_w, seed))
+        rn_list.append((winFile, j, alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold))
 
     del end
     del(beg, chr1)
@@ -388,6 +445,11 @@ def main(args):
     ignore_indels = args.ignore_indels
     maxthreads = args.maxthreads
     path_insert_file = args.path_insert_file
+    inference_type = args.inference_type
+    n_max_haplotypes = args.n_max_haplotypes
+    n_mfa_starts = args.n_mfa_starts
+    unique_modus = args.unique_modus
+    inference_convergence_threshold = args.conv_thres
 
     logging.info(' '.join(sys.argv))
 
@@ -478,22 +540,26 @@ def main(args):
     # Now the windows and the error correction #
     ############################################
 
-    runlist = win_to_run(alpha, seed)
+    runlist = win_to_run(alpha, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold)
     logging.info('will run on %d windows', len(runlist))
     # run diri_sampler on all available processors but one
     max_proc = max(cpu_count() - 1, 1)
     if maxthreads:
         max_proc = min(max_proc, maxthreads)
     logging.info('CPU(s) count %u, max thread limit %u, will run %u parallel dpm_sampler', cpu_count(), maxthreads, max_proc)
-    pool = Pool(processes=max_proc)
-    pool.map(run_dpm, runlist)
-    pool.close()
-    pool.join()
+
+    from multiprocessing import Process
+    all_processes = [Process(target=run_dpm, args=(run_set,)) for run_set in runlist]
+    for p in all_processes:
+      p.start()
+
+    for p in all_processes:
+      p.join()
 
     # prepare directories
     if keep_all_files:
         for sd_name in ['debug', 'sampling', 'freq', 'support',
-                        'corrected', 'raw_reads']:
+                        'corrected', 'raw_reads', 'inference']:
             try:
                 os.mkdir(sd_name)
             except OSError:
@@ -502,7 +568,7 @@ def main(args):
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a, s = i
+        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus,inference_convergence_threshold = i
         del a  # in future alpha might be different on each window
         del s
         # greedy re match to handle situation where '.' or '-' appears in the
@@ -605,6 +671,24 @@ def main(args):
                 shutil.move(gzf, 'raw_reads/')
             else:
                 os.remove(raw_file)
+
+        # collect files from inference
+        inference_files = (
+            glob.glob("./w*best_run.txt")
+            + glob.glob("./w*history_run*.csv")
+            + glob.glob("./w*results*.pkl")
+        )
+
+        for inf_file in inference_files:
+            if os.stat(inf_file).st_size > 0:
+                gzf = gzip_file(inf_file)
+                try:
+                    os.remove("inference/%s" % gzf)
+                except OSError:
+                    pass
+                shutil.move(gzf, "inference/")
+            else:
+                os.remove(inf_file)
 
     ############################################
     ##      Print the corrected reads         ##
