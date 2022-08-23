@@ -111,13 +111,13 @@ def load_fasta_and_qualities(fname_fasta, fname_qualities, alphabet,unique_modus
         reads_list[-1].phred_quality_score = qualities[idx]
 
     if unique_modus:
-        reads_list = unique_reads_list(reads_list)
+        reads_list = unique_reads_list_qualities(reads_list)
     qualities = get_qualities(reads_list)
 
     return reads_list, qualities
 
 
-def unique_reads_list(reads_list):
+def unique_reads_list_qualities(reads_list):
     # test for unique reads_list
     for i, temp_read in enumerate(reads_list):
         if temp_read.weight > 0.0:
@@ -132,6 +132,33 @@ def unique_reads_list(reads_list):
                         temp_read.phred_quality_score
                         + reads_list[j].phred_quality_score
                     ) / 2
+                    reads_list[j].weight -= 1
+
+    # keep only unique reads_list
+    reads_list = [read for read in reads_list if read.weight > 0]
+    return reads_list
+
+def load_reads_fasta(fname_fasta, alphabet,unique_modus):
+    # go through each sequence in fasta file
+    reads_list = []
+    for idx, seq in enumerate(SeqIO.parse(fname_fasta, "fasta")):
+        reads_list.append(Read(seq.seq, seq.id))
+        reads_list[-1].seq2binary(alphabet)
+
+    if unique_modus:
+        reads_list = unique_reads_list(reads_list)
+
+def unique_reads_list(reads_list):
+    # test for unique reads_list
+    for i, temp_read in enumerate(reads_list):
+        if temp_read.weight > 0.0:
+            for j in range(i + 1, len(reads_list)):
+                hd = hamming(
+                        temp_read.seq_string, reads_list[j].seq_string
+                )
+                if hd == 0:
+                    temp_read.weight += 1
+                    temp_read.identical_reads.append(reads_list[j].id)
                     reads_list[j].weight -= 1
 
     # keep only unique reads_list
