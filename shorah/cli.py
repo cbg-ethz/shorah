@@ -168,10 +168,6 @@ def main():
                                 required=False, default=None, dest="path_insert_file",
                                 help="path to an (optional) insert file (primer tiling strategy)")
 
-    parser_shotgun.add_argument("--inference", metavar='INFERENCE', type=str,
-                                required=False, default='', dest="inference_type",
-                                help="inference_type: mean_field_approximation")
-
     parser_shotgun.add_argument("--n_max_haplotypes", metavar='INT', type=int,
                                 required=False, default=100, dest="n_max_haplotypes",
                                 help="Guess of maximal guess of haplotypes.")
