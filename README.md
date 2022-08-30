@@ -36,12 +36,18 @@ shorah requires the following pieces of software:
 
 ### Installation
 We recommend to install ShoRAH in a clean conda enviroment:
-`conda create --name env_shorah_lara python=3.9`
+`conda create --name env_shorah python=3.9`
+
 `conda activate env_shorah`
+
 Next install, **HTSlib** and **Boost C++ library** using conda:
+
 `conda install -c bioconda htslib`
+
 `conda install -c conda-forge boost`
+
 Then install this git repository:
+
 `pip install git+https://github.com/LaraFuhrmann/shorah@master `
 
 You might need to downgrade your pip version:
@@ -51,8 +57,11 @@ You might need to downgrade your pip version:
 To test your installation, we recommend running the program on `tests/data_1`.
 
 If the sequencing amplicon strategy is known, we recommend using the amplicon-mode of the program, which takes as input the insert.bed - file:
+
 `shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --use_quality_scores`
+
 If the sequcning quality scores are not trustable, the sequencing error parameters can also be learned:
+
 `shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --learn_error_params`.
 
 If there is no information on the sequencing amplicon strategy available, run:
