@@ -452,8 +452,12 @@ def main(args):
                 freqs_vcf = wl[4:4+max_number_window]
                 posts_vcf = wl[4+max_number_window: 4+max_number_window+max_number_window]
 
+                sum_Freq = 0
+                for freq in freqs_vcf:
+                    sum_Freq+=float(freq)
+
                 # only print when q >= 5%
-                if wl[-1] >= 0.05:
+                if (wl[-1] >= 0.05) and (sum_Freq>0):
                     info = f'Fvar={wl[-6]};Rvar={wl[-5]};Ftot={wl[-4]};' \
                         f'Rtot={wl[-3]};Pval={wl[-2]};Qval={wl[-1]}'
 
