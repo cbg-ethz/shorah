@@ -452,9 +452,13 @@ def main(args):
                 freqs_vcf = wl[4:4+max_number_window]
                 posts_vcf = wl[4+max_number_window: 4+max_number_window+max_number_window]
 
+                # TODO: Why is the sampler returning mutations calls with freq==0 in all windows, is that a problem of the model? 
                 sum_Freq = 0
                 for freq in freqs_vcf:
-                    sum_Freq+=float(freq)
+                    try:
+                        sum_Freq+=float(freq)
+                    except:
+                        sum_Freq+=0
 
                 # only print when q >= 5%
                 if (wl[-1] >= 0.05) and (sum_Freq>0):
