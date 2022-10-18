@@ -104,7 +104,7 @@ class EquispacedTilingStrategy(TilingStrategy):
                 self.incr
             ))
             #while window_positions[-1] + self.window_length >= self.end:
-            #    del window_positions[-1]
+            #    del window_positions[-1] # FIXME uncommented to create one single window
 
         else:
             window_positions = list(range(

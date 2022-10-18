@@ -48,10 +48,12 @@ import gzip
 import os
 import sys
 import warnings
+import pandas as pd
 from collections import namedtuple
 from dataclasses import dataclass
-
 import logging
+import numpy as np
+
 
 import libshorah
 
@@ -237,7 +239,7 @@ def getSNV(ref, window_thresh=0.9):
                             'support': val.support}
 
                 tmp.append(snv_dict)
-    import pandas as pd
+
     pd.DataFrame(tmp).to_csv('cooccurring_mutations.csv')
 
 
@@ -251,7 +253,6 @@ def writeRaw(all_snp, min_windows_coverage):
     """
     header_row =  ['Chromosome', 'Pos', 'Ref', 'Var']
 
-    import numpy as np
     max_number_window_covering_SNV = np.max([len(val) for _, val in sorted(all_snp.items())])
 
     header_row = header_row + ['Frq'+str(k+1) for k in range(max_number_window_covering_SNV)]
@@ -350,8 +351,8 @@ def main(args):
     logging.debug('now parsing SNVs')
     all_SNVs = getSNV(ref_m, posterior_thresh)
     if path_insert_file is None:
-        min_windows_coverage=2
-        min_windows_coverage=1 # just for one amplicon mode
+        min_windows_coverage=2 # TODO make variable
+        #min_windows_coverage=1 # just for one amplicon mode
     else:
         min_windows_coverage=1
     writeRaw(all_SNVs, min_windows_coverage=min_windows_coverage)
@@ -452,7 +453,8 @@ def main(args):
                 freqs_vcf = wl[4:4+max_number_window]
                 posts_vcf = wl[4+max_number_window: 4+max_number_window+max_number_window]
 
-                # TODO: Why is the sampler returning mutations calls with freq==0 in all windows, is that a problem of the model? 
+                # TODO: Why is the sampler returning mutations calls with freq==0 in all windows, is that a problem of the model?
+                # FIXME: not in csv
                 sum_Freq = 0
                 for freq in freqs_vcf:
                     try:

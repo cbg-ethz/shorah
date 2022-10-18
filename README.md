@@ -35,7 +35,7 @@ shorah requires the following pieces of software:
 3. **Boost C++ library**, for random number generation.
 
 ### Installation
-For installation miniconda is recommended: https://docs.conda.io/en/latest/miniconda.html 
+For installation miniconda is recommended: https://docs.conda.io/en/latest/miniconda.html
 We recommend to install ShoRAH in a clean conda enviroment:
 `conda create --name env_shorah python=3.9`
 
@@ -57,13 +57,20 @@ You might need to downgrade your pip version:
 ### Example
 To test your installation, we recommend running the program on `tests/data_1`.
 
-If the sequencing amplicon strategy is known, we recommend using the amplicon-mode of the program, which takes as input the insert.bed - file:
+If the sequencing amplicon strategy is known, we recommend using the amplicon-mode of the program, which takes as input the `<smth>.insert.bed` - file:
+`shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --sampler use_quality_scores`
 
-`shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --use_quality_scores`
-
-If the sequcning quality scores are not trustable, the sequencing error parameters can also be learned:
-
-`shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --learn_error_params`.
+If the sequencing quality scores are not trustable, the sequencing error parameters can also be learned:
+`shorah shotgun -b test_aln.cram -f test_ref.fasta -z scheme.insert.bed --sampler learn_error_params`.
 
 If there is no information on the sequencing amplicon strategy available, run:
-`shorah shotgun -b test_aln.cram -f test_ref.fasta --use_quality_scores`
+`shorah shotgun -b test_aln.cram -f test_ref.fasta --sampler use_quality_scores`
+
+
+## Development/CI with Docker
+The following command will let you interact with the project locally through Docker.
+```bash
+docker run --rm -w="/usr/app" -it $(docker build -q .) bash
+```
+
+This is the same setup as used in the CI at [`.github/workflows/test.yaml`](.github/workflows/test.yaml).

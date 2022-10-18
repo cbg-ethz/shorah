@@ -56,10 +56,10 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
         full_qualities = list(read.query_qualities)
 
         diff_counter = 0
-        for idx, pair in enumerate(read.get_aligned_pairs()):
+        for idx, pair in enumerate(read.get_aligned_pairs()): # TODO get info that insertion exists here
             if pair[0] == None:
                 full_read.insert(idx - diff_counter, "-")
-                full_qualities.insert(idx - diff_counter, "2") #TODO: We need to give a quality score to the deletions
+                full_qualities.insert(idx - diff_counter, "2") #TODO use quality score of base to the right
             if pair[1] == None:
                 full_read.pop(idx - diff_counter)
                 full_qualities.pop(idx - diff_counter)
@@ -154,7 +154,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     reference_name = tiling_strategy.get_reference_name()
     tiling = tiling_strategy.get_window_tilings()
     region_end = tiling_strategy.get_region_end()
-    print(tiling)
+
     permitted_reads_per_location = _calc_location_maximum_reads(
         samfile,
         reference_name,
