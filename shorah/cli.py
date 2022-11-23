@@ -41,7 +41,7 @@ import logging
 import logging.handlers
 from shorah import shotgun, shorah_snv
 
-# FIXME can we remove this? @Ivan
+# FIXME can we remove this? @Ivan -> version tag (get through poetry in the future)
 use_pkg_resources = False
 all_dirs = os.path.abspath(__file__).split(os.sep)
 base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
@@ -88,6 +88,15 @@ def snv_run(args):
 
 def main():
     """Parse command line, run default functions."""
+        # logging configuration
+    logging.basicConfig(filename='shorah.log', level=logging.DEBUG,
+                        format='%(levelname)s %(asctime)s %(filename)s: %(funcName)s() %(lineno)d: \t%(message)s',
+                        datefmt='%Y/%m/%d %H:%M:%S',
+                        force=True)
+
+    logging.info(' '.join(sys.argv))
+    logging.info('shorah version:%s', __version__)
+
     # parse command line
     # create the top-level parser
     version_parser = argparse.ArgumentParser(add_help=False)
@@ -212,14 +221,6 @@ def main():
     # Add version to argparser to add as meta in VCF output
     args.version = __version__.strip()
     args.func(args)
-
-    # logging configuration
-    logging.basicConfig(filename='shorah.log', level=logging.DEBUG,
-                        format='%(levelname)s %(asctime)s %(filename)s: %(funcName)s() %(lineno)d: \t%(message)s',
-                        datefmt='%Y/%m/%d %H:%M:%S')
-
-    logging.info(' '.join(sys.argv))
-    logging.info('shorah version:%s', __version__)
 
 if __name__ == "__main__":  # and __package__ is None:
     main()

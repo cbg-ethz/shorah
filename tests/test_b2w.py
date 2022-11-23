@@ -11,7 +11,7 @@ p = os.path.dirname(__file__)
 def _collect_files(base_path):
     spec_files = []
     for x in glob.glob(os.path.join(base_path, '*.reads.fas')):
-        # TODO C++ b2w generates empty files in some cases that are not relevant 
+        # TODO C++ b2w generates empty files in some cases that are not relevant
         if os.path.getsize(x) > 0:
             spec_files.append(os.path.basename(x))
     spec_files.extend(['coverage.txt', 'reads.fas'])
@@ -19,12 +19,12 @@ def _collect_files(base_path):
 
 # Note: maximum_reads = math.floor(1e5 / window_length) # TODO why divide?
 @pytest.mark.parametrize("spec_dir,alignment_file,reference_file,region,window_length,overlap_factor,win_min_ext,maximum_reads,minimum_reads", [
-    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  0), 
+    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  0),
     #("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2969-3213",           201, 3, 0.25, 497,  0), # TODO incorrect at left edge
-    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  20), 
-    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 3,    0), 
+    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 497,  20),
+    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.85, 3,    0),
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           204, 3, 0.85, 490,  0),
-    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           200, 4, 0.85, 500,  0),  
+    ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           200, 4, 0.85, 500,  0),
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           201, 3, 0.75, 497,  0),
     ("data_1",  "test_aln.cram",    "test_ref.fasta",           "HXB2:2469-3713",           200, 4, 0.65, 500,  0),
     ("data_2",  "REF_aln.bam",      "cohort_consensus.fasta",   "HXB2:2508-3676",           201, 3, 0.85, 497,  0),
@@ -66,7 +66,7 @@ def test_cmp_raw(spec_dir, alignment_file, reference_file, region, window_length
     b2w.build_windows(
         alignment_file = os.path.join(p, spec_dir, alignment_file),
         tiling_strategy = strategy,
-        minimum_overlap = minimum_overlap, 
+        minimum_overlap = minimum_overlap,
         maximum_reads = maximum_reads,
         minimum_reads = minimum_reads,
         reference_filename = os.path.join(p, spec_dir, reference_file),
@@ -81,7 +81,7 @@ def test_cmp_raw(spec_dir, alignment_file, reference_file, region, window_length
         p,
         spec_files,
         shallow=False
-    ) 
+    )
     print(match)
     print(mismatch)
     print(errors)
@@ -98,7 +98,7 @@ def spec_dir(request):
     created_files = _collect_files(p)
     print(spec_files)
 
-    for file in spec_files:
-        os.remove(os.path.join(p, request.param, file))
-    for file in created_files:
-        os.remove(os.path.join(p, file))
+    # for file in spec_files:
+    #     os.remove(os.path.join(p, request.param, file))
+    # for file in created_files:
+    #     os.remove(os.path.join(p, file))

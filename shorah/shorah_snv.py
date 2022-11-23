@@ -53,6 +53,8 @@ from collections import namedtuple
 from dataclasses import dataclass
 import logging
 import numpy as np
+from Bio import SeqIO
+from re import search
 
 
 import libshorah
@@ -91,8 +93,6 @@ def parseWindow(line, ref1, threshold=0.9):
         value: reference name, position, reference_base, mutated base,
                average number of reads, posterior times average n of reads
     """
-    from Bio import SeqIO
-    from re import search
 
     snp = {}
     reads = 0.0
@@ -245,7 +245,7 @@ def getSNV(ref, window_thresh=0.9):
 
     return all_snp
 
-def writeRaw(all_snp, min_windows_coverage):
+def writeRaw(all_snv, min_windows_coverage):
     """Write the SNVs that were collected for each window into
         - raw_snv.tsv: contains all SNVs
         - SNV.tsv: contains only SNVs that are covered by at least {min_windows_coverage}
@@ -253,7 +253,7 @@ def writeRaw(all_snp, min_windows_coverage):
     """
     header_row =  ['Chromosome', 'Pos', 'Ref', 'Var']
 
-    max_number_window_covering_SNV = np.max([len(val) for _, val in sorted(all_snp.items())])
+    max_number_window_covering_SNV = np.max([len(val) for _, val in sorted(all_snv.items())])
 
     header_row = header_row + ['Frq'+str(k+1) for k in range(max_number_window_covering_SNV)]
     header_row = header_row + ['Pst'+str(k+1) for k in range(max_number_window_covering_SNV)]
@@ -262,7 +262,7 @@ def writeRaw(all_snp, min_windows_coverage):
         f_raw_snv.write('\t'.join(header_row) + '\n')
         f_SNV.write('\t'.join(header_row) + '\n')
 
-        for SNV_id, val in sorted(all_snp.items()):
+        for SNV_id, val in sorted(all_snv.items()):
 
             write_line = [val[0].chrom, val[0].pos, val[0].ref, val[0].var]
             freq_list = [single_val.freq for single_val in val]
@@ -371,7 +371,7 @@ def main(args):
     retcode_n = sb_filter(bam_file, "SNV.tsv", "SNVs_", sigma, amplimode=a, drop_indels=d,
                           max_coverage=max_coverage)
 
-    if retcode_n != 0 :
+    if retcode_n != 0:
         logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
 
