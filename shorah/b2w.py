@@ -2,6 +2,7 @@ import pysam
 from typing import Optional
 from shorah.tiling import TilingStrategy, EquispacedTilingStrategy
 import numpy as np
+import math
 
 def _write_to_file(lines, file_name):
     with open(file_name, "w") as f:
@@ -75,7 +76,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
         full_qualities = list(read.query_qualities)
 
         for ct_idx, ct in enumerate(read.cigartuples):
-            if ct[0] in [0,1,2]: # 0 = BAM_, 1 = BAM_CINS, 2 = BAM_CDEL
+            if ct[0] in [0,1,2,7,8]: # 0 = BAM_, 1 = BAM_CINS, 2 = BAM_CDEL, 7 = BAM_CEQUAL, 8 = BAM_CDIFF
                 pass
             elif ct[0] == 4: # 4 = BAM_CSOFT_CLIP
                 for _ in range(ct[1]):
@@ -163,7 +164,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
 
 def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
-    minimum_overlap: int, maximum_reads: int, minimum_reads: int,
+    win_min_ext: float, maximum_reads: int, minimum_reads: int,
     reference_filename: str,
     exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False) -> None:
     """Summarizes reads aligned to reference into windows.
@@ -176,7 +177,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     Args:
         alignment_file: Path to the alignment file in CRAM format.
         tiling_strategy: A strategy on how the genome is partitioned.
-        minimum_overlap: Minimum number of bases to overlap between reference
+        win_min_ext: Minimum percentage of bases to overlap between reference
             and read to be considered in a window. The rest (i.e.
             non-overlapping part) will be filled with Ns.
         maximum_reads: Upper (exclusive) limit of reads allowed to start at the
@@ -190,6 +191,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             applied everywhere now. Set this flag to `False` only for exact
             conformance with the old version (in tests).
     """
+    assert 0 <= win_min_ext <= 1
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(
@@ -219,7 +221,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             window_start - 1, # make 0 based
             reference_name,
             window_length,
-            minimum_overlap,
+            math.floor(win_min_ext * window_length),
             dict(permitted_reads_per_location), # copys dict ("pass by value")
             counter,
             exact_conformance_fix_0_1_basing_in_reads,
@@ -278,7 +280,7 @@ if __name__ == "__main__":
         help='window length', required=True)
     parser.add_argument('-i', '--incr', nargs=1, type=int, help='increment',
         required=True)
-    parser.add_argument('-m', nargs=1, type=int, help='minimum overlap',
+    parser.add_argument('-m', nargs=1, type=float, help='minimum overlap in percent',
         required=True)
     parser.add_argument('-x', nargs=1, type=int,
         help='max reads starting at a position', required=True)

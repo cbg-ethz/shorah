@@ -427,7 +427,6 @@ def main(args):
     """
     from multiprocessing import Pool, cpu_count
     import glob
-    import math
     import time
     import pysam
 
@@ -506,7 +505,7 @@ def main(args):
         b2w.build_windows(
             in_bam,
             strategy,
-            math.floor(win_min_ext * win_length),
+            win_min_ext,
             max_coverage,
             cov_thrd,
             in_fasta
