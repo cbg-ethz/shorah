@@ -22,15 +22,15 @@ PyYAML = "^6.0"
 scipy = "^1.7.3"
 bio = "^1.3.3"
 pandas = "^1.3.5"
+pypesto = "^0.2.11"
+tensorflow-cpu = "^2.8.0"
+tensorflow-probability = "^0.15.0"
+jax = "^0.3.0"
+numpyro = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 pandas = "^1.3.5"
-pytest-mock = "^3.10.0"
-cigar = "^0.1.3"
-
-[pytest]
-mock_use_standalone_module = true
 
 [build-system]
 requires = ["poetry-core>=1.0.7", "setuptools>=60", "wheel", "pybind11~=2.9.0"]

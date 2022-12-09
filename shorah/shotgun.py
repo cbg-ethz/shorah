@@ -51,7 +51,8 @@ else:
     from . import tiling
 
 # import local haplotype inference methods
-from .local_haplotype_inference.mean_field_approximation import run_dpm_mfa
+from .local_haplotype_inference.use_quality_scores import run_dpm_mfa as use_quality_scores
+from .local_haplotype_inference.learn_error_params import run_dpm_mfa as learn_error_params
 
 #################################################
 # a common user should not edit above this line #
@@ -191,7 +192,7 @@ def run_dpm(run_setting):
         shutil.move(fqual_fstgz, './')
         subprocess.check_call(["gunzip", "%s-qualities.gz" % stem])
 
-    if inference_type == 'shorah': # run the original sampler of ShoRAH
+    if inference_type == '': # run the original sampler of ShoRAH
 
         # dn = sys.path[0]
         #my_prog = shlex.quote(diri_exe)  # os.path.join(dn, 'diri_sampler')
@@ -226,31 +227,29 @@ def run_dpm(run_setting):
             logging.error(f'{filein} - Run failed: {e}')
 
     elif inference_type == 'use_quality_scores':
-        run_dpm_mfa.main(
-                 freads_in=filein,
-                 fref_in=ref_in,
-                 fname_qualities= fname_qualities,
-                 output_dir='./',
-                 n_starts=int(n_mfa_starts),
-                 K=int(n_max_haplotypes),
-                 alpha0=float(a),
-                 alphabet = 'ACGT-',
-                 unique_modus = unique_modus,
-                 convergence_threshold = inference_convergence_threshold,
-                 )
+        use_quality_scores.main(freads_in=filein,
+                     fref_in=ref_in,
+                     fname_qualities= fname_qualities,
+                     output_dir='./',
+                     n_starts=int(n_mfa_starts),
+                     K=int(n_max_haplotypes),
+                     alpha0=float(a),
+                     alphabet = 'ACGT-',
+                     unique_modus = unique_modus,
+                     convergence_threshold = inference_convergence_threshold,
+                     )
+
     elif inference_type == 'learn_error_params':
-        run_dpm_mfa.main(
-                 freads_in=filein,
-                 fref_in=ref_in,
-                 fname_qualities=None,
-                 output_dir='./',
-                 n_starts=int(n_mfa_starts),
-                 K=int(n_max_haplotypes),
-                 alpha0=float(a),
-                 alphabet = 'ACGT-',
-                 unique_modus = unique_modus,
-                 convergence_threshold = inference_convergence_threshold,
-                 )
+        learn_error_params.main(freads_in=filein,
+                     fref_in=ref_in,
+                     output_dir='./',
+                     n_starts=int(n_mfa_starts),
+                     K=int(n_max_haplotypes),
+                     alpha0=float(a),
+                     alphabet = 'ACGT-',
+                     #unique_modus = unique_modus,
+                     #convergence_threshold = inference_convergence_threshold,
+                     )
 
     return
 
@@ -362,7 +361,7 @@ def win_to_run(alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, un
 
     for f1 in file1:
         winFile, chr1, beg, end, cov = f1.rstrip().split('\t')
-        j = min(300_000, int(cov) * 15)
+        j = min(300000, int(cov) * 20)
         rn_list.append((winFile, j, alpha_w, seed, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold))
 
     del end
@@ -427,6 +426,7 @@ def main(args):
     """
     from multiprocessing import Pool, cpu_count
     import glob
+    import math
     import time
     import pysam
 
@@ -505,7 +505,7 @@ def main(args):
         b2w.build_windows(
             in_bam,
             strategy,
-            win_min_ext,
+            math.floor(win_min_ext * win_length),
             max_coverage,
             cov_thrd,
             in_fasta
@@ -566,7 +566,7 @@ def main(args):
     # parse corrected reads
     proposed = {}
     for i in runlist:
-        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus, inference_convergence_threshold = i
+        winFile, j, a, s, inference_type, n_max_haplotypes, n_mfa_starts, unique_modus,inference_convergence_threshold = i
         del a  # in future alpha might be different on each window
         del s
         # greedy re match to handle situation where '.' or '-' appears in the
@@ -750,7 +750,7 @@ def main(args):
         os.rename('snv', 'snv_before_%d' % int(time.time()))
         os.mkdir('snv')
 
-    for snv_file in glob.glob('./raw_snv*') + glob.glob('./SNV*')+ glob.glob('./cooccurring_mutations.csv'):
+    for snv_file in glob.glob('./raw_snv*') + glob.glob('./SNV*'):
         shutil.move(snv_file, 'snv/')
 
     logging.info('shotgun run ends')

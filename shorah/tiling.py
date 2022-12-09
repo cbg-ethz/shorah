@@ -104,7 +104,7 @@ class EquispacedTilingStrategy(TilingStrategy):
                 self.incr
             ))
             #while window_positions[-1] + self.window_length >= self.end:
-            #    del window_positions[-1] # FIXME uncommented to create one single window
+            #    del window_positions[-1]
 
         else:
             window_positions = list(range(
@@ -165,18 +165,8 @@ class PrimerTilingStrategy(TilingStrategy):
 
     def get_window_tilings(self) -> List[Tuple[int, int]]:
         rv = []
-        #start = self.amplicons[0][0]
-        #end = self.amplicons[-1][1]
         for amplicon in self.amplicons:
             rv.append( (amplicon[0], amplicon[1] - amplicon[0]) )
-            # add two more windows +/-50bp
-            #if amplicon[0]-50 > start:
-            #    rv.append( (amplicon[0]-50, amplicon[1] - amplicon[0]) )
-            #if amplicon[1]+50 < end:
-            #    rv.append( (amplicon[0]+50, amplicon[1] - amplicon[0]) )
-            #print(rv)
-
-            # TODO: for amplicon mode add more windows ???
 
         return rv
 

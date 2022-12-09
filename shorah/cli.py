@@ -36,12 +36,8 @@ Why does this file exist, and why not put this in __main__?
 """
 import os
 import sys
-import argparse
-import logging
-import logging.handlers
-from shorah import shotgun, shorah_snv
 
-# FIXME can we remove this? @Ivan -> version tag (get through poetry in the future)
+
 use_pkg_resources = False
 all_dirs = os.path.abspath(__file__).split(os.sep)
 base_dir = os.sep.join(all_dirs[:-all_dirs[::-1].index('shorah')])
@@ -79,24 +75,18 @@ if __name__ == '__main__':
 
 def shotgun_run(args):
     """Default function for command line parser."""
+    from shorah import shotgun
     shotgun.main(args)
 
 
 def snv_run(args):
+    from shorah import shorah_snv
     shorah_snv.main(args)
 
 
 def main():
     """Parse command line, run default functions."""
-        # logging configuration
-    logging.basicConfig(filename='shorah.log', level=logging.DEBUG,
-                        format='%(levelname)s %(asctime)s %(filename)s: %(funcName)s() %(lineno)d: \t%(message)s',
-                        datefmt='%Y/%m/%d %H:%M:%S',
-                        force=True)
-
-    logging.info(' '.join(sys.argv))
-    logging.info('shorah version:%s', __version__)
-
+    import argparse
     # parse command line
     # create the top-level parser
     version_parser = argparse.ArgumentParser(add_help=False)
@@ -178,6 +168,10 @@ def main():
                                 required=False, default=None, dest="path_insert_file",
                                 help="path to an (optional) insert file (primer tiling strategy)")
 
+    parser_shotgun.add_argument("--inference", metavar='INFERENCE', type=str,
+                                required=False, default='', dest="inference_type",
+                                help="inference_type: mean_field_approximation")
+
     parser_shotgun.add_argument("--n_max_haplotypes", metavar='INT', type=int,
                                 required=False, default=100, dest="n_max_haplotypes",
                                 help="Guess of maximal guess of haplotypes.")
@@ -190,12 +184,10 @@ def main():
                                 required=False, default=1, dest="n_mfa_starts",
                                 help="Number of starts for inference type mean_field_approximation.")
 
-    parser_shotgun.add_argument('--sampler', choices=['shorah','learn_error_params','use_quality_scores'],
-                                default='shorah', dest="inference_type",
-                                help="inference_types: shorah,  learn_error_params, use_quality_scores")
+    parser_shotgun.add_argument("--unique_modus", metavar='Bool', type=bool,
+                                required=False, default=True, dest="unique_modus",
+                                help="For inference: Make read set unique with read weights.")
 
-    parser_shotgun.add_argument('--non-unique_modus', action='store_false', dest="unique_modus",
-                                help="For inference: Make read set unique with read weights. Cannot be used with --sampler shorah.")
 
     parser_shotgun.set_defaults(func=shotgun_run)
 
@@ -213,14 +205,21 @@ def main():
         parser.print_help()
         sys.exit()
 
+    # logging configuration
+    import logging
+    import logging.handlers
+    logging.basicConfig(filename='shorah.log', level=logging.DEBUG,
+                        format='%(levelname)s %(asctime)s %(filename)s: %(funcName)s() %(lineno)d: \t%(message)s',
+                        datefmt='%Y/%m/%d %H:%M:%S')
+
+    logging.info(' '.join(sys.argv))
+    logging.info('shorah version:%s', __version__)
     # parse the args
     args = parser.parse_args()
-    if args.inference_type == 'shorah' and args.unique_modus == False:
-        parser.error('--non-unique_modus cannot be used with --sampler shorah.')
-
     # Add version to argparser to add as meta in VCF output
     args.version = __version__.strip()
     args.func(args)
+
 
 if __name__ == "__main__":  # and __package__ is None:
     main()

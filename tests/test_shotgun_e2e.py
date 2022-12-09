@@ -1,5 +1,6 @@
 import subprocess
 import filecmp
+# TODO run through Python directly
 
 def test_e2e_shorah():
     original = subprocess.run(
@@ -9,6 +10,6 @@ def test_e2e_shorah():
 
     assert filecmp.cmp(
         "./data_1/test.csv",
-        "./data_1/snv/SNVs_0.010000_final.csv",
+        "./data_1/snv/SNVs_0.010000_final.csv", 
         shallow=False
     )
