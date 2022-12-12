@@ -6,8 +6,9 @@ from scipy.special import betaln
 
 # my python scripts
 from . import initialization
-from . import quality_scores_update_eqs as update_eqs
-from . import quality_scores_elbo_eqs as elbo_eqs
+from . import update_eqs
+from . import elbo_eqs
+from . import analyze_results
 
 """
 Parallelizing with Pool following:
@@ -23,17 +24,16 @@ def collect_result(result):
 
 
 def multistart_cavi(
-    n_cluster,
+    K,
     alpha0,
     alphabet,
     reference_binary,
+    reference_seq,
     reads_list,
     reads_seq_binary,
     reads_weights,
-    reads_log_error_proba,
     n_starts,
-    output_name,
-    convergence_threshold,
+    output_dir,
 ):
 
     pool = mp.Pool(mp.cpu_count())
@@ -41,17 +41,16 @@ def multistart_cavi(
         pool.apply_async(
             run_cavi,
             args=(
-                n_cluster,
+                K,
                 alpha0,
                 alphabet,
                 reference_binary,
+                reference_seq,
                 reads_list,
                 reads_seq_binary,
                 reads_weights,
-                reads_log_error_proba,
                 start,
                 output_dir,
-                convergence_threshold,
             ),
             callback=collect_result,
         )
@@ -63,37 +62,43 @@ def multistart_cavi(
 
 
 def run_cavi(
-    n_cluster,
+    K,
     alpha0,
     alphabet,
     reference_binary,
+    reference_seq,
     reads_list,
     reads_seq_binary,
     reads_weights,
-    reads_log_error_proba,
     start_id,
     output_dir,
-    convergence_threshold,
 ):
+
     """
     Runs cavi (coordinate ascent variational inference).
     """
     dict_result = {
         "run_id": start_id,
-        "n_reads": len(reads_list),
-        "n_cluster": n_cluster,
+        "N": len(reads_list),
+        "K": K,
         "alpha0": alpha0,
         "alphabet": alphabet,
-    }
+    }  # N= #reads, K= #components
 
     history_alpha = []
     history_mean_log_pi = []
+    history_theta_c = []
+    history_theta_d = []
+    history_mean_log_theta = []
+    history_gamma_a = []
+    history_gamma_b = []
     history_mean_log_gamma = []
+    history_mean_haplo = []
     history_mean_cluster = []
     history_elbo = []
 
     state_init_dict = initialization.draw_init_state(
-        n_cluster, alpha0, alphabet, reads_list, reference_binary, qualities = True,
+        K, alpha0, alphabet, reads_list, reference_binary
     )
     state_init_dict.update(
         {
@@ -101,20 +106,31 @@ def run_cavi(
             "betaln_a0_b0": betaln(
                 state_init_dict["gamma_a"], state_init_dict["gamma_b"]
             ),
+            "betaln_c0_d0": betaln(
+                state_init_dict["theta_c"], state_init_dict["theta_d"]
+            ),
         }
     )
 
-    history_alpha = [state_init_dict["alpha"]]
-    history_mean_log_pi = [state_init_dict["mean_log_pi"]]
-    history_mean_log_gamma = [state_init_dict["mean_log_gamma"]]
-    history_mean_cluster = [state_init_dict["mean_cluster"]]
-    history_elbo = []
+    # write initial values to dict
+    dict_result.update(
+        {
+            "theta0": state_init_dict["mean_log_theta"][0],
+            "gamma0": state_init_dict["mean_log_gamma"][0],
+            "mean_h0": state_init_dict["mean_haplo"],
+            "mean_z0": state_init_dict["mean_cluster"],
+            "mean_log_pi": state_init_dict["mean_log_pi"],
+        }
+    )
 
     # Iteratively update mean values
     iter = 0
+    message = ""  # those can be deleted afterwardsd
+    exitflag = ""  # those can be deleted afterwardsd
     converged = False
     elbo = 0
     state_curr_dict = state_init_dict
+    k = 0
     while converged is False:
 
         if iter <= 1:
@@ -122,46 +138,59 @@ def run_cavi(
             digamma_a_b_sum = digamma(
                 state_curr_dict["gamma_a"] + state_curr_dict["gamma_b"]
             )
+            digamma_c_d_sum = digamma(
+                state_curr_dict["theta_c"] + state_curr_dict["theta_d"]
+            )
             state_curr_dict.update({"digamma_alpha_sum": digamma_alpha_sum})
             state_curr_dict.update({"digamma_a_b_sum": digamma_a_b_sum})
+            state_curr_dict.update({"digamma_c_d_sum": digamma_c_d_sum})
 
         state_curr_dict = update_eqs.update(
             reads_seq_binary,
             reads_weights,
+            reads_list,
             reference_binary,
-            reads_log_error_proba,
             state_init_dict,
             state_curr_dict,
         )
         elbo = elbo_eqs.compute_elbo(
             reads_weights,
+            reads_seq_binary,
             reference_binary,
-            reads_log_error_proba,
             state_init_dict,
             state_curr_dict,
         )
-
+        
         if iter % 2 == 0:
             history_elbo.append(elbo)
             history_mean_log_pi.append(state_curr_dict["mean_log_pi"])
             history_mean_log_gamma.append(state_curr_dict["mean_log_gamma"])
+            history_mean_log_theta.append(state_curr_dict["mean_log_theta"])
             history_mean_cluster.append(state_curr_dict["mean_cluster"])
 
         if iter > 1:
             if np.isnan(elbo):
-                print("elbo ", elbo)
                 exit_message = "Error: ELBO is nan."
                 print(exit_message)
+                print("mean_log_pi is nan", np.any(np.isnan(state_curr_dict["mean_log_pi"])))
+                print("mean_log_gamma is nan", np.any(np.isnan(state_curr_dict["mean_log_gamma"])))
+                print("mean_log_theta is nan", np.any(np.isnan(state_curr_dict["mean_log_theta"])))
+                print("mean_cluster is nan", np.any(np.isnan(state_curr_dict["mean_cluster"])))
+
                 break
             elif (history_elbo[-2] > elbo) and np.abs(elbo - history_elbo[-2]) > 1e-08:
-                exit_message = "Error: ELBO is decreasing."
+                message = "Error: ELBO is decreasing."
+                exitflag = -1
                 break
-            elif np.abs(elbo - history_elbo[-2]) < convergence_threshold:
-            # relative convergence threshold
-            # elif np.abs((elbo - history_elbo[-2])/history_elbo[-2])  < convergence_threshold:
+            elif np.abs(elbo - history_elbo[-2]) < 1e-03:
                 converged = True
-                exit_message = "ELBO converged."
+                k += 1
+                message = "ELBO converged."
+                exitflag = 0
+            else:
+                k = 0
 
+        # if k%10==0: # every 10th parameter set is saved to history
         state_curr_dict.update({"elbo": elbo})
 
         iter += 1
@@ -171,19 +200,40 @@ def run_cavi(
 
     dict_result.update(
         {
-            "exit_message": exit_message,
+            "exit_message": message,
+            "exitflag": exitflag,
             "n_iterations": iter,
             "converged": converged,
             "elbo": elbo,
+            "history_mean_log_theta": history_mean_log_theta,
             "history_elbo": history_elbo,
             "history_alpha": history_alpha,
             "history_mean_log_pi": history_mean_log_pi,
+            "history_theta_c": history_theta_c,
+            "history_alpha": history_alpha,
+            "history_theta_d": history_theta_d,
+            "history_mean_log_theta": history_mean_log_theta,
+            "history_gamma_a": history_gamma_a,
+            "history_gamma_b": history_gamma_b,
             "history_mean_log_gamma": history_mean_log_gamma,
+            "history_mean_haplo": history_mean_haplo,
             "history_mean_cluster": history_mean_cluster,
         }
     )
-    dict_result.update(state_curr_dict)
 
-    result = (state_curr_dict, dict_result)
+    # dict_result.update(state_curr_dict)
+    summary = analyze_results.summarize_results(
+        state_curr_dict,
+        alphabet,
+        reads_seq_binary,
+        reads_weights,
+        reads_list,
+        reference_binary,
+        reference_seq,
+    )
+    dict_result.update(summary)
+    state_curr_dict.update(summary)
+
+    result = (state_init_dict, state_curr_dict, dict_result)
 
     return result

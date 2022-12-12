@@ -1,9 +1,11 @@
 import numpy as np
+#from skbio.sequence.distance import hamming
+#from skbio import Sequence
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from . import learn_error_params_update_eqs as update_eqs
+from . import update_eqs as update_eqs
 
 
 def correct_reads(state_curr_dict, fname_output_corr):
@@ -29,7 +31,7 @@ def haplotypes_to_fasta(state_curr_dict, output_dir):
     for k in range(len(haplo_list)):
         # ave_reads = assignedReads
         ave_reads = state_curr_dict["weight" + str(k)]
-        if ave_reads == 0:
+        if ave_reads==0:
             # this haplotype will not be reported as there are no reads
             # supporting it.
             continue
@@ -58,8 +60,8 @@ def summarize_results(
     reads_seq_binary,
     reads_weights,
     reads_list,
-    reads_log_error_proba,
     reference_binary,
+    reference_seq,
 ):
 
     mean_z = state_curr_dict["mean_cluster"]
@@ -100,6 +102,106 @@ def summarize_results(
 
     return dict_summary
 
+"""
+def write_info2file(
+    state_curr_dict,
+    outfile,
+    alphabet,
+    reads_list,
+    reads_seq_binary,
+    reads_weights,
+    reference_binary,
+    reference_seq,
+):
+
+    mean_z = state_curr_dict["mean_cluster"]
+    mean_h = state_curr_dict["mean_haplo"]
+
+    alpha_updated = state_curr_dict["alpha"]
+    mean_log_gamma = state_curr_dict["mean_log_gamma"]
+    mean_log_theta = state_curr_dict["mean_log_theta"]
+
+    outfile.write("exp(mean_log_theta) " + str(np.exp(mean_log_theta)) + "\n")
+    outfile.write("exp(mean_log_gamma) " + str(np.exp(mean_log_gamma)) + "\n")
+
+    K = len(alpha_updated)
+    N = len(reads_list)  # number of reads
+    L = reads_list[0].seq_binary.shape[0]  # length of seq
+
+    for k in range(K):
+        outfile.write(str(get_haplotype(mean_h[k], alphabet)) + "\n")
+
+    for n in range(N):
+        outfile.write(
+            str(reads_list[n].id)
+            + " is assigned to "
+            + str(np.argmax(mean_z[n]))
+            + " with proba "
+            + str(mean_z[n])
+            + "\n"
+        )
+        # outfile.write(str(reads_list[n].id)+' is assigned to '+ str(np.argmax(unique_cluster[n]))+ ' with proba '+ str(unique_cluster[n])+'\n')
+
+    unique_haplo = get_unique_haplotypes(mean_h, alphabet)
+    unique_cluster = merge_cluster_assignments(mean_z, unique_haplo)
+    unique_mean_h = update_eqs.update_mean_haplo(
+        reads_seq_binary,
+        reads_weights,
+        reads_list,
+        reference_binary,
+        unique_cluster,
+        mean_log_theta,
+        mean_log_gamma,
+    )
+    unique_haplo_posterior = compute_unique_haplo_posterior(
+        unique_mean_h, unique_haplo, alphabet
+    )
+
+    # for n in range(N):
+    #    outfile.write(str(reads_list[n].id) +' is assigned to '+ str(np.argmax(mean_z[n])) + ' with proba '+ str(mean_z[n])+'\n')
+    #    outfile.write(str(reads_list[n].id)+' is assigned to '+ str(np.argmax(unique_cluster[n]))+ ' with proba '+ str(unique_cluster[n])+'\n')
+
+    for k in range(len(unique_haplo)):
+        outfile.write("------------------" + "\n")
+        outfile.write("Haplotype " + str(k) + " : " + unique_haplo[k][0] + "\n")
+        outfile.write("Approximate posterior " + str(unique_haplo_posterior[k]) + "\n")
+        outfile.write(
+            "Cluster weight "
+            + str(get_cluster_weight(unique_cluster, k, reads_list))
+            + "\n"
+        )
+        outfile.write(
+            "Haplotype Hamming distance to reference "
+            + str(hamming(Sequence(unique_haplo[k][0]), Sequence(reference_seq)) * L)
+            + "\n"
+        )
+        outfile.write(
+            "Assigned unique reads "
+            + str(get_assigned_unique_reads(unique_cluster, k, reads_list))
+            + "\n"
+        )
+
+        distances = []
+        for n in range(N):
+            max_val = np.max(unique_cluster[n])
+            if k in set(
+                [
+                    i
+                    for i in range(len(unique_cluster[n]))
+                    if unique_cluster[n][i] >= max_val
+                ]
+            ):
+                distances.append(
+                    hamming(
+                        Sequence(reads_list[n].seq_string), Sequence(unique_haplo[k][0])
+                    )
+                    * L
+                )
+        outfile.write("Distance to haplotype " + str(distances) + "\n")
+        # outfile.write('Assigned all reads '+str(analyze_results.get_assigned_all_reads(unique_cluster, k,reads_list))+ '\n')
+
+    return outfile
+"""
 
 def get_haplotype(mean_h_k, alphabet):
     haplotype_sequence = []

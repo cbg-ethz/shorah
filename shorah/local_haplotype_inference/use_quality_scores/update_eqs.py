@@ -1,4 +1,5 @@
 from scipy.special import digamma
+from scipy.special import betaln
 import numpy as np
 
 def update(reads_seq_binary, reads_weights, reference_binary, reads_log_error_proba, state_init, state_curr):
@@ -36,21 +37,19 @@ def update(reads_seq_binary, reads_weights, reference_binary, reads_log_error_pr
 
     return state_curr_dict_new
 
-
 def get_mean_log_pi(alpha, digamma_alpha_sum):
     """
     Note that the digamma function can be inefficient.
     """
-    # digamma_alpha_sum = digamma(alpha.sum(axis=0))
-    mean_log_pi = digamma(alpha) - digamma_alpha_sum
+    #digamma_alpha_sum = digamma(alpha.sum(axis=0))
+    mean_log_pi = digamma(alpha)-digamma_alpha_sum
     return mean_log_pi
 
-
-def get_mean_log_beta_dist(a, b, digamma_sum):
+def get_mean_log_beta_dist(a,b,digamma_sum):
     # I tested this one and it seemed not to make the difference
-    # digamma_sum = digamma(a+b)
-    mean_log_gamma = digamma(a) - digamma_sum
-    mean_log_gamma_inv = digamma(b) - digamma_sum
+    #digamma_sum = digamma(a+b)
+    mean_log_gamma = digamma(a)-digamma_sum
+    mean_log_gamma_inv = digamma(b)-digamma_sum
     return mean_log_gamma, mean_log_gamma_inv
 
 def update_mean_cluster(mean_log_pi,mean_haplo,reads_log_error_proba):
@@ -64,10 +63,10 @@ def update_mean_cluster(mean_log_pi,mean_haplo,reads_log_error_proba):
 
     max_z = np.max(temp_c, axis=1)
     max_z = max_z[:, np.newaxis]
-    mean_z = np.exp(temp_c - max_z)
+    mean_z= np.exp(temp_c-max_z)
     c_normalize = mean_z.sum(axis=1)
     c_normalize = c_normalize[:, np.newaxis]
-    mean_z = mean_z / c_normalize
+    mean_z = mean_z/c_normalize
 
     return mean_z
 
@@ -86,32 +85,31 @@ def update_mean_haplo(reads_weights,reference_table, reads_log_error_proba, mean
     del cluster_assignment_part
     del mean_cluster_weight
 
-    max_hap = np.max(log_mean_haplo, axis=2)  # shape: (K,L)
+    max_hap = np.max(log_mean_haplo, axis=2) # shape: (K,L)
     max_hap = max_hap[:, :, np.newaxis]
-    mean_haplo = np.exp(log_mean_haplo - max_hap)
-    c_normalize = mean_haplo.sum(axis=2)
-    c_normalize = c_normalize[:, :, np.newaxis]
-    mean_haplo = mean_haplo / c_normalize
+    mean_haplo = np.exp(log_mean_haplo-max_hap)
+    c_normalize=mean_haplo.sum(axis=2)
+    c_normalize = c_normalize[:,:, np.newaxis]
+    mean_haplo= mean_haplo/c_normalize
 
     return mean_haplo
 
-
-def update_a_and_b(reference_table, mean_haplo, a, b):
+def update_a_and_b(reference_table,mean_haplo,a,b):
     # update a and b for mutation rate gamma
 
     up_a = a.copy()
-    up_a += np.einsum("KLB,LB->", mean_haplo, reference_table)
+    up_a += np.einsum('KLB,LB->',mean_haplo,reference_table)
 
     up_b = b.copy()
-    up_b += np.einsum("KLB,LB->", mean_haplo, (1 - reference_table))
+    up_b += np.einsum('KLB,LB->',mean_haplo,(1-reference_table))
 
-    return up_a, up_b
+    return up_a,up_b
 
 def update_alpha(alpha, mean_cluster,reads_weights):
 
     temp_alpha = alpha.copy()
     temp_mean_cluster = mean_cluster.copy()
-    mean_cluster_weight = np.einsum("N,NK->NK", reads_weights, temp_mean_cluster)
-    temp_alpha += mean_cluster_weight.sum(axis=0)
+    mean_cluster_weight = np.einsum('N,NK->NK',reads_weights,temp_mean_cluster)
+    temp_alpha+=mean_cluster_weight.sum(axis=0)
 
     return temp_alpha
