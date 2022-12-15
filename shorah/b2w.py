@@ -8,8 +8,9 @@ def _write_to_file(lines, file_name):
     with open(file_name, "w") as f:
         f.writelines("%s\n" % l for l in lines)
 
-def _calc_location_maximum_reads(samfile, reference_name, maximum_reads):
+def _calc_via_pileup(samfile, reference_name, maximum_reads):
     budget = dict()
+    max_indel_at_pos = dict()
     indel_map = set() # TODO quick fix because pileup created duplicates; why?
 
     for pileupcolumn in samfile.pileup(
@@ -25,24 +26,102 @@ def _calc_location_maximum_reads(samfile, reference_name, maximum_reads):
             maximum_reads-1 # minus 1 because because maximum_reads is exclusive
         )
 
-        for pileupread in pileupcolumn.pileups: # TODO generalize
+        max_at_this_pos = 0
+        for pileupread in pileupcolumn.pileups:
             if pileupread.indel > 0 or pileupread.is_del:
                 indel_map.add((
-                    pileupread.alignment.query_name,
-                    pileupread.alignment.reference_start,
+                    pileupread.alignment.query_name, # TODO is unique?
+                    pileupread.alignment.reference_start, # TODO is unique?
                     pileupcolumn.reference_pos,
                     pileupread.indel,
                     pileupread.is_del
                 ))
+            if pileupread.indel > max_at_this_pos:
+                max_at_this_pos = pileupread.indel
+
+        if max_at_this_pos > 0:
+            max_indel_at_pos[pileupcolumn.reference_pos] = max_at_this_pos
 
     # ascending reference_pos are necessary for later steps
     indel_map = sorted(indel_map, key=lambda tup: tup[2])
 
-    return budget, indel_map
+    return budget, indel_map, max_indel_at_pos
+
+def _build_one_full_read(full_read: list[str], full_qualities: list[int],
+    read_query_name: str|None, first_aligned_pos, last_aligned_pos,
+    window_start, indel_map, max_indel_at_pos,
+    extended_window_mode) -> tuple[str, list[int]]:
+
+    all_inserts = dict()
+    own_inserts = set()
+
+    change_in_reference_space_ins = 0
+
+    for name, start, ref_pos, indel_len, is_del in indel_map:
+        if name == read_query_name and start == first_aligned_pos:
+            if is_del == 1: # if del
+                if indel_len != 0:
+                    raise NotImplementedError("Deletions larger than 1 not expected.")
+                full_read.insert(ref_pos - first_aligned_pos + change_in_reference_space_ins, "-")
+                full_qualities.insert(ref_pos - first_aligned_pos + change_in_reference_space_ins, "2")
+                continue
+
+            elif is_del == 0 and not extended_window_mode:
+                assert indel_len > 0
+                for _ in range(indel_len):
+                    full_read.pop(ref_pos + 1 - first_aligned_pos)
+                    full_qualities.pop(start + 1 - first_aligned_pos)
+                continue
+
+            elif is_del == 0 and extended_window_mode and ref_pos >= window_start:
+                own_inserts.add((ref_pos, indel_len))
+                change_in_reference_space_ins += indel_len
+                all_inserts[ref_pos] = max_indel_at_pos[ref_pos]
+
+            else:
+                pass
+
+
+        if (extended_window_mode and
+            (name != read_query_name or start != first_aligned_pos) and
+            window_start <= ref_pos < last_aligned_pos and is_del == 0 and
+            first_aligned_pos <= ref_pos): # TODO edge values left
+            all_inserts[ref_pos] = max_indel_at_pos[ref_pos]
+
+    if extended_window_mode:
+        change_in_reference_space = 0
+        own_inserts_pos = []
+        own_inserts_len = []
+        if len(own_inserts) != 0:
+            [own_inserts_pos, own_inserts_len] = [list(t) for t in zip(*own_inserts)]
+
+        for pos in sorted(all_inserts):
+            n = all_inserts[pos]
+            if (pos, n) in own_inserts:
+                change_in_reference_space += n
+                continue
+
+            L = max_indel_at_pos[pos]
+            in_idx = pos + 1 - first_aligned_pos + change_in_reference_space
+            if pos in own_inserts_pos:
+                k = own_inserts_len[own_inserts_pos.index(pos)]
+                L -= k
+                in_idx += k
+            for _ in range(L):
+                full_read.insert(in_idx, "-")
+                full_qualities.insert(in_idx, "2")
+
+            change_in_reference_space += max_indel_at_pos[pos]
+
+    full_read = ("".join(full_read))
+
+    return full_read, full_qualities # TODO return same data type twice
+
 
 def _run_one_window(samfile, window_start, reference_name, window_length,
         minimum_overlap, permitted_reads_per_location, counter,
-        exact_conformance_fix_0_1_basing_in_reads, indel_map):
+        exact_conformance_fix_0_1_basing_in_reads, indel_map, max_indel_at_pos,
+        extended_window_mode):
 
     arr = []
     arr_read_summary = []
@@ -53,6 +132,12 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
         window_start, # 0 based
         window_start + window_length # arg exclusive as per pysam convention
     )
+
+    original_window_length = window_length
+    if extended_window_mode:
+        for pos, val in max_indel_at_pos.items():
+            if window_start <= pos < window_start + original_window_length:
+                window_length += val
 
     for read in iter:
 
@@ -67,16 +152,11 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
         else:
             permitted_reads_per_location[first_aligned_pos] -= 1
 
-        # start_cut_out is 0-based while window_start is 1-based
-        start_cut_out = window_start - first_aligned_pos
-        end_cut_out = start_cut_out + window_length
-
-        s = slice(max(0, start_cut_out), end_cut_out)
         full_read = list(read.query_sequence)
         full_qualities = list(read.query_qualities)
 
         for ct_idx, ct in enumerate(read.cigartuples):
-            if ct[0] in [0,1,2,7,8]: # 0 = BAM_, 1 = BAM_CINS, 2 = BAM_CDEL, 7 = BAM_CEQUAL, 8 = BAM_CDIFF
+            if ct[0] in [0,1,2,7,8]: # 0 = BAM_CMATCH, 1 = BAM_CINS, 2 = BAM_CDEL, 7 = BAM_CEQUAL, 8 = BAM_CDIFF
                 pass
             elif ct[0] == 4: # 4 = BAM_CSOFT_CLIP
                 for _ in range(ct[1]):
@@ -88,57 +168,45 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
             else:
                 raise NotImplementedError("CIGAR op code found that is not implemented:", ct[0])
 
-        extended_window_mode = False # TODO
-
-        for i in indel_map:
-            if i[0] == read.query_name and i[1] == first_aligned_pos:
-                if i[4] == 1: # if del
-                    full_read.insert(i[2] - first_aligned_pos, "-")
-                    full_qualities.insert(i[2] - first_aligned_pos, "2")
-                if i[4] == 0 and not extended_window_mode:
-                    assert i[3] > 0
-                    for _ in range(i[3]):
-                        full_read.pop(i[2] + 1 - first_aligned_pos)
-                        full_qualities.pop(i[2] + 1 - first_aligned_pos)
-                if i[3] != 0 and i[4] == 1:
-                    # TODO implement
-                    raise NotImplementedError("Deletions larger than 1 not implemented.")
-
-            # TODO new
-            # if extended_window_mode:
-            #     del_exists_already = False
-            #     if i[0] != read.query_name and first_aligned_pos <= i[2] <= last_aligned_pos and i[4] == 1:
-            #         for j in indel_map:
-            #             if j[0] == read.query_name and j[1] == first_aligned_pos and j[4] == 1 and i[2] == j[2]:
-            #                 del_exists_already = True
-            #                 break
-            #         if not del_exists_already:
-            #             full_read.insert(i[2] - first_aligned_pos, "-")
-            #             change_in_reference_space += 1
-
-
-
-        full_read = ("".join(full_read))
+        full_read, full_qualities = _build_one_full_read(full_read, full_qualities,
+            read.query_name, first_aligned_pos, last_aligned_pos, window_start,
+            indel_map, max_indel_at_pos, extended_window_mode)
 
         if (first_aligned_pos < window_start + 1 + window_length - minimum_overlap
                 and last_aligned_pos >= window_start + minimum_overlap - 2 # TODO justify 2
                 and len(full_read) >= minimum_overlap):
 
+            start_cut_out = window_start - first_aligned_pos
+            end_cut_out = start_cut_out + window_length
+            s = slice(max(0, start_cut_out), end_cut_out)
+
             cut_out_read = full_read[s]
             cut_out_qualities = full_qualities[s]
 
-            k = window_start + window_length - 1 - last_aligned_pos
+            num_inserts_right_of_read = 0
+            num_inserts_left_of_read = 0
+            if extended_window_mode:
+                for pos, val in max_indel_at_pos.items():
+                    if last_aligned_pos <= pos < window_start + original_window_length:
+                        num_inserts_right_of_read += val
+                    if window_start <= pos < first_aligned_pos:
+                        num_inserts_left_of_read += val # TODO no tests
+
+            k = (window_start + original_window_length - 1 - last_aligned_pos
+                + num_inserts_right_of_read)
+
             if k > 0:
                 cut_out_read = cut_out_read + k * "N"
                 cut_out_qualities = cut_out_qualities + k * [2]
                 # Phred scores have a minimal value of 2, where an “N” is inserted
                 # https://www.zymoresearch.com/blogs/blog/what-are-phred-scores
             if start_cut_out < 0:
-                cut_out_read = -start_cut_out * "N" + cut_out_read
-                cut_out_qualities = -start_cut_out * [2] + cut_out_qualities
+                cut_out_read = (-start_cut_out + num_inserts_left_of_read) * "N" + cut_out_read
+                cut_out_qualities = (-start_cut_out + num_inserts_left_of_read) * [2] + cut_out_qualities
 
             assert len(cut_out_read) == window_length, (
-                "read unequal window size", read.query_name, first_aligned_pos, cut_out_read, len(cut_out_read)
+                "read unequal window size",
+                read.query_name, first_aligned_pos, cut_out_read, window_start, window_length
             )
             assert len(cut_out_qualities) == window_length, (
                 "quality unequal window size"
@@ -166,7 +234,8 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     win_min_ext: float, maximum_reads: int, minimum_reads: int,
     reference_filename: str,
-    exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False) -> None:
+    exact_conformance_fix_0_1_basing_in_reads: Optional[bool] = False,
+    extended_window_mode: Optional[bool] = False) -> None:
     """Summarizes reads aligned to reference into windows.
     Three products are created:
     #. Multiple FASTA files (one for each window position)
@@ -190,6 +259,8 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             of reads in the window file in the old C++ version. 1-basing is
             applied everywhere now. Set this flag to `False` only for exact
             conformance with the old version (in tests).
+        extended_window_mode: Mode where inserts are not deleted but kept. The
+            windows are instead extended.
     """
     assert 0 <= win_min_ext <= 1
 
@@ -209,7 +280,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     tiling = tiling_strategy.get_window_tilings()
     region_end = tiling_strategy.get_region_end()
 
-    permitted_reads_per_location, indel_map = _calc_location_maximum_reads(
+    permitted_reads_per_location, indel_map, max_indel_at_pos = _calc_via_pileup(
         samfile,
         reference_name,
         maximum_reads
@@ -225,7 +296,9 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             dict(permitted_reads_per_location), # copys dict ("pass by value")
             counter,
             exact_conformance_fix_0_1_basing_in_reads,
-            indel_map
+            indel_map,
+            max_indel_at_pos,
+            extended_window_mode
         )
 
         window_end = window_start + window_length - 1
@@ -247,7 +320,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             )
 
         if (idx != len(tiling) - 1 # except last
-            and len(arr) > 0) or len(tiling)==1: # suppress output if window empty
+            and len(arr) > 0) or len(tiling) == 1: # suppress output if window empty
 
             _write_to_file(arr, file_name + '.reads.fas')
             with open(file_name + '.qualities.npy', 'wb') as f:

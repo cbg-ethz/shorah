@@ -278,7 +278,6 @@ def getSNV(ref, window_thresh=0.9):
 
     return all_snp
 
-
 def writeRaw(all_snv, min_windows_coverage):
     """Write the SNVs that were collected for each window into
     - raw_snv.tsv: contains all SNVs
@@ -423,7 +422,7 @@ def main(args):
     )
 
     if retcode_n != 0:
-        logging.error("sb_filter exited with error %d", retcode_m)
+        logging.error('sb_filter exited with error %d', retcode_m)
         sys.exit()
 
     # parse the p values from raw_snv_* file
