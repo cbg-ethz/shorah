@@ -47,7 +47,7 @@ def _calc_via_pileup(samfile, reference_name, maximum_reads):
 
     return budget, indel_map, max_indel_at_pos
 
-def _build_one_full_read(full_read: list[str], full_qualities: list[int],
+def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[str],
     read_query_name: str|None, first_aligned_pos, last_aligned_pos,
     window_start, indel_map, max_indel_at_pos,
     extended_window_mode) -> tuple[str, list[int]]:
@@ -263,6 +263,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             windows are instead extended.
     """
     assert 0 <= win_min_ext <= 1
+    extended_window_mode = True
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(
@@ -326,10 +327,20 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             with open(file_name + '.qualities.npy', 'wb') as f:
                 np.save(f, np.asarray(arr_read_qualities_summary, dtype=np.int64), allow_pickle=True)
 
+            ref = reffile.fetch(reference=reference_name, start=window_start-1, end=window_end)
             _write_to_file([
-                f'>{reference_name} {window_start}\n' +
-                reffile.fetch(reference=reference_name, start=window_start-1, end=window_end)
+                f'>{reference_name} {window_start}\n' + ref
             ], file_name + '.ref.fas')
+
+            if extended_window_mode:
+                print("HERE")
+                # _write_to_file([
+                #     f'>{reference_name} {window_start}\n' +
+                #     _build_one_full_read(
+                #         list(ref), list(ref), None,
+                #         window_start, window_start + window_length - 1, window_start,
+                #         indel_map, max_indel_at_pos, extended_window_mode)[0]
+                # ], file_name + '.extended-ref.fas')
 
             if len(arr) > minimum_reads:
                 line = (
