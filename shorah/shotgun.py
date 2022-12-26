@@ -140,7 +140,7 @@ def b2w_logging(run_settings):
     """
     bam, fasta, w, i, m, x, c, reg, ignore_indels = run_settings
     d = ' -d' if ignore_indels else ''
-    my_arg = '-w %i -i %i -m %i -x %i -c %i%s %s %s %s' % \
+    my_arg = '-w %i -i %i -m %.4f -x %i -c %i%s %s %s %s' % \
         (w, i, m, x, c, d, bam, fasta, reg)
     logging.debug(f'To run standalone: python3 b2w.py {my_arg}')
 
@@ -474,8 +474,8 @@ def main(args):
     try:
         if ignore_indels == True:
             raise NotImplementedError('This argument was deprecated.')
-        b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext *
-                       win_length, max_coverage, cov_thrd, region, ignore_indels))
+        b2w_logging((in_bam, in_fasta, win_length, incr, win_min_ext,
+            max_coverage, cov_thrd, region, ignore_indels))
 
         if path_insert_file == None and region == "": # special case if no region defined
             samfile = pysam.AlignmentFile(
@@ -659,7 +659,7 @@ def main(args):
             else:
                 os.remove(freq_file)
 
-        for raw_file in glob.glob('./w*reads.fas') + glob.glob('./w*ref.fas'):
+        for raw_file in glob.glob('./w*reads.fas') + glob.glob('./w*ref.fas') + glob.glob('./w*qualities.npy'):
             if os.stat(raw_file).st_size > 0:
                 gzf = gzip_file(raw_file)
                 try:

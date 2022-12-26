@@ -45,8 +45,6 @@ def _calc_via_pileup(samfile, reference_name, maximum_reads):
     # ascending reference_pos are necessary for later steps
     indel_map = sorted(indel_map, key=lambda tup: tup[2])
 
-    print(max_ins_at_pos)
-
     return budget, indel_map, max_ins_at_pos
 
 def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[str],
@@ -185,7 +183,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
                     if last_aligned_pos <= pos < window_start + original_window_length:
                         num_inserts_right_of_read += val
                     if window_start <= pos < first_aligned_pos:
-                        num_inserts_left_of_read += val # TODO no tests
+                        num_inserts_left_of_read += val
 
             start_cut_out = window_start - first_aligned_pos
             end_cut_out = start_cut_out + window_length - num_inserts_left_of_read
@@ -265,7 +263,6 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             windows are instead extended.
     """
     assert 0 <= win_min_ext <= 1
-    extended_window_mode = True # TODO
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(
@@ -335,14 +332,13 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             ], file_name + '.ref.fas')
 
             if extended_window_mode:
-                print("HERE")
-                # _write_to_file([
-                #     f'>{reference_name} {window_start}\n' +
-                #     _build_one_full_read(
-                #         list(ref), list(ref), None,
-                #         window_start, window_start + window_length - 1, window_start,
-                #         indel_map, max_ins_at_pos, extended_window_mode)[0]
-                # ], file_name + '.extended-ref.fas')
+                _write_to_file([
+                    f'>{reference_name} {window_start}\n' +
+                    _build_one_full_read(
+                        list(ref), list(ref), None,
+                        window_start, window_start + window_length - 1, window_start,
+                        indel_map, max_ins_at_pos, extended_window_mode)[0]
+                ], file_name + '.extended-ref.fas')
 
             if len(arr) > minimum_reads:
                 line = (
@@ -393,7 +389,7 @@ if __name__ == "__main__":
     build_windows(
         alignment_file = args.alignment_file,
         tiling_strategy = eqsts,
-        minimum_overlap = args.m[0],
+        win_min_ext = args.m[0],
         maximum_reads = args.x[0], # 1e4 / window_length, TODO why divide?
         minimum_reads = args.c[0],
         reference_filename = args.reference_filename
