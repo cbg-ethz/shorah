@@ -224,7 +224,31 @@ class MockAlignedSegment:
         "AG--GTA--CG---TACNN",
         "ACAAGT----GAAATACNN",
         "A-A-GTAAACG---TACNN"
-    ], 12, 2291, True)
+    ], 12, 2291, True),
+    ([
+        MockAlignedSegment(
+            "Ref",
+            91,
+            "AGGTACGTAC",
+            "10M"
+        ),
+        MockAlignedSegment(
+            "R1",
+            94,
+            "TAACGTAACAGG",
+            "2M1I4M1I4M"
+        ),
+        MockAlignedSegment(
+            "R2",
+            88,
+            "TTAAATGGTACGT",
+            "4M2I7M"
+        )
+    ],[
+        "A--GGTA-CGTA-C",
+        "NNNNNTAACGTAAC",
+        "AATGGTA-CGTNNN"
+    ], 10, 91, True)
 ])
 def test_some_func(mArr, spec, window_length, window_start, extended_window_mode, mocker):
 

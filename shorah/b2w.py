@@ -10,7 +10,7 @@ def _write_to_file(lines, file_name):
 
 def _calc_via_pileup(samfile, reference_name, maximum_reads):
     budget = dict()
-    max_indel_at_pos = dict()
+    max_ins_at_pos = dict()
     indel_map = set() # TODO quick fix because pileup created duplicates; why?
 
     for pileupcolumn in samfile.pileup(
@@ -40,16 +40,18 @@ def _calc_via_pileup(samfile, reference_name, maximum_reads):
                 max_at_this_pos = pileupread.indel
 
         if max_at_this_pos > 0:
-            max_indel_at_pos[pileupcolumn.reference_pos] = max_at_this_pos
+            max_ins_at_pos[pileupcolumn.reference_pos] = max_at_this_pos
 
     # ascending reference_pos are necessary for later steps
     indel_map = sorted(indel_map, key=lambda tup: tup[2])
 
-    return budget, indel_map, max_indel_at_pos
+    print(max_ins_at_pos)
+
+    return budget, indel_map, max_ins_at_pos
 
 def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[str],
     read_query_name: str|None, first_aligned_pos, last_aligned_pos,
-    window_start, indel_map, max_indel_at_pos,
+    window_start, indel_map, max_ins_at_pos,
     extended_window_mode) -> tuple[str, list[int]]:
 
     all_inserts = dict()
@@ -76,7 +78,7 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
             elif is_del == 0 and extended_window_mode and ref_pos >= window_start:
                 own_inserts.add((ref_pos, indel_len))
                 change_in_reference_space_ins += indel_len
-                all_inserts[ref_pos] = max_indel_at_pos[ref_pos]
+                all_inserts[ref_pos] = max_ins_at_pos[ref_pos]
 
             else:
                 pass
@@ -86,7 +88,7 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
             (name != read_query_name or start != first_aligned_pos) and
             window_start <= ref_pos < last_aligned_pos and is_del == 0 and
             first_aligned_pos <= ref_pos): # TODO edge values left
-            all_inserts[ref_pos] = max_indel_at_pos[ref_pos]
+            all_inserts[ref_pos] = max_ins_at_pos[ref_pos]
 
     if extended_window_mode:
         change_in_reference_space = 0
@@ -101,7 +103,7 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
                 change_in_reference_space += n
                 continue
 
-            L = max_indel_at_pos[pos]
+            L = max_ins_at_pos[pos]
             in_idx = pos + 1 - first_aligned_pos + change_in_reference_space
             if pos in own_inserts_pos:
                 k = own_inserts_len[own_inserts_pos.index(pos)]
@@ -111,7 +113,7 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
                 full_read.insert(in_idx, "-")
                 full_qualities.insert(in_idx, "2")
 
-            change_in_reference_space += max_indel_at_pos[pos]
+            change_in_reference_space += max_ins_at_pos[pos]
 
     full_read = ("".join(full_read))
 
@@ -120,7 +122,7 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
 
 def _run_one_window(samfile, window_start, reference_name, window_length,
         minimum_overlap, permitted_reads_per_location, counter,
-        exact_conformance_fix_0_1_basing_in_reads, indel_map, max_indel_at_pos,
+        exact_conformance_fix_0_1_basing_in_reads, indel_map, max_ins_at_pos,
         extended_window_mode):
 
     arr = []
@@ -135,7 +137,7 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
     original_window_length = window_length
     if extended_window_mode:
-        for pos, val in max_indel_at_pos.items():
+        for pos, val in max_ins_at_pos.items():
             if window_start <= pos < window_start + original_window_length:
                 window_length += val
 
@@ -170,27 +172,27 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
 
         full_read, full_qualities = _build_one_full_read(full_read, full_qualities,
             read.query_name, first_aligned_pos, last_aligned_pos, window_start,
-            indel_map, max_indel_at_pos, extended_window_mode)
+            indel_map, max_ins_at_pos, extended_window_mode)
 
         if (first_aligned_pos < window_start + 1 + window_length - minimum_overlap
                 and last_aligned_pos >= window_start + minimum_overlap - 2 # TODO justify 2
                 and len(full_read) >= minimum_overlap):
 
-            start_cut_out = window_start - first_aligned_pos
-            end_cut_out = start_cut_out + window_length
-            s = slice(max(0, start_cut_out), end_cut_out)
-
-            cut_out_read = full_read[s]
-            cut_out_qualities = full_qualities[s]
-
             num_inserts_right_of_read = 0
             num_inserts_left_of_read = 0
             if extended_window_mode:
-                for pos, val in max_indel_at_pos.items():
+                for pos, val in max_ins_at_pos.items():
                     if last_aligned_pos <= pos < window_start + original_window_length:
                         num_inserts_right_of_read += val
                     if window_start <= pos < first_aligned_pos:
                         num_inserts_left_of_read += val # TODO no tests
+
+            start_cut_out = window_start - first_aligned_pos
+            end_cut_out = start_cut_out + window_length - num_inserts_left_of_read
+            s = slice(max(0, start_cut_out), end_cut_out)
+
+            cut_out_read = full_read[s]
+            cut_out_qualities = full_qualities[s]
 
             k = (window_start + original_window_length - 1 - last_aligned_pos
                 + num_inserts_right_of_read)
@@ -263,7 +265,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             windows are instead extended.
     """
     assert 0 <= win_min_ext <= 1
-    extended_window_mode = True
+    extended_window_mode = True # TODO
 
     pysam.index(alignment_file)
     samfile = pysam.AlignmentFile(
@@ -281,7 +283,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
     tiling = tiling_strategy.get_window_tilings()
     region_end = tiling_strategy.get_region_end()
 
-    permitted_reads_per_location, indel_map, max_indel_at_pos = _calc_via_pileup(
+    permitted_reads_per_location, indel_map, max_ins_at_pos = _calc_via_pileup(
         samfile,
         reference_name,
         maximum_reads
@@ -298,7 +300,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
             counter,
             exact_conformance_fix_0_1_basing_in_reads,
             indel_map,
-            max_indel_at_pos,
+            max_ins_at_pos,
             extended_window_mode
         )
 
@@ -339,7 +341,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
                 #     _build_one_full_read(
                 #         list(ref), list(ref), None,
                 #         window_start, window_start + window_length - 1, window_start,
-                #         indel_map, max_indel_at_pos, extended_window_mode)[0]
+                #         indel_map, max_ins_at_pos, extended_window_mode)[0]
                 # ], file_name + '.extended-ref.fas')
 
             if len(arr) > minimum_reads:
