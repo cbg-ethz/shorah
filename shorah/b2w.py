@@ -32,6 +32,7 @@ def _calc_via_pileup(samfile, reference_name, maximum_reads):
                 indel_map.add((
                     pileupread.alignment.query_name, # TODO is unique?
                     pileupread.alignment.reference_start, # TODO is unique?
+                    hash(pileupread.alignment.cigarstring), # TODO is unique?
                     pileupcolumn.reference_pos,
                     pileupread.indel,
                     pileupread.is_del
@@ -43,13 +44,13 @@ def _calc_via_pileup(samfile, reference_name, maximum_reads):
             max_ins_at_pos[pileupcolumn.reference_pos] = max_at_this_pos
 
     # ascending reference_pos are necessary for later steps
-    indel_map = sorted(indel_map, key=lambda tup: tup[2])
+    indel_map = sorted(indel_map, key=lambda tup: tup[3])
 
     return budget, indel_map, max_ins_at_pos
 
 def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[str],
-    read_query_name: str|None, first_aligned_pos, last_aligned_pos,
-    window_start, indel_map, max_ins_at_pos,
+    read_query_name: str|None, full_read_cigar_hash: str|None, first_aligned_pos,
+    last_aligned_pos, window_start, indel_map, max_ins_at_pos,
     extended_window_mode) -> tuple[str, list[int]]:
 
     all_inserts = dict()
@@ -57,11 +58,12 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
 
     change_in_reference_space_ins = 0
 
-    for name, start, ref_pos, indel_len, is_del in indel_map:
-        if name == read_query_name and start == first_aligned_pos:
+    for name, start, cigar_hash, ref_pos, indel_len, is_del in indel_map:
+
+        if name == read_query_name and start == first_aligned_pos and cigar_hash == full_read_cigar_hash:
             if is_del == 1: # if del
-                if indel_len != 0:
-                    raise NotImplementedError("Deletions larger than 1 not expected.")
+                # if indel_len != 0: # TODO
+                #     raise NotImplementedError("Deletions larger than 1 not expected.")
                 full_read.insert(ref_pos - first_aligned_pos + change_in_reference_space_ins, "-")
                 full_qualities.insert(ref_pos - first_aligned_pos + change_in_reference_space_ins, "2")
                 continue
@@ -70,10 +72,10 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
                 assert indel_len > 0
                 for _ in range(indel_len):
                     full_read.pop(ref_pos + 1 - first_aligned_pos)
-                    full_qualities.pop(start + 1 - first_aligned_pos)
+                    full_qualities.pop(ref_pos + 1 - first_aligned_pos)
                 continue
 
-            elif is_del == 0 and extended_window_mode and ref_pos >= window_start:
+            elif is_del == 0 and extended_window_mode:
                 own_inserts.add((ref_pos, indel_len))
                 change_in_reference_space_ins += indel_len
                 all_inserts[ref_pos] = max_ins_at_pos[ref_pos]
@@ -83,9 +85,10 @@ def _build_one_full_read(full_read: list[str], full_qualities: list[int]|list[st
 
 
         if (extended_window_mode and
-            (name != read_query_name or start != first_aligned_pos) and
+            (name != read_query_name or start != first_aligned_pos or cigar_hash != full_read_cigar_hash) and
             window_start <= ref_pos < last_aligned_pos and is_del == 0 and
             first_aligned_pos <= ref_pos): # TODO edge values left
+
             all_inserts[ref_pos] = max_ins_at_pos[ref_pos]
 
     if extended_window_mode:
@@ -169,8 +172,8 @@ def _run_one_window(samfile, window_start, reference_name, window_length,
                 raise NotImplementedError("CIGAR op code found that is not implemented:", ct[0])
 
         full_read, full_qualities = _build_one_full_read(full_read, full_qualities,
-            read.query_name, first_aligned_pos, last_aligned_pos, window_start,
-            indel_map, max_ins_at_pos, extended_window_mode)
+            read.query_name, hash(read.cigarstring), first_aligned_pos, last_aligned_pos,
+            window_start, indel_map, max_ins_at_pos, extended_window_mode)
 
         if (first_aligned_pos < window_start + 1 + window_length - minimum_overlap
                 and last_aligned_pos >= window_start + minimum_overlap - 2 # TODO justify 2
@@ -335,7 +338,7 @@ def build_windows(alignment_file: str, tiling_strategy: TilingStrategy,
                 _write_to_file([
                     f'>{reference_name} {window_start}\n' +
                     _build_one_full_read(
-                        list(ref), list(ref), None,
+                        list(ref), list(ref), None, None,
                         window_start, window_start + window_length - 1, window_start,
                         indel_map, max_ins_at_pos, extended_window_mode)[0]
                 ], file_name + '.extended-ref.fas')
